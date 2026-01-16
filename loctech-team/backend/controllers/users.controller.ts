@@ -6,6 +6,9 @@ import { render } from "@react-email/components";
 import WelcomeEmail from "@/emails/welcome";
 import EmailService from "../services/email.service";
 import mongoose from "mongoose";
+import { ResendService } from "../services/resend.service";
+import * as z from "zod";
+import { extractFirstName } from "@/lib/utils";
 
 // Get all users
 export const getAllUsers = async (
@@ -64,30 +67,64 @@ export const getUserById = async (id: string): Promise<User | null> => {
   }
 };
 
+// Email validation schemas
+const emailSchema = z
+  .email("Invalid email format")
+  .min(1, "Email is required")
+  .transform((email) => email.trim().toLowerCase());
+
+const fromEmailSchema = z.email("Invalid sender email format").refine(
+  (email) => {
+    // Ensure it matches the expected domain format
+    const domain = email.split("@")[1];
+    return domain && domain.length > 0;
+  },
+  { message: "Sender email must have a valid domain" }
+);
+
+// User data schema for validation
+const createUserSchema = z.object({
+  email: emailSchema.optional(),
+  name: z.string().min(1, "Name is required").optional(),
+  password: z.string().optional(),
+  role: z.string().optional(),
+  title: z.string().optional(),
+  phone: z.string().optional(),
+  isActive: z.boolean().optional(),
+  bankDetails: z.any().optional(),
+});
+
 // Create new user
 export const createUser = async (data: Partial<User>): Promise<User | null> => {
   let session: mongoose.ClientSession | null = null;
 
   try {
+    // Validate input data
+    const validatedData = createUserSchema.parse(data);
+
     await connectToDatabase();
     session = await mongoose.startSession();
     session.startTransaction();
 
     // 1. Generate password if not provided
-    let password = data.password as string | null;
-    if (!password && data.name) {
-      const normalizedName = data.name.toLowerCase().replace(/\s+/g, "");
+    let password = validatedData.password as string | null;
+    if (!password && validatedData.name) {
+      const normalizedName = validatedData.name
+        .toLowerCase()
+        .replace(/\s+/g, "");
       password = `${normalizedName}@loctech`;
     }
 
     // 2. Hash password
     const passwordHash = await hashPassword(password as string);
+    const normalizedEmail = emailSchema.parse(validatedData.email || "");
 
     // 3. Create user (inside transaction)
     const user = await UserModel.create(
       [
         {
-          ...data,
+          ...validatedData,
+          email: normalizedEmail,
           passwordHash,
         },
       ],
@@ -95,32 +132,42 @@ export const createUser = async (data: Partial<User>): Promise<User | null> => {
     );
     const createdUser = user[0];
 
-    // 4. Prepare email data
+    // 4. Prepare and validate email data
+    const fromDomain = process.env.RESEND_DOMAIN ?? "";
+
+    // Validate the from domain exists
+    if (!fromDomain) {
+      throw new Error("RESEND_DOMAIN environment variable is not set");
+    }
+
+    const fromEmail = `hello@${fromDomain}`;
+
+    // Validate the from email
+    const validatedFromEmail = fromEmailSchema.parse(fromEmail);
+
     const mailData = {
-      name: data.name ?? "",
-      email: data.email ?? "",
+      name: extractFirstName(validatedData.name ?? ""),
+      email: normalizedEmail,
       plainPassword: password ?? "",
     };
 
     const html = await render(WelcomeEmail(mailData));
 
     // 5. Send email (outside DB but *before* commit)
-    const result = await EmailService.send({
-      sender: {
-        name: "Loctech IT Training Institute",
-        address: "enquiries@loctechng.com",
-      },
-      recipients: [
-        {
-          name: mailData.name,
-          address: mailData.email,
-        },
-      ],
+    const result = await ResendService.sendEmail({
+      from: `Loctech Training Institution <${validatedFromEmail}>`,
+      to: `${mailData.name} <${normalizedEmail}>`,
       subject: "Welcome to Loctech Team",
-      message: html,
+      html,
     });
 
-    if (!result.accepted || result.accepted.length === 0) {
+    if (!result || result.error != null) {
+      await session.abortTransaction();
+      console.error("Failed to send welcome email, aborting transaction", {
+        email: normalizedEmail,
+        mailResult: result,
+      });
+
       throw new Error("Failed to send welcome email");
     }
 
@@ -143,6 +190,12 @@ export const createUser = async (data: Partial<User>): Promise<User | null> => {
     };
   } catch (error) {
     console.error("Error creating user (rolling back):", error);
+
+    // Handle Zod validation errors specifically
+    if (error instanceof z.ZodError) {
+      console.error("Validation errors:", error);
+    }
+
     if (session) {
       await session.abortTransaction();
     }

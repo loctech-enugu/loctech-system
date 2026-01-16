@@ -4,6 +4,8 @@ import Link from "next/link";
 import { type PropsWithChildren } from "react";
 import bgImage from "@/assets/download.webp";
 import Image from "next/image";
+import logo from "@/assets/loctech.png";
+import logoWhite from "@/assets/loctech-white.svg";
 
 interface AuthLayoutProps {
   title?: string;
@@ -31,8 +33,10 @@ export default function AuthSplitLayout({
           href={"/"}
           className="relative z-20 flex items-center text-lg font-medium"
         >
-          <AppLogoIcon className="mr-2 size-8 fill-current text-white" />
-          {name}
+          <Image src={logo} alt="Logo" className="w-20 dark:hidden" />
+          <Image src={logoWhite} alt="Logo" className="w-20 hidden dark:flex" />
+          {/*  <AppLogoIcon className="mr-2 size-8 fill-current text-white" />
+           {name} */}
         </Link>
         {quote && (
           <div className="relative z-20 mt-auto">

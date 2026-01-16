@@ -1,0 +1,22 @@
+{
+  "name": "hotel-mgt-system",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "install-team": "npm install --prefix loctech-team",
+    "install-student": "npm install --prefix loctech-student",
+    "install": "npm run install-server && npm run install-client",
+    "team": "npm run dev --prefix loctech-team",
+    "student": "npm run dev --prefix loctech-student",
+    "email": "npm run dev --prefix react-email-starter",
+    "team-email": "npm run mail --prefix loctech-team",
+    "watch": "npm run server & npm run client",
+    "deploy": "npm run build --prefix client && npm start --prefix server",
+    "deploy-cluster": "npm run build --prefix client && npm run cluster --prefix server",
+    "test": "npm run test --prefix server && npm run test --prefix client"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}

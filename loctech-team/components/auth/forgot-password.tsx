@@ -17,7 +17,7 @@ export default function ForgotPWForm() {
       const res = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, userType: "user" }),
       });
 
       const data = await res.json();
