@@ -17,7 +17,6 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 async function UserPage() {
   const users = await getAllUsers();
-  console.log("users: ", users);
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>

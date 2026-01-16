@@ -2,5 +2,5 @@ import { PasswordResetController } from "@/backend/controllers/password-reset.co
 import { NextRequest } from "next/server";
 
 export async function POST(req: NextRequest) {
-  return PasswordResetController.forgotPassword(req);
+  return PasswordResetController.resetPassword(req);
 }
