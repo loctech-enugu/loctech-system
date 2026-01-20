@@ -273,3 +273,19 @@ export interface ReportTrend {
   submitted: number;
   reviewed: number;
 }
+
+export interface Announcement {
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+  title: string;
+  content: string;
+  author: {
+    id: string;
+    name: string;
+    email: string | null;
+  };
+  audience: "all" | "staff" | "students";
+  isActive: boolean;
+  expiresAt?: Date | null | undefined;
+}
