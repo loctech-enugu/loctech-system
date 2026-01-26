@@ -199,7 +199,7 @@ export const getAllStudents = async (): Promise<Student[]> => {
   await connectToDatabase();
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
-  loadStudentsData();
+  // loadStudentsData();
 
   const students = await StudentModel.find({})
     .populate("courses", "title category")
@@ -236,9 +236,17 @@ export const createStudent = async (
     password = `${normalizedName}@loctech`;
   }
 
+  const normalizedEmail = data.email?.toLowerCase().replace(/\s+/g, "");
+
+  // Check if student already exists
+  const existingStudent = await StudentModel.findOne({ email: normalizedEmail });
+  if (existingStudent) {
+    return formatStudent(existingStudent.toObject());
+  }
+
   // 2. Hash password
   const passwordHash = await hashPassword(password as string);
-  const newStudent = await StudentModel.create({ ...data, passwordHash });
+  const newStudent = await StudentModel.create({ ...data, passwordHash, email: normalizedEmail });
   const populated = await newStudent.populate("courses", "name code");
 
   // 🔁 Update each course to include this student
