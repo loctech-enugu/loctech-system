@@ -8,7 +8,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { format } from "date-fns";
-import { UserCheck, UserX, Clock, FileText, Timer } from "lucide-react";
+import { UserCheck, UserX, Clock, FileText, Timer, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -16,6 +16,7 @@ import {
   useSignInAttendance,
   useSignOutAttendance,
   useExcuseAttendance,
+  useUpdateAttendance,
 } from "@/hooks/use-student-attendance";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,6 +31,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import type { StudentAttendance } from "@/types";
 
 interface Props {
   isReportSheetOpen: boolean;
@@ -54,11 +56,13 @@ export const AttendanceDetails = ({
   const signInMutation = useSignInAttendance();
   const signOutMutation = useSignOutAttendance();
   const excuseMutation = useExcuseAttendance();
+  const updateMutation = useUpdateAttendance();
 
   const isSubmitting =
     signInMutation.isPending ||
     signOutMutation.isPending ||
-    excuseMutation.isPending;
+    excuseMutation.isPending ||
+    updateMutation.isPending;
   console.log(
     signInMutation.isPending,
     signOutMutation.isPending,
@@ -76,10 +80,59 @@ export const AttendanceDetails = ({
     null
   );
   const [selectedAction, setSelectedAction] = useState<ActionType | null>(null);
+  const [selectedAttendanceId, setSelectedAttendanceId] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const handleSubmitAction = async () => {
     if (!selectedStudentId || !selectedAction || !date) return;
 
+    // If editing existing attendance
+    if (isEditMode && selectedAttendanceId) {
+      const payload: Record<string, unknown> = {
+        notes: noteText,
+      };
+
+      // Map action to status
+      if (selectedAction) {
+        if (selectedAction === "signin") {
+          payload.status = "present";
+        } else if (selectedAction === "signin_late") {
+          payload.status = "late";
+        } else if (selectedAction === "excuse") {
+          payload.status = "excused";
+        } else if (selectedAction === "absent") {
+          payload.status = "absent";
+        } else {
+          payload.status = selectedAction;
+        }
+      }
+
+      if (signInTime) {
+        payload.signInTime = new Date(`${date}T${signInTime}`).toISOString();
+      }
+      if (signOutTime) {
+        payload.signOutTime = new Date(`${date}T${signOutTime}`).toISOString();
+      }
+
+      try {
+        await updateMutation.mutateAsync({ id: selectedAttendanceId, ...payload });
+      } catch (error) {
+        console.error("Error updating attendance:", error);
+      } finally {
+        setIsNoteModalOpen(false);
+        setNoteText("");
+        setSignInTime("");
+        setSignOutTime("");
+        setSelectedStudentId(null);
+        setSelectedAction(null);
+        setSelectedAttendanceId(null);
+        setIsEditMode(false);
+        router.refresh();
+      }
+      return;
+    }
+
+    // Original create/update logic
     const payload: Record<string, unknown> = {
       studentId: selectedStudentId,
       courseId,
@@ -123,6 +176,8 @@ export const AttendanceDetails = ({
       setSignOutTime("");
       setSelectedStudentId(null);
       setSelectedAction(null);
+      setSelectedAttendanceId(null);
+      setIsEditMode(false);
       router.refresh();
     }
   };
@@ -130,6 +185,32 @@ export const AttendanceDetails = ({
   const openNoteModal = (studentId: string, action: ActionType) => {
     setSelectedStudentId(studentId);
     setSelectedAction(action);
+    setIsEditMode(false);
+    setSelectedAttendanceId(null);
+    setIsNoteModalOpen(true);
+  };
+
+  const openEditModal = (studentId: string, attendance: StudentAttendance) => {
+    setSelectedStudentId(studentId);
+    setSelectedAttendanceId(attendance.id);
+    setSelectedAction(attendance.status as ActionType);
+    setIsEditMode(true);
+
+    // Pre-fill form with existing data
+    if (attendance.signInTime) {
+      const signInDate = new Date(attendance.signInTime);
+      const hours = String(signInDate.getHours()).padStart(2, "0");
+      const minutes = String(signInDate.getMinutes()).padStart(2, "0");
+      setSignInTime(`${hours}:${minutes}`);
+    }
+    if (attendance.signOutTime) {
+      const signOutDate = new Date(attendance.signOutTime);
+      const hours = String(signOutDate.getHours()).padStart(2, "0");
+      const minutes = String(signOutDate.getMinutes()).padStart(2, "0");
+      setSignOutTime(`${hours}:${minutes}`);
+    }
+    setNoteText(attendance.notes || "");
+
     setIsNoteModalOpen(true);
   };
 
@@ -183,9 +264,9 @@ export const AttendanceDetails = ({
                             <Clock size={14} />{" "}
                             {attendance.signInTime
                               ? format(
-                                  new Date(attendance.signInTime),
-                                  "hh:mm a"
-                                )
+                                new Date(attendance.signInTime),
+                                "hh:mm a"
+                              )
                               : "—"}
                             {attendance.signOutTime && (
                               <>
@@ -223,6 +304,16 @@ export const AttendanceDetails = ({
                       >
                         {attendance?.status || "pending"}
                       </Badge>
+                      {attendance && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openEditModal(student.id, attendance)}
+                        >
+                          <Edit size={16} className="mr-1" />
+                          Edit
+                        </Button>
+                      )}
                       {!attendance && (
                         <Button
                           size="sm"
@@ -294,33 +385,77 @@ export const AttendanceDetails = ({
         <DialogContent className="max-w-md space-y-4">
           <DialogHeader>
             <DialogTitle>
-              {selectedAction === "signin"
-                ? "Sign In Student"
-                : selectedAction === "signin_late"
-                  ? "Mark as Late"
-                  : selectedAction === "signout"
-                    ? "Sign Out Student"
-                    : selectedAction === "absent"
-                      ? "Mark as Absent"
-                      : "Excuse Student"}
+              {isEditMode
+                ? "Edit Attendance"
+                : selectedAction === "signin"
+                  ? "Sign In Student"
+                  : selectedAction === "signin_late"
+                    ? "Mark as Late"
+                    : selectedAction === "signout"
+                      ? "Sign Out Student"
+                      : selectedAction === "absent"
+                        ? "Mark as Absent"
+                        : "Excuse Student"}
             </DialogTitle>
           </DialogHeader>
 
-          {(selectedAction === "signin" ||
-            selectedAction === "signin_late") && (
-            <div>
-              <label className="block text-sm mb-1 text-muted-foreground">
-                Sign In Time
-              </label>
-              <Input
-                type="time"
-                value={signInTime}
-                onChange={(e) => setSignInTime(e.target.value)}
-              />
-            </div>
+          {isEditMode && (
+            <>
+              <div>
+                <label className="block text-sm mb-1 text-muted-foreground">
+                  Status
+                </label>
+                <select
+                  className="w-full px-3 py-2 border rounded-md"
+                  value={selectedAction || ""}
+                  onChange={(e) =>
+                    setSelectedAction(e.target.value as ActionType)
+                  }
+                >
+                  <option value="present">Present</option>
+                  <option value="late">Late</option>
+                  <option value="excused">Excused</option>
+                  <option value="absent">Absent</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm mb-1 text-muted-foreground">
+                  Sign In Time
+                </label>
+                <Input
+                  type="time"
+                  value={signInTime}
+                  onChange={(e) => setSignInTime(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm mb-1 text-muted-foreground">
+                  Sign Out Time
+                </label>
+                <Input
+                  type="time"
+                  value={signOutTime}
+                  onChange={(e) => setSignOutTime(e.target.value)}
+                />
+              </div>
+            </>
           )}
 
-          {selectedAction === "signout" && (
+          {!isEditMode && (selectedAction === "signin" ||
+            selectedAction === "signin_late") && (
+              <div>
+                <label className="block text-sm mb-1 text-muted-foreground">
+                  Sign In Time
+                </label>
+                <Input
+                  type="time"
+                  value={signInTime}
+                  onChange={(e) => setSignInTime(e.target.value)}
+                />
+              </div>
+            )}
+
+          {!isEditMode && selectedAction === "signout" && (
             <div>
               <label className="block text-sm mb-1 text-muted-foreground">
                 Sign Out Time
@@ -333,7 +468,7 @@ export const AttendanceDetails = ({
             </div>
           )}
 
-          {selectedAction === "absent" ? (
+          {!isEditMode && selectedAction === "absent" ? (
             "Are you sure this student is absent?"
           ) : (
             <Textarea
@@ -356,15 +491,17 @@ export const AttendanceDetails = ({
             >
               {isSubmitting
                 ? "Saving..."
-                : selectedAction === "signin"
-                  ? "Sign In"
-                  : selectedAction === "signin_late"
-                    ? "Mark Late"
-                    : selectedAction === "signout"
-                      ? "Sign Out"
-                      : selectedAction === "absent"
-                        ? "Mark as Absent"
-                        : "Save Excuse"}
+                : isEditMode
+                  ? "Update Attendance"
+                  : selectedAction === "signin"
+                    ? "Sign In"
+                    : selectedAction === "signin_late"
+                      ? "Mark Late"
+                      : selectedAction === "signout"
+                        ? "Sign Out"
+                        : selectedAction === "absent"
+                          ? "Mark as Absent"
+                          : "Save Excuse"}
             </Button>
           </div>
         </DialogContent>

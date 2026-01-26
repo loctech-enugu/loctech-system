@@ -276,6 +276,56 @@ export const updateAttendance = async (
 };
 
 /**
+ * Update Attendance Record by ID (for editing)
+ */
+export const updateAttendanceById = async (
+  id: string,
+  data: Record<string, unknown>
+): Promise<StudentAttendance | null> => {
+  try {
+    await connectToDatabase();
+    const session = await getServerSession(authConfig);
+    if (!session) throw new Error("Unauthorized");
+
+    const record = await StudentAttendanceModel.findById(id);
+    if (!record) {
+      throw new Error("Attendance record not found");
+    }
+
+    // Update fields if provided
+    if (data.status !== undefined) {
+      record.status = data.status as typeof record.status;
+    }
+    if (data.signInTime !== undefined) {
+      record.signInTime = data.signInTime
+        ? new Date(data.signInTime as string)
+        : undefined;
+    }
+    if (data.signOutTime !== undefined) {
+      record.signOutTime = data.signOutTime
+        ? new Date(data.signOutTime as string)
+        : undefined;
+    }
+    if (data.notes !== undefined) {
+      record.notes = data.notes as string;
+    }
+
+    await record.save();
+
+    const populated = await record.populate([
+      { path: "student", select: "name email" },
+      { path: "course", select: "name code" },
+      { path: "staff", select: "name email" },
+    ]);
+
+    return formatAttendance(populated.toObject());
+  } catch (error) {
+    console.error("Error updating attendance by ID:", error);
+    throw new Error("Failed to update attendance record");
+  }
+};
+
+/**
  * Mark Student as Signed Out
  */
 export const signOutAttendance = async (

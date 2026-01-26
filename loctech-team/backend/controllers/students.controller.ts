@@ -201,6 +201,7 @@ export const getAllStudents = async (): Promise<Student[]> => {
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
   // loadStudentsData();
+  // syncCoursesStudents()
 
   const students = await StudentModel.find({})
     .populate("courses", "title category")
@@ -408,4 +409,72 @@ export const generatePasswordForStudent = async (): Promise<boolean> => {
 
   console.log("🎉 Password generation completed successfully");
   return true;
+};
+
+/**
+ * Sync courses-students bidirectional relationship
+ * Ensures that if a course has a student, the student also has that course
+ */
+export const syncCoursesStudents = async (): Promise<{
+  coursesFixed: number;
+  studentsFixed: number;
+}> => {
+  await connectToDatabase();
+  const session = await getServerSession(authConfig);
+  if (!session) throw new Error("Unauthorized");
+
+  let coursesFixed = 0;
+  let studentsFixed = 0;
+
+  // Get all courses
+  const courses = await CourseModel.find({}).lean();
+
+  for (const course of courses) {
+    const courseStudentIds = (course.students || []).map((s: any) => String(s));
+
+    if (courseStudentIds.length === 0) continue;
+
+    // For each student in the course, ensure they have this course
+    for (const studentId of courseStudentIds) {
+      const student = await StudentModel.findById(studentId);
+      if (!student) continue;
+
+      const studentCourseIds = (student.courses || []).map((c: any) => String(c));
+      const courseIdStr = String(course._id);
+
+      if (!studentCourseIds.includes(courseIdStr)) {
+        // Student doesn't have this course, add it
+        student.courses.push(course._id as any);
+        await student.save();
+        studentsFixed++;
+      }
+    }
+  }
+
+  // Also check the reverse: if a student has a course, ensure the course has that student
+  const students = await StudentModel.find({}).lean();
+
+  for (const student of students) {
+    const studentCourseIds = (student.courses || []).map((c: any) => String(c));
+
+    if (studentCourseIds.length === 0) continue;
+
+    // For each course the student has, ensure the course has this student
+    for (const courseId of studentCourseIds) {
+      const course = await CourseModel.findById(courseId);
+      if (!course) continue;
+
+      const courseStudentIds = (course.students || []).map((s: any) => String(s));
+      const studentIdStr = String(student._id);
+
+      if (!courseStudentIds.includes(studentIdStr)) {
+        // Course doesn't have this student, add it
+        course.students.push(student._id as any);
+        await course.save();
+        coursesFixed++;
+      }
+    }
+  }
+
+  return { coursesFixed, studentsFixed };
 };
