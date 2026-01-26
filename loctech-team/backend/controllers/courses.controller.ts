@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { CourseModel } from "../models/courses.model";
 import { UserModel } from "../models/user.model";
+import { StudentModel } from "../models/students.model";
 import { Course } from "@/types";
 
 /* eslint-disable */
@@ -174,7 +175,7 @@ export const getCourseById = async (id: string): Promise<Course | null> => {
  */
 export const updateCourse = async (
   id: string,
-  data: Partial<Course> & { instructor?: string }
+  data: Partial<Course> & { instructor?: string; students?: string[] }
 ): Promise<Course | null> => {
   await connectToDatabase();
   const session = await getServerSession(authConfig);
@@ -188,8 +189,42 @@ export const updateCourse = async (
     if (!instructorExists) throw new Error("Invalid instructor ID");
   }
 
+  // Handle students sync if provided
+  if (data.students !== undefined) {
+    const oldStudentIds = (course.students || []).map((s: any) => String(s));
+    const newStudentIds = data.students.map((s: any) => String(s));
+
+    const addedStudents = newStudentIds.filter(
+      (id) => !oldStudentIds.includes(id)
+    );
+    const removedStudents = oldStudentIds.filter(
+      (id) => !newStudentIds.includes(id)
+    );
+
+    // Update course students
+    course.students = data.students as any;
+
+    // Sync: Add course to new students
+    if (addedStudents.length > 0) {
+      await StudentModel.updateMany(
+        { _id: { $in: addedStudents } },
+        { $addToSet: { courses: course._id } }
+      );
+    }
+
+    // Sync: Remove course from removed students
+    if (removedStudents.length > 0) {
+      await StudentModel.updateMany(
+        { _id: { $in: removedStudents } },
+        { $pull: { courses: course._id } }
+      );
+    }
+  }
+
   Object.assign(course, {
     ...data,
+    // Don't overwrite students if we already handled it above
+    ...(data.students === undefined ? {} : { students: course.students }),
   });
 
   await course.save();

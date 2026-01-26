@@ -112,13 +112,29 @@ export const useExcuseAttendance = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: Record<string, unknown>) =>
-      postData(`/attendance/${payload}/students`, payload),
+      postData(`/attendance/${payload.courseId}/students`, payload),
     onSuccess: () => {
       toast.success("Marked as excused");
       queryClient.invalidateQueries({ queryKey: ["course-attendance"] });
     },
     onError: (err) => {
       toast.error(err.message || "Failed to mark as excused");
+    },
+  });
+};
+
+// Update Attendance by ID (for editing)
+export const useUpdateAttendance = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...payload }: { id: string } & Record<string, unknown>) =>
+      updateData(`/attendance/students/${id}`, payload),
+    onSuccess: () => {
+      toast.success("Attendance updated successfully");
+      queryClient.invalidateQueries({ queryKey: ["course-attendance"] });
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to update attendance");
     },
   });
 };
