@@ -9,6 +9,7 @@ import { z } from "zod";
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authConfig);
   if (!session) return errorResponse("Please login", 401);
+  console.log(req);
 
   let audienceFilter: string[] = ["all"];
 
