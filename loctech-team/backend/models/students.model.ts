@@ -48,8 +48,8 @@ const StudentSchema = new Schema(
     // Status (for admin tracking)
     status: {
       type: String,
-      enum: ["active", "graduated", "suspended"],
-      default: "active",
+      enum: ["active", "graduated", "suspended", "pending"],
+      default: "pending",
     },
   },
   { timestamps: true }

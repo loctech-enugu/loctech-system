@@ -11,6 +11,7 @@ import { parse } from "csv-parse";
 import fs from "fs";
 import path from "path";
 import { extractFirstName } from "@/lib/utils";
+import mongoose from "mongoose";
 
 const safeFormatDate = (value: string | null): string => {
   if (!value) return ""; // default or blank
@@ -222,6 +223,17 @@ export const getStudentById = async (id: string): Promise<Student | null> => {
 };
 
 /**
+ * Helper function to sanitize courses array
+ */
+const sanitizeCourses = (courses: string[] | undefined): string[] => {
+  if (!courses || !Array.isArray(courses)) return [];
+  return courses
+    .filter((id) => id && typeof id === "string" && id.trim() !== "")
+    .filter((id) => mongoose.Types.ObjectId.isValid(id.trim()))
+    .map((id) => id.trim());
+};
+
+/**
  * Create student
  */
 export const createStudent = async (
@@ -244,15 +256,24 @@ export const createStudent = async (
     return formatStudent(existingStudent.toObject());
   }
 
+  // 2. Sanitize courses array - filter out empty strings and invalid ObjectIds
+  const sanitizedCourses = sanitizeCourses(data.courses as string[] | undefined);
+
   // 2. Hash password
   const passwordHash = await hashPassword(password as string);
-  const newStudent = await StudentModel.create({ ...data, passwordHash, email: normalizedEmail });
+  const newStudent = await StudentModel.create({
+    ...data,
+    courses: sanitizedCourses,
+    passwordHash,
+    email: normalizedEmail,
+    status: "pending"
+  });
   const populated = await newStudent.populate("courses", "name code");
 
   // 🔁 Update each course to include this student
-  if (data.courses && data.courses.length > 0) {
+  if (sanitizedCourses.length > 0) {
     await CourseModel.updateMany(
-      { _id: { $in: data.courses } },
+      { _id: { $in: sanitizedCourses } },
       { $addToSet: { students: newStudent._id } }
     );
   }
@@ -284,18 +305,25 @@ export const updateStudent = async (
   const existing = await StudentModel.findById(id).lean();
   if (!existing) throw new Error("Student not found");
 
-  const updated = await StudentModel.findByIdAndUpdate(id, data, {
-    new: true,
-  })
+  // Sanitize courses array - filter out empty strings and invalid ObjectIds
+  const sanitizedCourses = sanitizeCourses(data.courses);
+
+  const updated = await StudentModel.findByIdAndUpdate(
+    id,
+    { ...data, courses: sanitizedCourses },
+    {
+      new: true,
+    }
+  )
     .populate("courses", "name code")
     .lean();
 
   if (!updated) return null;
 
   // 🔁 If courses are updated, sync both sides
-  if (data.courses) {
+  if (sanitizedCourses !== undefined) {
     const oldCourseIds = (existing.courses || []).map((c: any) => String(c));
-    const newCourseIds = data.courses.map((c: any) => String(c));
+    const newCourseIds = sanitizedCourses.map((c: any) => String(c));
 
     const addedCourses = newCourseIds.filter(
       (id) => !oldCourseIds.includes(id)
