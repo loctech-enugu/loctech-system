@@ -56,7 +56,7 @@ const editStudentSchema = z.object({
     "Friends",
     "Other",
   ]),
-  status: z.enum(["active", "graduated", "suspended"]),
+  status: z.enum(["active", "graduated", "suspended", "pending"]),
   nextOfKin: z.object({
     name: z.string().min(2, "Next of kin name is required"),
     relationship: z.string().min(2, "Relationship is required"),
@@ -155,7 +155,7 @@ export default function EditStudentModal({
       nationality: (formData.get("nationality") as string) || undefined,
       occupation: (formData.get("occupation") as string) || undefined,
       heardFrom: formData.get("heardFrom") as EditStudentForm["heardFrom"],
-      status: formData.get("status") as "active" | "graduated" | "suspended",
+      status: formData.get("status") as "active" | "graduated" | "suspended" | "pending",
       nextOfKin: {
         name: formData.get("nextOfKinName") as string,
         relationship: formData.get("nextOfKinRelationship") as string,
@@ -338,6 +338,7 @@ export default function EditStudentModal({
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="graduated">Graduated</SelectItem>
                 <SelectItem value="suspended">Suspended</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
               </SelectContent>
             </Select>
           </div>
