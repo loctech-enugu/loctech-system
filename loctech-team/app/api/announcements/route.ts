@@ -11,9 +11,7 @@ export async function GET(req: NextRequest) {
   if (!session) return errorResponse("Please login", 401);
   console.log(req);
 
-  let audienceFilter: string[] = ["all"];
-
-  audienceFilter.push("staff");
+  const audienceFilter: string[] = ["all", "staff"];
 
   const announcements = await AnnouncementModel.find({
     isActive: true,
