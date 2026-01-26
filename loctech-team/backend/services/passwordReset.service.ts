@@ -7,7 +7,7 @@ import {
 import { connectToDatabase } from "@/lib/db";
 import { UserModel } from "../models/user.model";
 import { StudentModel } from "../models/students.model";
-import { PasswordResetTokenModel } from "../models/password-reset-token,model";
+import { PasswordResetTokenModel } from "../models/password-reset-token.model";
 import ForgotPasswordEmail from "@/emails/forgot-password";
 import { ResendService } from "./resend.service";
 import mongoose from "mongoose";

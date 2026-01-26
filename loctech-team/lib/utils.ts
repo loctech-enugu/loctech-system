@@ -23,6 +23,7 @@ export const userLinks = {
   reports: "/dashboard/reports",
   users: "/dashboard/users",
   students: "/dashboard/students",
+  announcements: "/dashboard/announcements",
   courses: "/dashboard/courses",
   schedule: (courseId: string) => `/dashboard/courses/${courseId}/schedule`,
   scholarship: "/dashboard/scholarship-students",

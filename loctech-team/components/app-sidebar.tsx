@@ -20,6 +20,7 @@ import {
   Globe,
   LayoutGrid,
   List,
+  Mic,
   QrCode,
   Users,
 } from "lucide-react";
@@ -42,6 +43,11 @@ const mainNavItems: NavItem[] = [
     title: "Reports",
     href: userLinks.reports,
     icon: Folder,
+  },
+  {
+    title: "Announcement",
+    href: userLinks.announcements,
+    icon: Mic,
   },
   {
     title: "Staff",

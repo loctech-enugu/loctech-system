@@ -154,7 +154,11 @@ export function StudentsTable({
               ? "bg-green-100 text-green-800"
               : status === "graduated"
                 ? "bg-blue-100 text-blue-800"
-                : "bg-red-100 text-red-800";
+                : status === "pending"
+                  ? "bg-gray-100 text-gray-800"
+                  : status === "suspended"
+                    ? "bg-red-100 text-red-800"
+                    : "bg-red-100 text-red-800";
 
           return <Badge className={color}>{status}</Badge>;
         },
@@ -326,9 +330,9 @@ export function StudentsTable({
                     {header.isPlaceholder
                       ? null
                       : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                   </TableHead>
                 ))}
               </TableRow>
