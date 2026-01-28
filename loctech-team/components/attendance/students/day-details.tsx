@@ -33,6 +33,17 @@ import { useRouter } from "next/navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { StudentAttendance } from "@/types";
 
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
+
 interface Props {
   isReportSheetOpen: boolean;
   handleCloseReportSheet: (open: boolean) => void;
@@ -405,18 +416,21 @@ export const AttendanceDetails = ({
                 <label className="block text-sm mb-1 text-muted-foreground">
                   Status
                 </label>
-                <select
-                  className="w-full px-3 py-2 border rounded-md"
-                  value={selectedAction || ""}
-                  onChange={(e) =>
-                    setSelectedAction(e.target.value as ActionType)
-                  }
-                >
-                  <option value="present">Present</option>
-                  <option value="late">Late</option>
-                  <option value="excused">Excused</option>
-                  <option value="absent">Absent</option>
-                </select>
+
+                <Select value={selectedAction || ""} onValueChange={(value) => setSelectedAction(value as ActionType)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Status</SelectLabel>
+                      <SelectItem value="present">Present</SelectItem>
+                      <SelectItem value="late">Late</SelectItem>
+                      <SelectItem value="excused">Excused</SelectItem>
+                      <SelectItem value="absent">Absent</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="block text-sm mb-1 text-muted-foreground">
