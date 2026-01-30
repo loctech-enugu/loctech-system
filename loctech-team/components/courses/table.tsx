@@ -232,11 +232,6 @@ export function CoursesTable({ courses, onCourseEdited }: CoursesTableProps) {
                       View Schedule
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href={userLinks.attendance.students(course.id)}>
-                      View Attendance
-                    </Link>
-                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -312,9 +307,9 @@ export function CoursesTable({ courses, onCourseEdited }: CoursesTableProps) {
                     {header.isPlaceholder
                       ? null
                       : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                   </TableHead>
                 ))}
               </TableRow>
@@ -396,11 +391,6 @@ export function CoursesTable({ courses, onCourseEdited }: CoursesTableProps) {
                           <Calendar className="mr-2 h-4 w-4" /> View Schedule
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href={userLinks.attendance.students(c.id)}>
-                          View Attendance
-                        </Link>
-                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -412,11 +402,10 @@ export function CoursesTable({ courses, onCourseEdited }: CoursesTableProps) {
                 </div>
 
                 <Badge
-                  className={`${
-                    c.isActive
-                      ? "bg-green-100 text-green-800"
-                      : "bg-gray-200 text-gray-800"
-                  }`}
+                  className={`${c.isActive
+                    ? "bg-green-100 text-green-800"
+                    : "bg-gray-200 text-gray-800"
+                    }`}
                 >
                   {c.isActive ? "Active" : "Inactive"}
                 </Badge>

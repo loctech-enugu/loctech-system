@@ -5,8 +5,9 @@ import Enrollments from "@/components/enrollments";
 async function ClassEnrollmentsPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const breadcrumbs: BreadcrumbItem[] = [
     {
       title: "Dashboard",
@@ -18,9 +19,10 @@ async function ClassEnrollmentsPage({
     },
     {
       title: "Enrollments",
-      href: `/dashboard/classes/${params.id}/enrollments`,
+      href: `/dashboard/classes/${id}/enrollments`,
     },
   ];
+  console.log(id);
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
@@ -29,7 +31,7 @@ async function ClassEnrollmentsPage({
           <h1 className="text-2xl font-bold">Class Enrollments</h1>
         </div>
         <hr />
-        <Enrollments classId={params.id} />
+        <Enrollments classId={id} />
       </div>
     </AppLayout>
   );

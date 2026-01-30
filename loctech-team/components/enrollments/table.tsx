@@ -46,6 +46,7 @@ import { Enrollment } from "@/types";
 import { toast } from "sonner";
 import { DataTablePagination } from "../data-table-pagination";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { SpinnerLoader } from "../spinner";
 
 interface EnrollmentsTableProps {
   classId?: string;
@@ -71,7 +72,7 @@ async function updateEnrollmentStatus(
   pauseReason?: string
 ) {
   const res = await fetch(`/api/enrollments/${enrollmentId}`, {
-    method: "PUT",
+    method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ status, pauseReason }),
   });
@@ -278,7 +279,7 @@ export function EnrollmentsTable({
   });
 
   if (isLoading) {
-    return <div>Loading enrollments...</div>;
+    return <SpinnerLoader title="Loading" message="Please wait while we load the enrollments data." />;
   }
 
   return (
@@ -326,9 +327,9 @@ export function EnrollmentsTable({
                     {header.isPlaceholder
                       ? null
                       : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                   </TableHead>
                 ))}
               </TableRow>

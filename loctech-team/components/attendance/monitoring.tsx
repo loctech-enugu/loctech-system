@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Mail, RefreshCw } from "lucide-react";
+import { SpinnerLoader } from "../spinner";
 
 async function fetchMonitoring() {
   const res = await fetch("/api/attendance/monitoring");
@@ -77,7 +78,7 @@ export default function AttendanceMonitoring() {
   });
 
   if (isLoading) {
-    return <div>Loading monitoring data...</div>;
+    return <SpinnerLoader title="Loading" message="Please wait while we load the attendance monitoring data." />;
   }
 
   return (

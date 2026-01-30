@@ -7,10 +7,11 @@ import {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const enrollment = await getEnrollmentById(params.id);
+    const { id } = await params;
+    const enrollment = await getEnrollmentById(id);
 
     if (!enrollment) {
       return NextResponse.json(
@@ -37,8 +38,8 @@ export async function GET(
         status: error.message?.includes("Forbidden")
           ? 403
           : error.message?.includes("not found")
-          ? 404
-          : 500,
+            ? 404
+            : 500,
       }
     );
   }
@@ -46,11 +47,12 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await req.json();
-    const enrollment = await updateEnrollment(params.id, body);
+    const enrollment = await updateEnrollment(id, body);
 
     return NextResponse.json({
       success: true,
@@ -68,8 +70,8 @@ export async function PATCH(
         status: error.message?.includes("Forbidden")
           ? 403
           : error.message?.includes("not found")
-          ? 404
-          : 500,
+            ? 404
+            : 500,
       }
     );
   }
@@ -77,10 +79,11 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const result = await deleteEnrollment(params.id);
+    const { id } = await params;
+    const result = await deleteEnrollment(id);
 
     return NextResponse.json({
       success: true,
@@ -98,8 +101,8 @@ export async function DELETE(
         status: error.message?.includes("Forbidden")
           ? 403
           : error.message?.includes("not found")
-          ? 404
-          : 500,
+            ? 404
+            : 500,
       }
     );
   }

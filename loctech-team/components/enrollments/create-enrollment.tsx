@@ -8,13 +8,6 @@ import { useForm, Controller } from "react-hook-form";
 import { toast } from "sonner";
 
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -22,9 +15,20 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Student } from "@/types";
 import InputError from "../input-error";
 import { useRouter } from "next/navigation";
+import { Search, Check, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 async function fetchStudents() {
   const res = await fetch("/api/students");
@@ -35,7 +39,7 @@ async function fetchStudents() {
 
 const createEnrollmentSchema = z.object({
   studentId: z.string().min(1, "Student is required"),
-  status: z.enum(["active", "paused"]).default("active"),
+  status: z.enum(["active", "paused"]),
 });
 
 type CreateEnrollmentForm = z.infer<typeof createEnrollmentSchema>;
@@ -53,18 +57,44 @@ export default function CreateEnrollment({
 }: CreateEnrollmentProps) {
   const queryClient = useQueryClient();
   const router = useRouter();
+  const [searchQuery, setSearchQuery] = React.useState("");
 
   const { data: students = [], isLoading: loadingStudents } = useQuery({
     queryKey: ["students"],
     queryFn: fetchStudents,
   });
 
+  const filteredStudents = React.useMemo(() => {
+    if (!searchQuery) return students;
+    const query = searchQuery.toLowerCase();
+    return students.filter((student: Student) =>
+      student.name.toLowerCase().includes(query) ||
+      student.email.toLowerCase().includes(query) ||
+      student.phone?.toLowerCase().includes(query)
+    );
+  }, [students, searchQuery]);
+
   const form = useForm<CreateEnrollmentForm>({
     resolver: zodResolver(createEnrollmentSchema),
     defaultValues: {
-      status: "active",
+      status: "active" as const,
     },
   });
+
+  const selectedStudentId = form.watch("studentId");
+  const selectedStudent = React.useMemo(() => {
+    if (!selectedStudentId) return undefined;
+    return students.find((s: Student) => s.id === selectedStudentId);
+  }, [students, selectedStudentId]);
+
+  const handleStudentSelect = (studentId: string) => {
+    form.setValue("studentId", studentId);
+  };
+
+  const handleClearSelection = () => {
+    form.setValue("studentId", "");
+    setSearchQuery("");
+  };
 
   const { mutate: createEnrollment, isPending } = useMutation({
     mutationFn: async (data: CreateEnrollmentForm) => {
@@ -103,31 +133,93 @@ export default function CreateEnrollment({
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           {/* Student */}
           <div className="grid gap-2">
-            <Label htmlFor="studentId">Student</Label>
-            <Controller
-              control={form.control}
-              name="studentId"
-              render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={
-                        loadingStudents ? "Loading..." : "Select student"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {!loadingStudents &&
-                      students.map((student: Student) => (
-                        <SelectItem key={student.id} value={student.id}>
-                          {student.name} ({student.email})
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
+            <Label htmlFor="studentId">Student *</Label>
+
+            {/* Selected Student Display */}
+            {selectedStudent && (
+              <div className="flex items-center justify-between p-3 rounded-md border bg-muted/50">
+                <div className="flex flex-col">
+                  <span className="font-medium">{selectedStudent.name}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {selectedStudent.email} {selectedStudent.phone && `• ${selectedStudent.phone}`}
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearSelection}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search students by name, email, or phone..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8"
+                disabled={loadingStudents}
+              />
+            </div>
+
+            {/* Student List */}
+            {!selectedStudent && (
+              <div className="border rounded-md">
+                <ScrollArea className="h-[300px]">
+                  {loadingStudents ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      Loading students...
+                    </div>
+                  ) : filteredStudents.length === 0 ? (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      {searchQuery
+                        ? "No students found matching your search"
+                        : "No students available"}
+                    </div>
+                  ) : (
+                    <div className="p-1">
+                      {filteredStudents.map((student: Student) => {
+                        const isSelected = form.watch("studentId") === student.id;
+                        return (
+                          <div
+                            key={student.id}
+                            onClick={() => handleStudentSelect(student.id)}
+                            className={cn(
+                              "flex items-center justify-between p-3 rounded-md cursor-pointer transition-colors hover:bg-accent",
+                              isSelected && "bg-accent border-2 border-primary"
+                            )}
+                          >
+                            <div className="flex flex-col flex-1">
+                              <span className="font-medium">{student.name}</span>
+                              <span className="text-sm text-muted-foreground">
+                                {student.email} {student.phone && `• ${student.phone}`}
+                              </span>
+                            </div>
+                            {isSelected && (
+                              <Check className="h-5 w-5 text-primary" />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </ScrollArea>
+              </div>
+            )}
+
             <InputError message={form.formState.errors.studentId?.message} />
+            {!loadingStudents && !selectedStudent && (
+              <p className="text-xs text-muted-foreground">
+                {filteredStudents.length} student{filteredStudents.length !== 1 ? "s" : ""} found
+                {searchQuery && ` matching "${searchQuery}"`}
+              </p>
+            )}
           </div>
 
           {/* Status */}

@@ -18,6 +18,7 @@ import Link from "next/link";
 import { useDisclosure } from "@/hooks/use-disclosure";
 import CreateExam from "./create-exam";
 import EditExam from "./edit-exam";
+import { SpinnerLoader } from "../spinner";
 
 async function fetchExams() {
   const res = await fetch("/api/exams");
@@ -87,7 +88,7 @@ export default function ExamsManagement() {
   };
 
   if (isLoading) {
-    return <div>Loading exams...</div>;
+    return <SpinnerLoader title="Loading" message="Please wait while we load the exams data." />;
   }
 
   return (

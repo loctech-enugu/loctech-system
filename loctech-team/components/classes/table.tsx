@@ -46,6 +46,7 @@ import { Class } from "@/types";
 import { toast } from "sonner";
 import { DataTablePagination } from "../data-table-pagination";
 import { useQuery } from "@tanstack/react-query";
+import { SpinnerLoader } from "../spinner";
 
 interface ClassesTableProps {
   onClassEdited?: (classItem: Class) => void;
@@ -144,7 +145,7 @@ export function ClassesTable({ onClassEdited }: ClassesTableProps) {
         header: "Schedule",
         cell: ({ row }) => {
           const schedule = row.original.schedule;
-          
+
           // Handle both old string format and new object format
           if (typeof schedule === "string") {
             return (
@@ -154,7 +155,7 @@ export function ClassesTable({ onClassEdited }: ClassesTableProps) {
               </div>
             );
           }
-          
+
           // New object format
           if (schedule && typeof schedule === "object") {
             const scheduleObj = schedule as {
@@ -163,7 +164,7 @@ export function ClassesTable({ onClassEdited }: ClassesTableProps) {
               endTime?: string;
               timezone?: string;
             };
-            
+
             const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
             const days = scheduleObj.daysOfWeek
               ?.map((d) => DAYS[d])
@@ -171,7 +172,7 @@ export function ClassesTable({ onClassEdited }: ClassesTableProps) {
             const time = scheduleObj.startTime && scheduleObj.endTime
               ? `${scheduleObj.startTime} - ${scheduleObj.endTime}`
               : "";
-            
+
             if (!days && !time) {
               return (
                 <div className="flex items-center gap-2">
@@ -180,7 +181,7 @@ export function ClassesTable({ onClassEdited }: ClassesTableProps) {
                 </div>
               );
             }
-            
+
             return (
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -191,7 +192,7 @@ export function ClassesTable({ onClassEdited }: ClassesTableProps) {
               </div>
             );
           }
-          
+
           return (
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -270,9 +271,15 @@ export function ClassesTable({ onClassEdited }: ClassesTableProps) {
     },
   });
 
-  if (isLoading) {
-    return <div>Loading classes...</div>;
-  }
+
+  if (isLoading)
+    return (
+      <SpinnerLoader
+        title="Loading"
+        message="Please wait while we load the classes."
+      />
+    );
+
 
   return (
     <div className="w-full">
@@ -319,9 +326,9 @@ export function ClassesTable({ onClassEdited }: ClassesTableProps) {
                     {header.isPlaceholder
                       ? null
                       : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                   </TableHead>
                 ))}
               </TableRow>
