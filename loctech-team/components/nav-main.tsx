@@ -23,10 +23,22 @@ export function NavMain({
 
   const { data } = useSession();
 
-  const filteredItems = items.filter(
-    (item) =>
-      item.isAdmin == null || (item.isAdmin && data?.user?.role !== "staff")
-  );
+  const filteredItems = items.filter((item) => {
+    const userRole = data?.user?.role;
+    
+    // If item has isAdmin flag, check role
+    if (item.isAdmin !== null && item.isAdmin) {
+      return userRole === "admin" || userRole === "super_admin";
+    }
+    
+    // Show all items without isAdmin flag
+    if (item.isAdmin == null) {
+      return true;
+    }
+    
+    // Hide admin-only items for non-admin users
+    return false;
+  });
 
   return (
     <SidebarGroup className="px-2 py-0">

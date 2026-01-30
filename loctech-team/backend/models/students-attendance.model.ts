@@ -3,7 +3,7 @@ import mongoose, { InferSchemaType, Model, Schema } from "mongoose";
 const StudentAttendanceSchema = new Schema(
   {
     student: { type: Schema.Types.ObjectId, ref: "Student", required: true },
-    course: { type: Schema.Types.ObjectId, ref: "Course", required: true },
+    class: { type: Schema.Types.ObjectId, ref: "Class", required: true },
     staff: { type: Schema.Types.ObjectId, ref: "User", required: true },
     date: { type: Date, default: Date.now },
 

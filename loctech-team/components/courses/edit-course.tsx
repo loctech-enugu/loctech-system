@@ -38,7 +38,7 @@ async function fetchStaff() {
 // -------------------- Schema --------------------
 const editCourseSchema = z.object({
   isActive: z.boolean().optional(),
-  instructor: z.string().min(1, "Staff is required"),
+  instructors: z.array(z.string()).min(1, "At least one instructor is required"),
 });
 
 type EditCourseForm = z.infer<typeof editCourseSchema>;
@@ -67,7 +67,7 @@ export default function EditCourse({
     resolver: zodResolver(editCourseSchema),
     defaultValues: {
       isActive: course?.isActive ?? true,
-      instructor: course?.instructor?.id || "",
+      instructors: course?.instructors?.map((i) => i.id) || [],
     },
   });
 
@@ -76,7 +76,7 @@ export default function EditCourse({
     if (course) {
       form.reset({
         isActive: course.isActive,
-        instructor: course.instructor?.id || "",
+        instructors: course.instructors?.map((i) => i.id) || [],
       });
     }
   }, [course, form]);
@@ -114,33 +114,65 @@ export default function EditCourse({
           <DialogTitle>Edit Course</DialogTitle>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          {/* Staff */}
+          {/* Instructors */}
           <div className="grid gap-2">
-            <Label htmlFor="staff">Handled By (Instructor)</Label>
+            <Label htmlFor="instructors">Instructors</Label>
             <Controller
               control={form.control}
-              name="instructor"
+              name="instructors"
               render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select
+                  onValueChange={(value) => {
+                    if (!field.value.includes(value)) {
+                      field.onChange([...field.value, value]);
+                    }
+                  }}
+                  value=""
+                >
                   <SelectTrigger>
-                    <SelectValue
-                      placeholder={
-                        loadingStaff ? "Loading..." : "Select staff member"
-                      }
-                    />
+                    <SelectValue placeholder="Add instructor" />
                   </SelectTrigger>
                   <SelectContent>
                     {!loadingStaff &&
-                      staffList?.map((s: User) => (
-                        <SelectItem key={s.id} value={s.id}>
-                          {s.name} ({s.email})
-                        </SelectItem>
-                      ))}
+                      staffList
+                        ?.filter((s: User) => s.role === "instructor" || s.role === "admin" || s.role === "staff")
+                        ?.filter((s: User) => !field.value.includes(s.id))
+                        ?.map((s: User) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.name} ({s.email})
+                          </SelectItem>
+                        ))}
                   </SelectContent>
                 </Select>
               )}
             />
-            <InputError message={form.formState.errors.instructor?.message} />
+            <div className="flex flex-wrap gap-2 mt-2">
+              {form.watch("instructors").map((instructorId) => {
+                const instructor = staffList?.find((s: User) => s.id === instructorId);
+                if (!instructor) return null;
+                return (
+                  <div
+                    key={instructorId}
+                    className="flex items-center gap-2 px-3 py-1 bg-secondary rounded-md"
+                  >
+                    <span className="text-sm">{instructor.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        form.setValue(
+                          "instructors",
+                          form.watch("instructors").filter((id) => id !== instructorId)
+                        );
+                      }}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <InputError message={form.formState.errors.instructors?.message} />
           </div>
 
           {/* Active Status */}

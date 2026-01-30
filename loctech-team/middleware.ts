@@ -96,16 +96,30 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
 
+    // Role-based access control
     if (token.role === "staff" && pathname.startsWith("/admin")) {
       return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
+
+    // Instructors can only access their assigned classes
+    if (token.role === "instructor") {
+      // Instructors cannot access admin routes
+      if (pathname.startsWith("/admin")) {
+        return NextResponse.redirect(new URL("/dashboard", req.url));
+      }
+      // Instructors can access dashboard and class-related routes
+      // Class-level access will be checked in the API routes/controllers
     }
   }
 
   // ✅ Auth routes
   if (matchesPath(pathname, ROUTE_CONFIG.auth)) {
     if (isAuthenticated) {
-      if (token.role === "admin") {
+      if (token.role === "admin" || token.role === "super_admin") {
         return NextResponse.redirect(new URL("/admin/qr", req.url));
+      }
+      if (token.role === "instructor") {
+        return NextResponse.redirect(new URL("/dashboard", req.url));
       }
       return NextResponse.redirect(new URL("/", req.url));
     }

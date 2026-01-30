@@ -3,7 +3,8 @@ import { getServerSession } from "next-auth";
 import { authConfig, hashPassword } from "@/lib/auth";
 import { StudentModel } from "../models/students.model";
 import { Student } from "@/types";
-import { CourseModel } from "../models/courses.model";
+import { EnrollmentModel } from "../models/enrollment.model";
+import { ClassModel } from "../models/class.model";
 import { revalidatePath } from "next/cache";
 import { SlackService } from "../services/slack.service";
 import { buildStudentRegistrationBlock } from "@/lib/slack-blocks";
@@ -101,7 +102,7 @@ function formatStudentRecord(raw: Record<string, any>): Partial<Student> {
       relationship: raw["RELATIONSHIP TO KIN"]?.trim() || "",
       contact: raw["CONTACT OF KIN"]?.trim() || "",
     },
-    courses: [],
+    // Courses removed - students enroll via classes
     createdAt: timestamp,
     updatedAt: new Date().toISOString(),
   };
@@ -177,12 +178,7 @@ export const formatStudent = (student: Record<string, any>): Student => ({
     contact: student.nextOfKin?.contact || "",
   },
 
-  courses:
-    student.courses?.map((c: Record<string, any>) => ({
-      id: String(c._id),
-      title: c.title || c.name || "",
-      category: c.category || "",
-    })) || [],
+  courses: [], // Deprecated - students enroll via classes
 
   createdAt: student.createdAt
     ? new Date(student.createdAt).toISOString()
@@ -203,9 +199,7 @@ export const getAllStudents = async (): Promise<Student[]> => {
   // loadStudentsData();
   // syncCoursesStudents()
 
-  const students = await StudentModel.find({})
-    .populate("courses", "title category")
-    .lean();
+  const students = await StudentModel.find({}).lean();
 
   return students.map(formatStudent);
 };
@@ -216,22 +210,59 @@ export const getAllStudents = async (): Promise<Student[]> => {
 export const getStudentById = async (id: string): Promise<Student | null> => {
   await connectToDatabase();
 
-  const student = await StudentModel.findById(id)
-    .populate("courses", "name code")
-    .lean();
+  const student = await StudentModel.findById(id).lean();
 
   return student ? formatStudent(student) : null;
 };
 
 /**
- * Helper function to sanitize courses array
+ * GET ENROLLMENTS FOR STUDENT
  */
-const sanitizeCourses = (courses: string[] | undefined): string[] => {
-  if (!courses || !Array.isArray(courses)) return [];
-  return courses
-    .filter((id) => id && typeof id === "string" && id.trim() !== "")
-    .filter((id) => mongoose.Types.ObjectId.isValid(id.trim()))
-    .map((id) => id.trim());
+export const getStudentEnrollments = async (studentId: string) => {
+  await connectToDatabase();
+  const session = await getServerSession(authConfig);
+  if (!session) throw new Error("Unauthorized");
+
+  const enrollments = await EnrollmentModel.find({ studentId })
+    .populate("classId", "name courseId schedule status")
+    .populate({
+      path: "classId",
+      populate: {
+        path: "courseId",
+        select: "title courseRefId",
+      },
+    })
+    .lean();
+
+  return enrollments.map((enrollment) => ({
+    id: String(enrollment._id),
+    studentId: String(enrollment.studentId),
+    classId: String(enrollment.classId),
+    status: enrollment.status,
+    pauseReason: enrollment.pauseReason,
+    startDate: enrollment.startDate
+      ? (enrollment.startDate as Date)?.toISOString?.()
+      : null,
+    endDate: enrollment.endDate
+      ? (enrollment.endDate as Date)?.toISOString?.()
+      : null,
+    class: enrollment.classId
+      ? {
+          id: String((enrollment.classId as any)._id),
+          name: (enrollment.classId as any).name,
+          courseId: String((enrollment.classId as any).courseId?._id || (enrollment.classId as any).courseId),
+          course: (enrollment.classId as any).courseId
+            ? {
+                id: String((enrollment.classId as any).courseId._id),
+                title: (enrollment.classId as any).courseId.title,
+                courseRefId: (enrollment.classId as any).courseId.courseRefId,
+              }
+            : null,
+        }
+      : null,
+    createdAt: (enrollment.createdAt as Date)?.toISOString?.() ?? "",
+    updatedAt: (enrollment.updatedAt as Date)?.toISOString?.() ?? "",
+  }));
 };
 
 /**
@@ -257,119 +288,63 @@ export const createStudent = async (
     return formatStudent(existingStudent.toObject());
   }
 
-  // 2. Sanitize courses array - filter out empty strings and invalid ObjectIds
-  const sanitizedCourses = sanitizeCourses(data.courses as string[] | undefined);
-
-  // 2. Hash password
+  // Hash password
   const passwordHash = await hashPassword(password as string);
   const newStudent = await StudentModel.create({
     ...data,
-    courses: sanitizedCourses,
     passwordHash,
     email: normalizedEmail,
-    status: "pending"
+    status: "pending",
   });
-  const populated = await newStudent.populate("courses", "name code");
 
-  // 🔁 Update each course to include this student
-  if (sanitizedCourses.length > 0) {
-    await CourseModel.updateMany(
-      { _id: { $in: sanitizedCourses } },
-      { $addToSet: { students: newStudent._id } }
-    );
-  }
   await SlackService.sendChannelMessage(
     "#student-mgt",
     buildStudentRegistrationBlock(
       newStudent.name,
       newStudent.email,
       newStudent.phone,
-      newStudent.courses.length
+      0 // No courses - enrollments are via classes
     )
   );
 
-  return formatStudent(populated.toObject());
+  return formatStudent(newStudent.toObject());
 };
 
 /**
- * Update student and sync courses
+ * Update student
  */
 export const updateStudent = async (
   id: string,
-  data: Partial<Student> & {
-    courses: string[];
-  }
+  data: Partial<Student>
 ): Promise<Student | null> => {
   await connectToDatabase();
 
-  // Get existing student to compare old courses
-  const existing = await StudentModel.findById(id).lean();
-  if (!existing) throw new Error("Student not found");
-
-  // Sanitize courses array - filter out empty strings and invalid ObjectIds
-  const sanitizedCourses = sanitizeCourses(data.courses);
-
-  const updated = await StudentModel.findByIdAndUpdate(
-    id,
-    { ...data, courses: sanitizedCourses },
-    {
-      new: true,
-    }
-  )
-    .populate("courses", "name code")
-    .lean();
+  const updated = await StudentModel.findByIdAndUpdate(id, data, {
+    new: true,
+  }).lean();
 
   if (!updated) return null;
-
-  // 🔁 If courses are updated, sync both sides
-  if (sanitizedCourses !== undefined) {
-    const oldCourseIds = (existing.courses || []).map((c: any) => String(c));
-    const newCourseIds = sanitizedCourses.map((c: any) => String(c));
-
-    const addedCourses = newCourseIds.filter(
-      (id) => !oldCourseIds.includes(id)
-    );
-    const removedCourses = oldCourseIds.filter(
-      (id) => !newCourseIds.includes(id)
-    );
-
-    // Add student to new courses
-    if (addedCourses.length > 0) {
-      await CourseModel.updateMany(
-        { _id: { $in: addedCourses } },
-        { $addToSet: { students: updated._id } }
-      );
-    }
-
-    // Remove student from old courses
-    if (removedCourses.length > 0) {
-      await CourseModel.updateMany(
-        { _id: { $in: removedCourses } },
-        { $pull: { students: updated._id } }
-      );
-    }
-  }
-  revalidatePath("/dashboard/courses");
 
   return formatStudent(updated);
 };
 
 /**
- * Delete student and cleanup
+ * Delete student and cleanup enrollments
  */
 export const deleteStudent = async (id: string): Promise<boolean> => {
   await connectToDatabase();
+  const session = await getServerSession(authConfig);
+  if (!session) throw new Error("Unauthorized");
+
+  if (session.user.role !== "admin" && session.user.role !== "super_admin") {
+    throw new Error("Forbidden");
+  }
 
   const student = await StudentModel.findById(id);
   if (!student) return false;
 
-  // 🔁 Remove this student from all courses
-  if (student.courses && student.courses.length > 0) {
-    await CourseModel.updateMany(
-      { _id: { $in: student.courses } },
-      { $pull: { students: student._id } }
-    );
-  }
+  // Remove all enrollments for this student
+  await EnrollmentModel.deleteMany({ studentId: id });
 
   await StudentModel.findByIdAndDelete(id);
   return true;
@@ -412,69 +387,60 @@ export const generatePasswordForStudent = async (): Promise<boolean> => {
 };
 
 /**
- * Sync courses-students bidirectional relationship
- * Ensures that if a course has a student, the student also has that course
+ * GET STUDENT'S CLASSES (via enrollments)
  */
-export const syncCoursesStudents = async (): Promise<{
-  coursesFixed: number;
-  studentsFixed: number;
-}> => {
+export const getStudentClasses = async (studentId: string) => {
   await connectToDatabase();
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
 
-  let coursesFixed = 0;
-  let studentsFixed = 0;
-
-  // Get all courses
-  const courses = await CourseModel.find({}).lean();
-
-  for (const course of courses) {
-    const courseStudentIds = (course.students || []).map((s: any) => String(s));
-
-    if (courseStudentIds.length === 0) continue;
-
-    // For each student in the course, ensure they have this course
-    for (const studentId of courseStudentIds) {
-      const student = await StudentModel.findById(studentId);
-      if (!student) continue;
-
-      const studentCourseIds = (student.courses || []).map((c: any) => String(c));
-      const courseIdStr = String(course._id);
-
-      if (!studentCourseIds.includes(courseIdStr)) {
-        // Student doesn't have this course, add it
-        student.courses.push(course._id as any);
-        await student.save();
-        studentsFixed++;
-      }
-    }
+  // Students can only see their own classes
+  if (
+    session.user.role === "student" &&
+    session.user.id !== studentId
+  ) {
+    throw new Error("Forbidden");
   }
 
-  // Also check the reverse: if a student has a course, ensure the course has that student
-  const students = await StudentModel.find({}).lean();
+  const enrollments = await EnrollmentModel.find({
+    studentId,
+    status: { $in: ["active", "paused"] },
+  })
+    .populate({
+      path: "classId",
+      populate: {
+        path: "courseId",
+        select: "title courseRefId",
+      },
+      populate: {
+        path: "instructorId",
+        select: "name email",
+      },
+    })
+    .lean();
 
-  for (const student of students) {
-    const studentCourseIds = (student.courses || []).map((c: any) => String(c));
-
-    if (studentCourseIds.length === 0) continue;
-
-    // For each course the student has, ensure the course has this student
-    for (const courseId of studentCourseIds) {
-      const course = await CourseModel.findById(courseId);
-      if (!course) continue;
-
-      const courseStudentIds = (course.students || []).map((s: any) => String(s));
-      const studentIdStr = String(student._id);
-
-      if (!courseStudentIds.includes(studentIdStr)) {
-        // Course doesn't have this student, add it
-        course.students.push(student._id as any);
-        await course.save();
-        coursesFixed++;
-      }
-    }
-  }
-
-  return { coursesFixed, studentsFixed };
+  return enrollments.map((enrollment) => {
+    const classData = enrollment.classId as any;
+    return {
+      enrollmentId: String(enrollment._id),
+      classId: String(classData._id),
+      className: classData.name,
+      status: enrollment.status,
+      course: classData.courseId
+        ? {
+            id: String(classData.courseId._id),
+            title: classData.courseId.title,
+            courseRefId: classData.courseId.courseRefId,
+          }
+        : null,
+      instructor: classData.instructorId
+        ? {
+            id: String(classData.instructorId._id),
+            name: classData.instructorId.name,
+            email: classData.instructorId.email,
+          }
+        : null,
+      schedule: classData.schedule,
+    };
+  });
 };

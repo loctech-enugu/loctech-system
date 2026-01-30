@@ -7,7 +7,7 @@ declare module "next-auth" {
       id: string;
       email: string;
       name: string;
-      role: "admin" | "staff" | "super_admin";
+      role: "admin" | "staff" | "super_admin" | "instructor";
       title?: string; // optional for super_admin
       isActive: boolean;
       phone: string;

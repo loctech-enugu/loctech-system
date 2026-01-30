@@ -22,9 +22,6 @@ const StudentSchema = new Schema(
       contact: { type: String, required: true, trim: true },
     },
 
-    // Course Relationship
-    courses: [{ type: Schema.Types.ObjectId, ref: "Course" }], // many-to-many relationship
-
     // Other Info
     occupation: { type: String, required: true, trim: true },
     heardFrom: {

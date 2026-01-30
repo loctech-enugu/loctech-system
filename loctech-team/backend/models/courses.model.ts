@@ -8,8 +8,7 @@ const CourseSchema = new Schema(
     description: { type: String },
 
     // Relationships
-    instructor: { type: Schema.Types.ObjectId, ref: "User" }, // Instructor/staff
-    students: [{ type: Schema.Types.ObjectId, ref: "Student" }], // Enrolled students
+    instructors: [{ type: Schema.Types.ObjectId, ref: "User" }], // Multiple instructors can teach a course
 
     // New extended fields (API-driven)
     amount: { type: Number, default: 0 }, // Price or fee

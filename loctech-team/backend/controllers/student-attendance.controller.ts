@@ -4,7 +4,8 @@ import { authConfig } from "@/lib/auth";
 import { StudentModel } from "../models/students.model";
 import { StudentAttendance } from "@/types";
 import { StudentAttendanceModel } from "../models/students-attendance.model";
-import { CourseModel } from "../models/courses.model";
+import { ClassModel } from "../models/class.model";
+import { EnrollmentModel } from "../models/enrollment.model";
 import { Types } from "mongoose";
 
 /**
@@ -22,11 +23,11 @@ export const formatAttendance = (
         email: record.student.email || null,
       }
     : null,
-  course: record.course
+  class: record.class
     ? {
-        id: String(record.course._id),
-        name: record.course.name,
-        code: record.course.code,
+        id: String(record.class._id),
+        name: record.class.name,
+        courseId: String(record.class.courseId),
       }
     : null,
   staff: record.staff
@@ -49,7 +50,7 @@ export const formatAttendance = (
  * Get All Attendance Records
  */
 export const getAllStudentAttendance = async (
-  course_id: string,
+  class_id: string,
   startDate?: string,
   endDate?: string
 ): Promise<StudentAttendance[]> => {
@@ -62,9 +63,9 @@ export const getAllStudentAttendance = async (
     // eslint-disable-next-line
     const filter: Record<string, any> = {};
 
-    // Filter by course
-    if (course_id) {
-      filter.course = course_id;
+    // Filter by class
+    if (class_id) {
+      filter.class = class_id;
     }
 
     // Filter by date range
@@ -74,14 +75,14 @@ export const getAllStudentAttendance = async (
       if (endDate) filter.date.$lte = new Date(endDate);
     }
 
-    // Staff can only view their own attendance records
-    if (session.user.role === "staff") {
+    // Staff/instructors can only view their own attendance records
+    if (session.user.role === "staff" || session.user.role === "instructor") {
       filter.staff = session.user.id;
     }
 
     const records = await StudentAttendanceModel.find(filter)
       .populate("student", "name email")
-      .populate("course", "name code")
+      .populate("class", "name courseId")
       .populate("staff", "name email")
       .lean();
 
@@ -93,10 +94,10 @@ export const getAllStudentAttendance = async (
 };
 
 /**
- * Get All Students in a Course with Their Attendance for a Particular Date
+ * Get All Students in a Class with Their Attendance for a Particular Date
  */
-export const getCourseAttendanceByDate = async (
-  course_id: string,
+export const getClassAttendanceByDate = async (
+  class_id: string,
   date: string
 ): Promise<
   {
@@ -113,28 +114,32 @@ export const getCourseAttendanceByDate = async (
 
     const session = await getServerSession(authConfig);
     if (!session) throw new Error("Unauthorized");
-    // Get Course
-    const course = await CourseModel.findById(course_id)
-      .populate("students", "_id name email")
-      .lean();
-    // 🧑‍🎓 Get all students enrolled in this course
-    //eslint-disable-next-line
-    const students = course?.students as any[];
 
-    if (!students) return [];
+    // Get all students enrolled in this class
+    const enrollments = await EnrollmentModel.find({
+      classId: class_id,
+      status: { $in: ["active", "paused"] },
+    })
+      .populate("studentId", "name email")
+      .lean();
+
+    //eslint-disable-next-line
+    const students = enrollments.map((e: any) => e.studentId).filter(Boolean);
+
+    if (!students || students.length === 0) return [];
 
     // 🎯 Define date range for the specific day
     const targetDate = new Date(date);
     const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
     const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
 
-    // 📜 Get attendance records for that course & date
+    // 📜 Get attendance records for that class & date
     const attendanceRecords = await StudentAttendanceModel.find({
-      course: course_id,
+      class: class_id,
       date: { $gte: startOfDay, $lte: endOfDay },
     })
       .populate("student", "name email")
-      .populate("course", "name code")
+      .populate("class", "name courseId")
       .populate("staff", "name email")
       .lean();
 
@@ -142,7 +147,7 @@ export const getCourseAttendanceByDate = async (
     const formattedRecords = attendanceRecords.map(formatAttendance);
 
     // 🧩 Combine students and their attendance record (if exists)
-    const result = students.map((student) => {
+    const result = students.map((student: any) => {
       const record = formattedRecords.find(
         (r) => r.student && r.student.id === String(student._id)
       );
@@ -159,8 +164,8 @@ export const getCourseAttendanceByDate = async (
 
     return result;
   } catch (error) {
-    console.error("Error fetching course attendance by date:", error);
-    throw new Error("Failed to fetch course attendance records");
+    console.error("Error fetching class attendance by date:", error);
+    throw new Error("Failed to fetch class attendance records");
   }
 };
 /**
@@ -173,7 +178,7 @@ export const getAttendanceById = async (
 
   const record = await StudentAttendanceModel.findById(id)
     .populate("student", "name email")
-    .populate("course", "name code")
+    .populate("class", "name courseId")
     .populate("staff", "name email")
     .lean();
 
@@ -191,12 +196,12 @@ export const createAttendance = async (
     const session = await getServerSession(authConfig);
     if (!session) throw new Error("Unauthorized");
 
-    const { studentId, courseId, date, status, signInTime, notes } = data;
+    const { studentId, classId, date, status, signInTime, notes } = data;
 
-    // Check if a record already exists for this student/course/date
+    // Check if a record already exists for this student/class/date
     let record = await StudentAttendanceModel.findOne({
       student: studentId,
-      course: courseId,
+      class: classId,
       date,
     });
 
@@ -213,7 +218,7 @@ export const createAttendance = async (
       // Create new attendance record
       record = await StudentAttendanceModel.create({
         student: studentId,
-        course: courseId,
+        class: classId,
         date,
         status: status || "present",
         signInTime: signInTime || new Date(),
@@ -224,7 +229,7 @@ export const createAttendance = async (
 
     const populated = await record.populate([
       { path: "student", select: "name email" },
-      { path: "course", select: "name code" },
+      { path: "class", select: "name courseId" },
       { path: "staff", select: "name email" },
     ]);
 
@@ -244,11 +249,11 @@ export const updateAttendance = async (
   try {
     await connectToDatabase();
 
-    const { studentId, courseId, date, status, signOutTime, notes } = data;
+    const { studentId, classId, date, status, signOutTime, notes } = data;
 
     const record = await StudentAttendanceModel.findOne({
       student: studentId,
-      course: courseId,
+      class: classId,
       date,
     });
 
@@ -264,7 +269,7 @@ export const updateAttendance = async (
 
     const populated = await record.populate([
       { path: "student", select: "name email" },
-      { path: "course", select: "name code" },
+      { path: "class", select: "name courseId" },
       { path: "staff", select: "name email" },
     ]);
 
@@ -314,7 +319,7 @@ export const updateAttendanceById = async (
 
     const populated = await record.populate([
       { path: "student", select: "name email" },
-      { path: "course", select: "name code" },
+      { path: "class", select: "name courseId" },
       { path: "staff", select: "name email" },
     ]);
 
@@ -339,7 +344,7 @@ export const signOutAttendance = async (
     { new: true }
   )
     .populate("student", "name email")
-    .populate("course", "name code")
+    .populate("class", "name courseId")
     .populate("staff", "name email")
     .lean();
 
