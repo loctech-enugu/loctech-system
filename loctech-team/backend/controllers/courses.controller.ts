@@ -36,8 +36,7 @@ interface ApiCourse {
  * Format course document into frontend-friendly Course type
  */
 export const formatCourse = (course: Record<string, any>): Course => {
-  const instructor = course.instructor as Record<string, unknown> | null;
-  const students = (course.students ?? []) as Record<string, any>[];
+  const instructors = (course.instructors ?? []) as Record<string, any>[];
 
   return {
     id: String(course._id),
@@ -59,20 +58,15 @@ export const formatCourse = (course: Record<string, any>): Course => {
     slug: course.slug ?? "",
     isActive: course.isActive ?? true,
 
-    instructor: instructor
-      ? {
-          id: String(instructor._id),
-          name: instructor.name as string,
-          email: instructor.email as string,
-        }
-      : null,
+    instructor: null, // Deprecated - use instructors array
 
-    students: students.map((s) => ({
-      id: String(s._id),
-      name: s.name,
-      email: s.email ?? null,
-      phone: s.phone ?? null,
+    instructors: instructors.map((i) => ({
+      id: String(i._id),
+      name: i.name ?? "",
+      email: i.email ?? "",
     })),
+
+    students: [], // Students are now enrolled via classes, not directly in courses
 
     createdAt: (course.createdAt as Date)?.toISOString?.() ?? "",
     updatedAt: (course.updatedAt as Date)?.toISOString?.() ?? "",
@@ -88,13 +82,13 @@ export const getAllCourses = async (): Promise<Course[]> => {
 
   const filter: Record<string, any> = {};
 
-  if (session?.user.role === "staff") {
-    filter.instructor = session.user.id;
+  // Filter by instructor if user is instructor
+  if (session?.user.role === "instructor") {
+    filter.instructors = session.user.id;
   }
 
   const courses = await CourseModel.find(filter)
-    .populate("students", "name email phone")
-    .populate("instructor", "name email")
+    .populate("instructors", "name email")
     .lean();
 
   return courses.map((course) => formatCourse(course));
@@ -129,7 +123,7 @@ export const loadAllCoursesFromApi = async () => {
             description: item.description,
             amount: item.amount,
             img: item.img,
-            instructor: undefined,
+            instructors: [],
             category: item.category,
             duration: item.duration,
             mode: item.mode,
@@ -163,8 +157,7 @@ export const getCourseById = async (id: string): Promise<Course | null> => {
   if (!session) throw new Error("Unauthorized");
 
   const course = await CourseModel.findById(id)
-    .populate("students", "name email phone")
-    .populate("instructor", "name email")
+    .populate("instructors", "name email")
     .lean();
 
   return course ? formatCourse(course) : null;
@@ -175,7 +168,7 @@ export const getCourseById = async (id: string): Promise<Course | null> => {
  */
 export const updateCourse = async (
   id: string,
-  data: Partial<Course> & { instructor?: string; students?: string[] }
+  data: Partial<Course> & { instructors?: string[] }
 ): Promise<Course | null> => {
   await connectToDatabase();
   const session = await getServerSession(authConfig);
@@ -184,54 +177,35 @@ export const updateCourse = async (
   const course = await CourseModel.findById(id);
   if (!course) throw new Error("Course not found");
 
-  if (data.instructor) {
-    const instructorExists = await UserModel.findById(data.instructor);
-    if (!instructorExists) throw new Error("Invalid instructor ID");
-  }
-
-  // Handle students sync if provided
-  if (data.students !== undefined) {
-    const oldStudentIds = (course.students || []).map((s: any) => String(s));
-    const newStudentIds = data.students.map((s: any) => String(s));
-
-    const addedStudents = newStudentIds.filter(
-      (id) => !oldStudentIds.includes(id)
-    );
-    const removedStudents = oldStudentIds.filter(
-      (id) => !newStudentIds.includes(id)
-    );
-
-    // Update course students
-    course.students = data.students as any;
-
-    // Sync: Add course to new students
-    if (addedStudents.length > 0) {
-      await StudentModel.updateMany(
-        { _id: { $in: addedStudents } },
-        { $addToSet: { courses: course._id } }
-      );
+  // Handle instructors if provided
+  if (data.instructors !== undefined) {
+    // Validate all instructors exist and are instructors
+    for (const instructorId of data.instructors) {
+      const instructor = await UserModel.findById(instructorId);
+      if (!instructor) {
+        throw new Error(`Invalid instructor ID: ${instructorId}`);
+      }
+      if (
+        instructor.role !== "instructor" &&
+        instructor.role !== "admin" &&
+        instructor.role !== "super_admin"
+      ) {
+        throw new Error(`User ${instructorId} is not an instructor`);
+      }
     }
-
-    // Sync: Remove course from removed students
-    if (removedStudents.length > 0) {
-      await StudentModel.updateMany(
-        { _id: { $in: removedStudents } },
-        { $pull: { courses: course._id } }
-      );
-    }
+    course.instructors = data.instructors as any;
   }
 
   Object.assign(course, {
     ...data,
-    // Don't overwrite students if we already handled it above
-    ...(data.students === undefined ? {} : { students: course.students }),
+    // Don't overwrite instructors if we already handled it above
+    ...(data.instructors === undefined ? {} : { instructors: course.instructors }),
   });
 
   await course.save();
 
   const updated = await CourseModel.findById(id)
-    .populate("students", "name email")
-    .populate("instructor", "name email")
+    .populate("instructors", "name email")
     .lean();
 
   return updated ? formatCourse(updated) : null;

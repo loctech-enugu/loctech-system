@@ -132,35 +132,31 @@ export function CoursesTable({ courses, onCourseEdited }: CoursesTableProps) {
         cell: ({ row }) => <span>{row.getValue("title")}</span>,
       },
       {
-        accessorKey: "instructor",
-        header: "Instructor",
+        accessorKey: "instructors",
+        header: "Instructors",
         cell: ({ row }) => {
-          const instructor = row.original.instructor;
-          return instructor ? (
-            <div className="flex flex-col">
-              <span className="font-medium">{instructor.name}</span>
-              <a
-                href={`mailto:${instructor.email}`}
-                className="text-sm text-muted-foreground"
-              >
-                {instructor.email}
-              </a>
+          const instructors = row.original.instructors || [];
+          return instructors.length > 0 ? (
+            <div className="flex flex-col gap-1">
+              {instructors.slice(0, 2).map((instructor) => (
+                <div key={instructor.id} className="flex flex-col">
+                  <span className="font-medium text-sm">{instructor.name}</span>
+                  <a
+                    href={`mailto:${instructor.email}`}
+                    className="text-xs text-muted-foreground"
+                  >
+                    {instructor.email}
+                  </a>
+                </div>
+              ))}
+              {instructors.length > 2 && (
+                <span className="text-xs text-muted-foreground">
+                  +{instructors.length - 2} more
+                </span>
+              )}
             </div>
           ) : (
             <span>-</span>
-          );
-        },
-      },
-      {
-        accessorKey: "students",
-        header: "Students",
-        cell: ({ row }) => {
-          const students = row.original.students || [];
-          return (
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span>{students.length}</span>
-            </div>
           );
         },
       },
@@ -234,11 +230,6 @@ export function CoursesTable({ courses, onCourseEdited }: CoursesTableProps) {
                   <DropdownMenuItem asChild>
                     <Link href={userLinks.schedule(course.id)}>
                       View Schedule
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href={userLinks.attendance.students(course.id)}>
-                      View Attendance
                     </Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -316,9 +307,9 @@ export function CoursesTable({ courses, onCourseEdited }: CoursesTableProps) {
                     {header.isPlaceholder
                       ? null
                       : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
                   </TableHead>
                 ))}
               </TableRow>
@@ -400,11 +391,6 @@ export function CoursesTable({ courses, onCourseEdited }: CoursesTableProps) {
                           <Calendar className="mr-2 h-4 w-4" /> View Schedule
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link href={userLinks.attendance.students(c.id)}>
-                          View Attendance
-                        </Link>
-                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -416,11 +402,10 @@ export function CoursesTable({ courses, onCourseEdited }: CoursesTableProps) {
                 </div>
 
                 <Badge
-                  className={`${
-                    c.isActive
-                      ? "bg-green-100 text-green-800"
-                      : "bg-gray-200 text-gray-800"
-                  }`}
+                  className={`${c.isActive
+                    ? "bg-green-100 text-green-800"
+                    : "bg-gray-200 text-gray-800"
+                    }`}
                 >
                   {c.isActive ? "Active" : "Inactive"}
                 </Badge>

@@ -25,7 +25,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  role: "admin" | "staff" | "super_admin";
+  role: "admin" | "staff" | "super_admin" | "instructor";
   title?: string; // optional for super_admin
   isActive: boolean;
   createdAt: Date;
@@ -112,14 +112,20 @@ export interface Course {
     id: string;
     name: string;
     email: string;
-  } | null;
+  } | null; // Deprecated - use instructors array
+
+  instructors: {
+    id: string;
+    name: string;
+    email: string;
+  }[];
 
   students: {
     id: string;
     name: string;
     email: string | null;
     phone: string | null;
-  }[];
+  }[]; // Deprecated - students enroll via classes
 
   createdAt: string;
   updatedAt: string;
@@ -173,11 +179,11 @@ export interface StudentAttendance {
     name: string;
     email: string | null;
   } | null;
-  course: {
+  class: {
     id: string;
     name: string;
-    code: string;
-  } | null;
+    courseId: string;
+  } | null; // Changed from course to class
   staff: {
     id: string;
     name: string;
@@ -188,6 +194,252 @@ export interface StudentAttendance {
   signInTime: string | null;
   signOutTime: string | null;
   notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Class {
+  id: string;
+  courseId: string;
+  instructorId: string;
+  name: string;
+  schedule: {
+    daysOfWeek: number[];
+    startTime: string;
+    endTime: string;
+    timezone?: string;
+  } | string; // Support both new object format and legacy string format
+  capacity?: number;
+  status: "active" | "inactive" | "completed";
+  course?: {
+    id: string;
+    title: string;
+    courseRefId: string;
+  };
+  instructor?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Enrollment {
+  id: string;
+  studentId: string;
+  classId: string;
+  status: "active" | "paused" | "completed" | "dropped";
+  pauseReason?: string;
+  startDate: string;
+  endDate?: string;
+  student?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  class?: {
+    id: string;
+    name: string;
+    courseId: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Notification {
+  id: string;
+  studentId: string;
+  classId: string;
+  type: "absence_streak" | "enrollment_paused" | "exam_reminder";
+  absenceStreak?: number;
+  notifiedBy?: string;
+  emailSent: boolean;
+  sentAt: string;
+  isResolved: boolean;
+  resolvedAt?: string;
+  resolvedBy?: string;
+  message?: string;
+  student?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  class?: {
+    id: string;
+    name: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClassAttendance {
+  id: string;
+  studentId: string;
+  classId: string;
+  date: string | null;
+  status: "present" | "absent";
+  method: "manual" | "pin" | "barcode";
+  pin?: string | null;
+  recordedAt?: string | null;
+  recordedBy?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+  student?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+  class?: {
+    id: string;
+    name: string;
+    courseId: string;
+  } | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Exam {
+  id: string;
+  title: string;
+  description?: string;
+  duration: number; // minutes
+  totalQuestions: number;
+  questionsPerStudent: number;
+  shuffleQuestions: boolean;
+  passingScore: number; // percentage 0-100
+  maxAttempts: number;
+  status: "draft" | "published" | "ongoing" | "completed" | "cancelled";
+  scheduledStart?: string;
+  expirationDate?: string;
+  autoPublishResults: boolean;
+  showCorrectAnswers: boolean;
+  showDetailedFeedback: boolean;
+  questions: string[]; // Question IDs
+  courseId?: string;
+  classIds?: string[];
+  createdBy: string;
+  requireMinimumAttendance?: boolean;
+  minimumAttendancePercentage?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Question {
+  id: string;
+  type: "MCQ" | "True/False" | "Essay" | "Fill-in-the-Blank" | "Matching";
+  questionText: string;
+  options?: string[];
+  correctAnswer: string | string[];
+  explanation?: string;
+  difficulty: "Easy" | "Medium" | "Hard";
+  category?: string;
+  points: number;
+  isActive: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserExam {
+  id: string;
+  userId: string;
+  examId: string;
+  status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "EXPIRED" | "CANCELLED" | "VIOLATED";
+  score: number;
+  percentage: number;
+  attempts: number;
+  startTime?: string;
+  endTime?: string;
+  submittedAt?: string;
+  violations: number;
+  violationDetails: string[];
+  isPassed: boolean;
+  resultsPublished: boolean;
+  questionsAttempted: string[];
+  exam?: {
+    id: string;
+    title: string;
+    duration: number;
+    totalQuestions: number;
+  };
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserAnswer {
+  id: string;
+  userExamId: string;
+  questionId: string;
+  answer: string | string[];
+  isCorrect: boolean;
+  pointsEarned: number;
+  timeSpent: number; // seconds
+  flaggedForReview: boolean;
+  question?: {
+    id: string;
+    question: string;
+    type: string;
+    options?: string[];
+    correctAnswer: string | string[];
+    points: number;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EmailTemplate {
+  id: string;
+  name: string;
+  subject: string;
+  body: string; // HTML
+  type:
+    | "registration_success"
+    | "exam_published"
+    | "exam_submission_confirmation"
+    | "result_published"
+    | "admin_student_registration"
+    | "exam_reminder"
+    | "system_notification"
+    | "absence_notification"
+    | "password_reset";
+  variables: string[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EmailLog {
+  id: string;
+  templateId?: string;
+  recipientEmail: string;
+  subject: string;
+  status: "pending" | "sent" | "failed" | "delivered" | "bounced";
+  errorMessage?: string;
+  sentAt?: string;
+  context?: Record<string, any>;
+  template?: {
+    id: string;
+    name: string;
+    type: string;
+  };
   createdAt: string;
   updatedAt: string;
 }

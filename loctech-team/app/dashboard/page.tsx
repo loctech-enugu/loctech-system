@@ -7,7 +7,7 @@ import StaffDashboard, {
   NewYearBanner,
 } from "@/components/dashboard/staff-overview";
 import { Separator } from "@/components/ui/separator";
-import AdminOverview from "@/components/dashboard/admin-overview";
+import AdminOverview from "@/components/dashboard/enhanced-admin-overview";
 import { getDashboardStats } from "@/backend/controllers/dashboard.controller";
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -31,7 +31,31 @@ export default async function Dashboard() {
 
         <Separator className="my-2" />
 
-        {user?.role === "staff" ? (
+        {user?.role === "student" ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground mb-4">
+              Redirecting to student dashboard...
+            </p>
+            <a
+              href={userLinks.student.dashboard}
+              className="text-blue-600 hover:underline"
+            >
+              Go to Student Dashboard
+            </a>
+          </div>
+        ) : user?.role === "instructor" ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground mb-4">
+              Redirecting to instructor dashboard...
+            </p>
+            <a
+              href={userLinks.instructor.dashboard}
+              className="text-blue-600 hover:underline"
+            >
+              Go to Instructor Dashboard
+            </a>
+          </div>
+        ) : user?.role === "staff" ? (
           <StaffDashboard stats={stats} />
         ) : (
           <AdminOverview stats={stats} />

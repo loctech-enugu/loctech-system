@@ -104,7 +104,7 @@ export const getStaffAttendanceReport = async (
       id: string;
       name: string;
       email: string;
-      role: "admin" | "staff" | "super_admin";
+      role: "admin" | "staff" | "super_admin" | "instructor";
       title: string | null | undefined;
     };
     attendance: Record<string, StaffAttendance | null>;

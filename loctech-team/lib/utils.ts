@@ -25,12 +25,27 @@ export const userLinks = {
   students: "/dashboard/students",
   announcements: "/dashboard/announcements",
   courses: "/dashboard/courses",
+  classes: "/dashboard/classes",
+  enrollments: "/dashboard/enrollments",
   schedule: (courseId: string) => `/dashboard/courses/${courseId}/schedule`,
   scholarship: "/dashboard/scholarship-students",
   attendance: {
     staff: "/dashboard/attendance/staff",
     students: (courseId: string) =>
       `/dashboard/attendance/${courseId}/students`,
+    monitoring: "/dashboard/attendance/monitoring",
+  },
+  instructor: {
+    dashboard: "/dashboard/instructor",
+  },
+  student: {
+    dashboard: "/dashboard/student",
+    exams: "/dashboard/student/exams",
+    attendance: "/dashboard/student/attendance/sign-in",
+  },
+  cbt: {
+    exams: "/dashboard/cbt/exams",
+    questions: "/dashboard/cbt/questions",
   },
   settings: "/dashboard/settings",
   notifications: "/dashboard/notifications",
