@@ -5,7 +5,6 @@ import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Transition } from "@headlessui/react";
 import InputError from "../input-error";
 import { PasswordInput } from "../password-input";
 
@@ -116,15 +115,6 @@ export const UpdatePasswordForm = () => {
           {isPending ? "Saving..." : "Save password"}
         </Button>
 
-        <Transition
-          show={recentlySuccessful}
-          enter="transition ease-in-out"
-          enterFrom="opacity-0"
-          leave="transition ease-in-out"
-          leaveTo="opacity-0"
-        >
-          <p className="text-sm text-neutral-600">Saved</p>
-        </Transition>
       </div>
     </form>
   );

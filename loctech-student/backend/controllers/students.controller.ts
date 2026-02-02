@@ -10,7 +10,7 @@ import { StudentModel } from "../models/students.model";
 export const getMyEnrollments = async () => {
   await connectToDatabase();
   const session = await getServerSession(authConfig);
-  if (!session || session.user.role !== "student") {
+  if (!session) {
     throw new Error("Unauthorized");
   }
 
@@ -49,26 +49,26 @@ export const getMyEnrollments = async () => {
       : null,
     class: enrollment.classId
       ? {
-          id: String(enrollment.classId._id),
-          name: enrollment.classId.name,
-          schedule: enrollment.classId.schedule,
-          status: enrollment.classId.status,
-          courseId: String(enrollment.classId.courseId?._id || enrollment.classId.courseId),
-          course: enrollment.classId.courseId
-            ? {
-                id: String(enrollment.classId.courseId._id),
-                title: enrollment.classId.courseId.title,
-                courseRefId: enrollment.classId.courseId.courseRefId,
-              }
-            : null,
-          instructor: enrollment.classId.instructorId
-            ? {
-                id: String(enrollment.classId.instructorId._id),
-                name: enrollment.classId.instructorId.name,
-                email: enrollment.classId.instructorId.email,
-              }
-            : null,
-        }
+        id: String(enrollment.classId._id),
+        name: enrollment.classId.name,
+        schedule: enrollment.classId.schedule,
+        status: enrollment.classId.status,
+        courseId: String(enrollment.classId.courseId?._id || enrollment.classId.courseId),
+        course: enrollment.classId.courseId
+          ? {
+            id: String(enrollment.classId.courseId._id),
+            title: enrollment.classId.courseId.title,
+            courseRefId: enrollment.classId.courseId.courseRefId,
+          }
+          : null,
+        instructor: enrollment.classId.instructorId
+          ? {
+            id: String(enrollment.classId.instructorId._id),
+            name: enrollment.classId.instructorId.name,
+            email: enrollment.classId.instructorId.email,
+          }
+          : null,
+      }
       : null,
     createdAt: (enrollment.createdAt as Date)?.toISOString?.() ?? "",
     updatedAt: (enrollment.updatedAt as Date)?.toISOString?.() ?? "",
@@ -81,7 +81,7 @@ export const getMyEnrollments = async () => {
 export const getMyProfile = async (userId: string) => {
   await connectToDatabase();
   const session = await getServerSession(authConfig);
-  if (!session || session.user.role !== "student") {
+  if (!session) {
     throw new Error("Unauthorized");
   }
 
@@ -136,7 +136,7 @@ export const updateMyProfile = async (
 ) => {
   await connectToDatabase();
   const session = await getServerSession(authConfig);
-  if (!session || session.user.role !== "student") {
+  if (!session) {
     throw new Error("Unauthorized");
   }
 

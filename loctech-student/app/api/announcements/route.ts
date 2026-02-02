@@ -26,10 +26,6 @@ export async function GET(req: NextRequest) {
         { expiresAt: { $exists: false } },
         { expiresAt: { $gt: new Date() } },
       ],
-      $or: [
-        { audience: "all" },
-        { audience: "students" },
-      ],
     })
       .populate("author", "name email")
       .sort({ createdAt: -1 })
@@ -45,10 +41,10 @@ export async function GET(req: NextRequest) {
         audience: ann.audience,
         author: ann.author
           ? {
-              id: String((ann.author as any)._id),
-              name: (ann.author as any).name,
-              email: (ann.author as any).email,
-            }
+            id: String((ann.author as any)._id),
+            name: (ann.author as any).name,
+            email: (ann.author as any).email,
+          }
           : null,
         expiresAt: ann.expiresAt
           ? (ann.expiresAt as Date).toISOString()

@@ -36,9 +36,6 @@ const UserSchema = new Schema(
     },
     title: {
       type: String,
-      required: function () {
-        return this.role !== "super_admin";
-      },
       trim: true,
     },
     isActive: { type: Boolean, default: true },
