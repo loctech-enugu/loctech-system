@@ -35,7 +35,7 @@ function isTokenExpired(token: { [key: string]: unknown }): boolean {
     return typeof token.exp === "number" && Date.now() / 1000 > token.exp;
 }
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
     const { pathname, searchParams } = req.nextUrl;
 
     // Skip static/bypass

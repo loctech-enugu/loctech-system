@@ -63,6 +63,8 @@ export async function GET(
                 { status: 403 }
             );
         }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const classData = enrollment.classId as any;
 
         const formatted = {
             id: String(enrollment._id),
@@ -73,25 +75,25 @@ export async function GET(
             startDate: enrollment.enrolledAt
                 ? (enrollment.enrolledAt as Date)?.toISOString?.()
                 : null,
-            class: enrollment.classId
+            class: classData
                 ? {
-                    id: String(enrollment.classId._id),
-                    name: enrollment.classId.name,
-                    schedule: enrollment.classId.schedule,
-                    status: enrollment.classId.status,
-                    courseId: String(enrollment.classId.courseId?._id || enrollment.classId.courseId),
-                    course: enrollment.classId.courseId
+                    id: String(classData._id),
+                    name: classData.name,
+                    schedule: classData.schedule,
+                    status: classData.status,
+                    courseId: String(classData.courseId?._id || classData.courseId),
+                    course: classData.courseId
                         ? {
-                            id: String(enrollment.classId.courseId._id),
-                            title: enrollment.classId.courseId.title,
-                            courseRefId: enrollment.classId.courseId.courseRefId,
+                            id: String(classData.courseId._id),
+                            title: classData.courseId.title,
+                            courseRefId: classData.courseId.courseRefId,
                         }
                         : null,
-                    instructor: enrollment.classId.instructorId
+                    instructor: classData.instructorId
                         ? {
-                            id: String(enrollment.classId.instructorId._id),
-                            name: enrollment.classId.instructorId.name,
-                            email: enrollment.classId.instructorId.email,
+                            id: String(classData.instructorId._id),
+                            name: classData.instructorId.name,
+                            email: classData.instructorId.email,
                         }
                         : null,
                 }
