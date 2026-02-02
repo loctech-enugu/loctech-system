@@ -1,24 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateAttendancePIN } from "@/backend/controllers/class-attendance.controller";
+import { getTodayClassSession } from "@/backend/controllers/class-attendance.controller";
 
-export async function POST(
+export async function GET(
   req: NextRequest,
   { params }: { params: { classId: string } }
 ) {
   try {
-    const result = await generateAttendancePIN(params.classId);
+    const session = await getTodayClassSession(params.classId);
 
     return NextResponse.json({
       success: true,
-      data: result,
-      message: "Attendance PIN generated successfully",
+      data: {
+        pin: session.pin,
+        classId: session.classId,
+        className: session.className,
+        expiresAt: session.expiresAt,
+      },
+      message: "Attendance PIN retrieved successfully",
     });
   } catch (error: any) {
-    console.error("Error generating attendance PIN:", error);
+    console.error("Error fetching attendance PIN:", error);
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to generate attendance PIN",
+        error: error.message || "Failed to fetch attendance PIN",
       },
       {
         status: error.message?.includes("Forbidden")
@@ -29,4 +34,12 @@ export async function POST(
       }
     );
   }
+}
+
+// Keep POST for backward compatibility
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { classId: string } }
+) {
+  return GET(req, { params });
 }

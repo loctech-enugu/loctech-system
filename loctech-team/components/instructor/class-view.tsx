@@ -10,6 +10,7 @@ import { Users, Calendar, QrCode, Key, Clipboard } from "lucide-react";
 import { toast } from "sonner";
 import Enrollments from "@/components/enrollments";
 import { formatDate } from "@/lib/utils";
+import Link from "next/link";
 
 async function fetchClass(classId: string) {
   const res = await fetch(`/api/classes/${classId}`);
@@ -139,77 +140,18 @@ export default function InstructorClassView({ classId }: InstructorClassViewProp
       <Card>
         <CardHeader>
           <CardTitle>Attendance Codes</CardTitle>
-          <CardDescription>Generate PIN or barcode for class attendance</CardDescription>
+          <CardDescription>View today's PIN and barcode for class attendance</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2">
-            {/* PIN Generation */}
-            <div className="space-y-2">
-              <Button
-                onClick={() => generatePINMutation.mutate()}
-                disabled={generatePINMutation.isPending}
-                className="w-full"
-              >
-                <Key className="mr-2 h-4 w-4" />
-                Generate PIN
-              </Button>
-              {generatedPIN && (
-                <div className="p-4 border rounded-lg bg-muted">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">Attendance PIN</p>
-                      <p className="text-2xl font-bold mt-2">{generatedPIN}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Valid for 2 hours
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => copyToClipboard(generatedPIN, "PIN")}
-                    >
-                      <Clipboard className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Barcode Generation */}
-            <div className="space-y-2">
-              <Button
-                onClick={() => generateBarcodeMutation.mutate()}
-                disabled={generateBarcodeMutation.isPending}
-                variant="outline"
-                className="w-full"
-              >
-                <QrCode className="mr-2 h-4 w-4" />
-                Generate Barcode
-              </Button>
-              {generatedBarcode && (
-                <div className="p-4 border rounded-lg bg-muted">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">Barcode Data</p>
-                      <p className="text-sm font-mono mt-2 break-all">
-                        {generatedBarcode}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Valid for 2 hours
-                      </p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => copyToClipboard(generatedBarcode, "Barcode")}
-                    >
-                      <Clipboard className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          <Button asChild className="w-full">
+            <Link href={`/dashboard/classes/${classId}/attendance/codes`}>
+              <QrCode className="mr-2 h-4 w-4" />
+              View Today's Attendance Codes
+            </Link>
+          </Button>
+          <p className="text-xs text-muted-foreground mt-2 text-center">
+            Display today's PIN and QR code for students to sign in. Codes are valid for the entire day.
+          </p>
         </CardContent>
       </Card>
 

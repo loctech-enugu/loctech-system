@@ -6,7 +6,10 @@ import { EnrollmentModel } from "../models/enrollment.model";
 import { ClassModel } from "../models/class.model";
 import { NotificationModel } from "../models/notification.model";
 import { StudentModel } from "../models/students.model";
+import { ClassSessionModel } from "../models/class-session.model";
 import { checkAndCreateAbsenceNotifications } from "./notifications.controller";
+import { createOtp } from "@/lib/otp";
+import { createQrSessionToken, getDailySecret } from "@/lib/qr";
 import crypto from "crypto";
 
 /* eslint-disable */
@@ -57,14 +60,24 @@ export const formatClassAttendance = (attendance: Record<string, any>) => {
 };
 
 /**
- * GENERATE PIN FOR CLASS SESSION
+ * Get UTC date key (YYYY-MM-DD)
  */
-export const generateAttendancePIN = async (classId: string) => {
+function getUtcDateKey(date = new Date()): string {
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(date.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * GET OR CREATE TODAY'S CLASS SESSION
+ */
+export const getTodayClassSession = async (classId: string) => {
   await connectToDatabase();
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
 
-  // Only instructor assigned to class or admin can generate PIN
+  // Only instructor assigned to class or admin can access
   const classItem = await ClassModel.findById(classId).lean();
   if (!classItem) throw new Error("Class not found");
 
@@ -74,60 +87,78 @@ export const generateAttendancePIN = async (classId: string) => {
     (session.user.role !== "instructor" ||
       String(classItem.instructorId) !== session.user.id)
   ) {
-    throw new Error("Forbidden: Only assigned instructor or admin can generate PIN");
+    throw new Error(
+      "Forbidden: Only assigned instructor or admin can access class session",
+    );
   }
 
-  // Generate 6-digit PIN
-  const pin = crypto.randomInt(100000, 999999).toString();
+  const dateKey = getUtcDateKey();
+  const secret = getDailySecret();
+  const barcodeToken = createQrSessionToken();
+  const { otp: pin } = createOtp({ length: 6 });
+
+  // Create barcode data (classId + date + secret)
+  const barcode = `${classId}-${dateKey}-${barcodeToken}`;
+
+  // Expires at end of day (23:59:59)
   const expiresAt = new Date();
-  expiresAt.setHours(expiresAt.getHours() + 2); // PIN valid for 2 hours
+  expiresAt.setUTCHours(23, 59, 59, 999);
+
+  // Use upsert to create or get today's session
+  const classSession = await ClassSessionModel.findOneAndUpdate(
+    { classId, dateKey },
+    {
+      $setOnInsert: {
+        pin,
+        barcode,
+        secret,
+        expiresAt,
+      },
+    },
+    { upsert: true, new: true },
+  ).lean();
 
   return {
-    pin,
     classId,
     className: classItem.name,
-    expiresAt: expiresAt.toISOString(),
+    date: dateKey,
+    pin: classSession.pin,
+    barcode: classSession.barcode,
+    secret: classSession.secret,
+    expiresAt: classSession.expiresAt.toISOString(),
+  };
+};
+
+/**
+ * GENERATE PIN FOR CLASS SESSION (legacy - now uses getTodayClassSession)
+ */
+export const generateAttendancePIN = async (classId: string) => {
+  const session = await getTodayClassSession(classId);
+  return {
+    pin: session.pin,
+    classId: session.classId,
+    className: session.className,
+    expiresAt: session.expiresAt,
     generatedBy: {
-      id: session.user.id,
-      name: session.user.name,
+      id: (await getServerSession(authConfig))?.user.id,
+      name: (await getServerSession(authConfig))?.user.name,
     },
   };
 };
 
 /**
- * GENERATE BARCODE FOR CLASS SESSION
+ * GENERATE BARCODE FOR CLASS SESSION (legacy - now uses getTodayClassSession)
  */
 export const generateAttendanceBarcode = async (classId: string) => {
-  await connectToDatabase();
-  const session = await getServerSession(authConfig);
-  if (!session) throw new Error("Unauthorized");
-
-  // Only instructor assigned to class or admin can generate barcode
-  const classItem = await ClassModel.findById(classId).lean();
-  if (!classItem) throw new Error("Class not found");
-
-  if (
-    session.user.role !== "admin" &&
-    session.user.role !== "super_admin" &&
-    (session.user.role !== "instructor" ||
-      String(classItem.instructorId) !== session.user.id)
-  ) {
-    throw new Error("Forbidden: Only assigned instructor or admin can generate barcode");
-  }
-
-  // Generate barcode data (classId + timestamp)
-  const barcodeData = `${classId}-${Date.now()}`;
-  const expiresAt = new Date();
-  expiresAt.setHours(expiresAt.getHours() + 2); // Barcode valid for 2 hours
-
+  const session = await getTodayClassSession(classId);
   return {
-    barcode: barcodeData,
-    classId,
-    className: classItem.name,
-    expiresAt: expiresAt.toISOString(),
+    barcode: session.barcode,
+    classId: session.classId,
+    className: session.className,
+    expiresAt: session.expiresAt,
     generatedBy: {
-      id: session.user.id,
-      name: session.user.name,
+      id: (await getServerSession(authConfig))?.user.id,
+      name: (await getServerSession(authConfig))?.user.name,
     },
   };
 };
@@ -163,7 +194,9 @@ export const recordClassAttendance = async (data: {
   }
 
   if (enrollment.status !== "active") {
-    throw new Error(`Cannot record attendance: Enrollment status is ${enrollment.status}`);
+    throw new Error(
+      `Cannot record attendance: Enrollment status is ${enrollment.status}`,
+    );
   }
 
   // Check if class is active
@@ -174,31 +207,58 @@ export const recordClassAttendance = async (data: {
     throw new Error("Cannot record attendance: Class is not active");
   }
 
-  // Verify PIN if provided
-  if (data.method === "pin" && data.pin) {
-    // In a real implementation, you'd verify against a stored PIN
-    // For now, we'll just check it's a valid 6-digit number
-    if (!/^\d{6}$/.test(data.pin)) {
-      throw new Error("Invalid PIN format");
-    }
-  }
+  // Verify PIN or barcode against today's class session (only for pin/barcode methods)
+  if (data.method === "pin" || data.method === "barcode") {
+    const dateKey = getUtcDateKey(new Date(data.date));
+    const classSession = await ClassSessionModel.findOne({
+      classId: data.classId,
+      dateKey,
+    }).lean();
 
-  // Verify barcode if provided
-  if (data.method === "barcode" && data.barcode) {
-    // In a real implementation, you'd verify against a stored barcode
-    // For now, we'll just check it contains the classId
-    if (!data.barcode.includes(data.classId)) {
-      throw new Error("Invalid barcode for this class");
+    if (!classSession) {
+      throw new Error(
+        "No active session found for this class today. Please generate a PIN/barcode first.",
+      );
+    }
+
+    // Check if session has expired
+    if (new Date() > classSession.expiresAt) {
+      throw new Error(
+        "Session has expired. Please generate a new PIN/barcode.",
+      );
+    }
+
+    // Verify PIN if provided
+    if (data.method === "pin" && data.pin) {
+      if (data.pin !== classSession.pin) {
+        throw new Error("Invalid PIN");
+      }
+    }
+
+    // Verify barcode if provided
+    if (data.method === "barcode" && data.barcode) {
+      // Verify barcode matches today's session
+      if (data.barcode !== classSession.barcode) {
+        throw new Error("Invalid barcode for this class");
+      }
     }
   }
+  // For manual method, no PIN/barcode verification needed (instructor/admin can sign in directly)
 
   // Check if attendance already exists
+  // Normalize the date to start of day for consistent querying
+  const targetDate = new Date(data.date);
+  const startOfDay = new Date(targetDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(targetDate);
+  endOfDay.setHours(23, 59, 59, 999);
+
   const existing = await ClassAttendanceModel.findOne({
     studentId: data.studentId,
     classId: data.classId,
     date: {
-      $gte: new Date(data.date.setHours(0, 0, 0, 0)),
-      $lt: new Date(data.date.setHours(23, 59, 59, 999)),
+      $gte: startOfDay,
+      $lte: endOfDay,
     },
   });
 
@@ -224,10 +284,14 @@ export const recordClassAttendance = async (data: {
   }
 
   // Create new attendance record
+  // Normalize date to start of day for consistent storage
+  const normalizedDate = new Date(data.date);
+  normalizedDate.setHours(0, 0, 0, 0);
+
   const attendance = await ClassAttendanceModel.create({
     studentId: data.studentId,
     classId: data.classId,
-    date: data.date,
+    date: normalizedDate,
     status: data.status,
     method: data.method,
     pin: data.pin,
@@ -243,7 +307,7 @@ export const recordClassAttendance = async (data: {
 
   // Update consecutive absence tracking
   await updateConsecutiveAbsences(data.studentId, data.classId);
-  
+
   // Check and create absence notifications (async, don't wait)
   checkAndCreateAbsenceNotifications(data.classId).catch((err) => {
     console.error("Error checking absence notifications:", err);
@@ -257,7 +321,7 @@ export const recordClassAttendance = async (data: {
  */
 export const updateConsecutiveAbsences = async (
   studentId: string,
-  classId: string
+  classId: string,
 ) => {
   await connectToDatabase();
 
@@ -316,7 +380,7 @@ export const updateConsecutiveAbsences = async (
       {
         isResolved: true,
         resolvedAt: new Date(),
-      }
+      },
     );
   }
 };
@@ -355,7 +419,8 @@ export const getAttendanceMonitoring = async (filters?: {
   const monitoringData = [];
 
   for (const enrollment of enrollments) {
-    const studentId = (enrollment.studentId as any)?._id || enrollment.studentId;
+    const studentId =
+      (enrollment.studentId as any)?._id || enrollment.studentId;
     const classId = (enrollment.classId as any)?._id || enrollment.classId;
 
     // Get recent attendance
@@ -424,25 +489,54 @@ export const getAttendanceMonitoring = async (filters?: {
     }
   }
 
-  return monitoringData.sort((a, b) => b.consecutiveAbsences - a.consecutiveAbsences);
+  return monitoringData.sort(
+    (a, b) => b.consecutiveAbsences - a.consecutiveAbsences,
+  );
 };
 
 /**
  * GET ATTENDANCE BY CLASS AND DATE
+ * Returns all enrolled students with their attendance records (or null if not signed in)
  */
 export const getClassAttendanceByDate = async (
   classId: string,
-  date: string
-) => {
+  date: string,
+): Promise<
+  {
+    student: {
+      id: string;
+      name: string;
+      email: string | null;
+    };
+    attendance: ReturnType<typeof formatClassAttendance> | null;
+  }[]
+> => {
   await connectToDatabase();
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
 
-  const targetDate = new Date(date);
-  const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
-  const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
+  // Get all students enrolled in this class
+  const enrollments = await EnrollmentModel.find({
+    classId,
+    status: { $in: ["active", "paused"] },
+  })
+    .populate("studentId", "name email")
+    .lean();
 
-  const attendance = await ClassAttendanceModel.find({
+  //eslint-disable-next-line
+  const students = enrollments.map((e: any) => e.studentId).filter(Boolean);
+
+  if (!students || students.length === 0) return [];
+
+  // 🎯 Define date range for the specific day
+  const targetDate = new Date(date);
+  const startOfDay = new Date(targetDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(targetDate);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  // 📜 Get attendance records for that class & date
+  const attendanceRecords = await ClassAttendanceModel.find({
     classId,
     date: { $gte: startOfDay, $lte: endOfDay },
   })
@@ -450,8 +544,138 @@ export const getClassAttendanceByDate = async (
     .populate("classId", "name courseId")
     .populate("recordedBy", "name email")
     .lean();
+  console.log("attendanceRecords: ", attendanceRecords);
+
+  // 🔄 Format all attendance records
+  const formattedRecords = attendanceRecords.map((a) =>
+    formatClassAttendance(a),
+  );
+  console.log("formattedRecords: ", formattedRecords);
+
+  // 🧩 Combine students and their attendance record (if exists)
+  const result = students.map((student: any) => {
+    const record = formattedRecords.find(
+      (r) => r.student?.id === String(student._id),
+    );
+
+    return {
+      student: {
+        id: String(student._id),
+        name: student.name,
+        email: student.email || null,
+      },
+      attendance: record || null,
+    };
+  });
+
+  return result;
+};
+
+/**
+ * GET CLASS ATTENDANCE BY DATE RANGE (for calendar)
+ */
+export const getClassAttendanceByDateRange = async (
+  classId: string,
+  startDate?: string,
+  endDate?: string,
+) => {
+  await connectToDatabase();
+  const session = await getServerSession(authConfig);
+  if (!session) throw new Error("Unauthorized");
+
+  const filter: Record<string, any> = { classId };
+
+  // Filter by date range
+  if (startDate || endDate) {
+    filter.date = {};
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      filter.date.$gte = start;
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      filter.date.$lte = end;
+    }
+  }
+
+  const attendance = await ClassAttendanceModel.find(filter)
+    .populate("studentId", "name email")
+    .populate("classId", "name courseId")
+    .populate("recordedBy", "name email")
+    .sort({ date: -1 })
+    .lean();
 
   return attendance.map((a) => formatClassAttendance(a));
+};
+
+/**
+ * UPDATE CLASS ATTENDANCE BY ID (for editing)
+ */
+export const updateAttendanceById = async (
+  id: string,
+  data: Record<string, unknown>,
+) => {
+  await connectToDatabase();
+  const session = await getServerSession(authConfig);
+  if (!session) throw new Error("Unauthorized");
+
+  const record = await ClassAttendanceModel.findById(id);
+  if (!record) {
+    throw new Error("Attendance record not found");
+  }
+
+  // Check access - instructors can only update their own class attendance
+  if (session.user.role === "instructor") {
+    const classItem = await ClassModel.findById(record.classId).lean();
+    if (!classItem || String(classItem.instructorId) !== session.user.id) {
+      throw new Error(
+        "Forbidden: You can only update attendance for your assigned classes",
+      );
+    }
+  } else if (
+    session.user.role !== "admin" &&
+    session.user.role !== "super_admin" &&
+    session.user.role !== "staff"
+  ) {
+    throw new Error("Forbidden");
+  }
+
+  // Update fields if provided
+  if (data.status !== undefined) {
+    record.status = data.status as typeof record.status;
+  }
+  if (data.recordedAt !== undefined) {
+    record.recordedAt = data.recordedAt
+      ? new Date(data.recordedAt as string)
+      : new Date();
+  }
+  if (data.signInTime !== undefined && data.signInTime) {
+    record.recordedAt = new Date(data.signInTime as string);
+  }
+  if (data.method !== undefined) {
+    record.method = data.method as typeof record.method;
+  }
+  if (data.pin !== undefined) {
+    record.pin = data.pin as string | undefined;
+  }
+
+  await record.save();
+
+  // Update consecutive absence tracking
+  await updateConsecutiveAbsences(
+    String(record.studentId),
+    String(record.classId),
+  );
+
+  const populated = await ClassAttendanceModel.findById(record._id)
+    .populate("studentId", "name email")
+    .populate("classId", "name courseId")
+    .populate("recordedBy", "name email")
+    .lean();
+
+  return formatClassAttendance(populated!);
 };
 
 /**
@@ -459,15 +683,16 @@ export const getClassAttendanceByDate = async (
  */
 export const getStudentAttendanceHistory = async (
   studentId: string,
-  classId?: string
+  classId?: string,
 ) => {
   await connectToDatabase();
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
 
   // Students can only see their own attendance
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (
-    session.user.role === "student" &&
+    (session.user.role as any) === "student" &&
     session.user.id !== studentId
   ) {
     throw new Error("Forbidden");

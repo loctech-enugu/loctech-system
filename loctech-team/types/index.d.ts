@@ -277,23 +277,26 @@ export interface ClassAttendance {
   id: string;
   studentId: string;
   classId: string;
-  date: string;
-  status: "present" | "absent" | "late" | "excused";
+  date: string | null;
+  status: "present" | "absent";
   method: "manual" | "pin" | "barcode";
-  pin?: string;
-  recordedBy?: string;
-  signInTime?: string;
-  signOutTime?: string;
-  notes?: string;
+  pin?: string | null;
+  recordedAt?: string | null;
+  recordedBy?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
   student?: {
     id: string;
     name: string;
     email: string;
-  };
+  } | null;
   class?: {
     id: string;
     name: string;
-  };
+    courseId: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
 }

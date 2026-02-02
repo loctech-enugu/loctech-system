@@ -1,24 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateAttendanceBarcode } from "@/backend/controllers/class-attendance.controller";
+import { getTodayClassSession } from "@/backend/controllers/class-attendance.controller";
 
-export async function POST(
+export async function GET(
   req: NextRequest,
   { params }: { params: { classId: string } }
 ) {
   try {
-    const result = await generateAttendanceBarcode(params.classId);
+    const session = await getTodayClassSession(params.classId);
 
     return NextResponse.json({
       success: true,
-      data: result,
-      message: "Attendance barcode generated successfully",
+      data: {
+        barcode: session.barcode,
+        secret: session.secret,
+        classId: session.classId,
+        className: session.className,
+        expiresAt: session.expiresAt,
+      },
+      message: "Attendance barcode retrieved successfully",
     });
   } catch (error: any) {
-    console.error("Error generating attendance barcode:", error);
+    console.error("Error fetching attendance barcode:", error);
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to generate attendance barcode",
+        error: error.message || "Failed to fetch attendance barcode",
       },
       {
         status: error.message?.includes("Forbidden")
@@ -29,4 +35,12 @@ export async function POST(
       }
     );
   }
+}
+
+// Keep POST for backward compatibility
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { classId: string } }
+) {
+  return GET(req, { params });
 }

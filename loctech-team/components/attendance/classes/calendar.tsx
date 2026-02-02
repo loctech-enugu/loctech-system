@@ -57,7 +57,10 @@ export const CalendarOfClassAttendance = ({ classId = "" }) => {
     const dateStr = format(date, "yyyy-MM-dd");
     return (
       data?.filter(
-        (report: any) => format(new Date(report.date), "yyyy-MM-dd") === dateStr
+        (attendance: any) => {
+          if (!attendance.date) return false;
+          return format(new Date(attendance.date), "yyyy-MM-dd") === dateStr;
+        }
       ) || []
     );
   };
@@ -169,14 +172,13 @@ export const CalendarOfClassAttendance = ({ classId = "" }) => {
                         key={attendance.id}
                         className={cn(
                           "text-xs px-1 py-0.5 rounded truncate text-white",
-                          attendance.status === "late" && "bg-red-500",
-                          attendance.status === "excused" && "bg-primary-500",
-                          attendance.status === "present" && "bg-green-500"
+                          attendance.status === "present" && "bg-green-500",
+                          attendance.status === "absent" && "bg-red-500"
                         )}
                       >
-                        {attendance.student?.name} -{" "}
-                        {attendance.signInTime
-                          ? format(new Date(attendance.signInTime), "p")
+                        {attendance.student?.name || attendance.studentId} -{" "}
+                        {attendance.recordedAt
+                          ? format(new Date(attendance.recordedAt), "p")
                           : "—"}
                       </div>
                     ))}
@@ -193,9 +195,8 @@ export const CalendarOfClassAttendance = ({ classId = "" }) => {
                           key={i}
                           className={cn(
                             "size-2 aspect-square block rounded-full",
-                            attendance.status === "late" && "bg-red-500",
-                            attendance.status === "excused" && "bg-primary-500",
-                            attendance.status === "present" && "bg-green-500"
+                            attendance.status === "present" && "bg-green-500",
+                            attendance.status === "absent" && "bg-red-500"
                           )}
                         />
                       ))}

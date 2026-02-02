@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { updateAttendanceById } from "@/backend/controllers/student-attendance.controller";
+import { updateAttendanceById } from "@/backend/controllers/class-attendance.controller";
 import { errorResponse, successResponse } from "@/lib/server-helper";
 
 /* eslint-disable */
@@ -20,7 +20,7 @@ export async function PUT(
   } catch (error: any) {
     return errorResponse(
       error.message || "Failed to update attendance",
-      500
+      error.message?.includes("Forbidden") ? 403 : 500
     );
   }
 }

@@ -3,10 +3,11 @@ import { getClassAttendanceByDate } from "@/backend/controllers/class-attendance
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { classId: string; date: string } }
+  { params }: { params: Promise<{ classId: string; date: string }> }
 ) {
   try {
-    const attendance = await getClassAttendanceByDate(params.classId, params.date);
+    const { classId, date } = await params;
+    const attendance = await getClassAttendanceByDate(classId, date);
 
     return NextResponse.json({
       success: true,
@@ -23,8 +24,8 @@ export async function GET(
         status: error.message?.includes("Forbidden")
           ? 403
           : error.message?.includes("Unauthorized")
-          ? 401
-          : 500,
+            ? 401
+            : 500,
       }
     );
   }

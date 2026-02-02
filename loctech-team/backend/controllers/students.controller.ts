@@ -240,25 +240,25 @@ export const getStudentEnrollments = async (studentId: string) => {
     classId: String(enrollment.classId),
     status: enrollment.status,
     pauseReason: enrollment.pauseReason,
-    startDate: enrollment.startDate
-      ? (enrollment.startDate as Date)?.toISOString?.()
-      : null,
-    endDate: enrollment.endDate
-      ? (enrollment.endDate as Date)?.toISOString?.()
-      : null,
+    // startDate: enrollment.startDate
+    //   ? (enrollment.startDate as Date)?.toISOString?.()
+    //   : null,
+    // endDate: enrollment.endDate
+    //   ? (enrollment.endDate as Date)?.toISOString?.()
+    //   : null,
     class: enrollment.classId
       ? {
-          id: String((enrollment.classId as any)._id),
-          name: (enrollment.classId as any).name,
-          courseId: String((enrollment.classId as any).courseId?._id || (enrollment.classId as any).courseId),
-          course: (enrollment.classId as any).courseId
-            ? {
-                id: String((enrollment.classId as any).courseId._id),
-                title: (enrollment.classId as any).courseId.title,
-                courseRefId: (enrollment.classId as any).courseId.courseRefId,
-              }
-            : null,
-        }
+        id: String((enrollment.classId as any)._id),
+        name: (enrollment.classId as any).name,
+        courseId: String((enrollment.classId as any).courseId?._id || (enrollment.classId as any).courseId),
+        course: (enrollment.classId as any).courseId
+          ? {
+            id: String((enrollment.classId as any).courseId._id),
+            title: (enrollment.classId as any).courseId.title,
+            courseRefId: (enrollment.classId as any).courseId.courseRefId,
+          }
+          : null,
+      }
       : null,
     createdAt: (enrollment.createdAt as Date)?.toISOString?.() ?? "",
     updatedAt: (enrollment.updatedAt as Date)?.toISOString?.() ?? "",
@@ -396,7 +396,6 @@ export const getStudentClasses = async (studentId: string) => {
 
   // Students can only see their own classes
   if (
-    session.user.role === "student" &&
     session.user.id !== studentId
   ) {
     throw new Error("Forbidden");
@@ -428,17 +427,17 @@ export const getStudentClasses = async (studentId: string) => {
       status: enrollment.status,
       course: classData.courseId
         ? {
-            id: String(classData.courseId._id),
-            title: classData.courseId.title,
-            courseRefId: classData.courseId.courseRefId,
-          }
+          id: String(classData.courseId._id),
+          title: classData.courseId.title,
+          courseRefId: classData.courseId.courseRefId,
+        }
         : null,
       instructor: classData.instructorId
         ? {
-            id: String(classData.instructorId._id),
-            name: classData.instructorId.name,
-            email: classData.instructorId.email,
-          }
+          id: String(classData.instructorId._id),
+          name: classData.instructorId.name,
+          email: classData.instructorId.email,
+        }
         : null,
       schedule: classData.schedule,
     };

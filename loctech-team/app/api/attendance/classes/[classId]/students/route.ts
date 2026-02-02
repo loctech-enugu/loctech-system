@@ -1,9 +1,5 @@
 import { NextResponse } from "next/server";
-import {
-  getAllStudentAttendance,
-  createAttendance,
-  updateAttendance,
-} from "@/backend/controllers/student-attendance.controller";
+import { getClassAttendanceByDateRange } from "@/backend/controllers/class-attendance.controller";
 import { errorResponse, successResponse } from "@/lib/server-helper";
 /* eslint-disable */
 export async function GET(
@@ -17,7 +13,7 @@ export async function GET(
     const start = searchParams.get("start") ?? undefined;
     const end = searchParams.get("end") ?? undefined;
 
-    const records = await getAllStudentAttendance(classId, start, end);
+    const records = await getClassAttendanceByDateRange(classId, start, end);
     return successResponse(records);
   } catch (error: any) {
     return errorResponse(error.message, 500);
