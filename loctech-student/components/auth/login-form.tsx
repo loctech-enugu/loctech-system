@@ -1,10 +1,12 @@
 "use client";
 
 import { LoaderCircle } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { signIn } from "next-auth/react";
+import * as z from "zod";
 
 import InputError from "@/components/input-error";
 import TextLink from "@/components/text-link";
@@ -16,42 +18,39 @@ import { PasswordInput } from "@/components/password-input";
 import { cn } from "@/lib/utils";
 import GoogleSignIn from "./google-sign";
 import { useRouter } from "next/navigation";
-import validator from "validator";
 
-type LoginFormData = {
-  email: string;
-  password: string;
-  remember: boolean;
-};
+// Zod schema for login form
+const loginSchema = z.object({
+  email: z.email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
+  remember: z.boolean(),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
 
 const LoginForm = () => {
-  const [formData, setFormData] = useState<LoginFormData>({
-    email: "",
-    password: "",
-    remember: false,
-  });
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
-    {}
-  );
   const router = useRouter();
 
-  const loginMutation = useMutation({
-    mutationFn: async () => {
-      // simple front-end validation
-      const newErrors: { email?: string; password?: string } = {};
-      if (!formData.email) newErrors.email = "Email is required";
-      if (!formData.password) newErrors.password = "Password is required";
-      if (formData.email && !validator.isEmail(formData.email))
-        newErrors.email = "Invalid email address";
-      setErrors(newErrors);
-      if (Object.keys(newErrors).length > 0) {
-        throw new Error("Please fix the form errors");
-      }
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      remember: false,
+    },
+  });
 
+  const loginMutation = useMutation({
+    mutationFn: async (data: LoginFormData) => {
       const res = await signIn("credentials", {
         redirect: false,
-        email: formData.email,
-        password: formData.password,
+        email: data.email,
+        password: data.password,
       });
       if (!res || res.error) {
         throw new Error(res?.error || "Invalid credentials");
@@ -60,7 +59,6 @@ const LoginForm = () => {
     },
     onSuccess: () => {
       toast.success("Logged in successfully");
-      // Optional: window.location.assign("/");
       router.replace("/dashboard");
     },
     onError: (err: unknown) => {
@@ -69,32 +67,27 @@ const LoginForm = () => {
     },
   });
 
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    loginMutation.mutate();
+  const onSubmit = (data: LoginFormData) => {
+    loginMutation.mutate(data);
   };
 
   return (
     <>
-      <form className="flex flex-col gap-6" onSubmit={submit} noValidate>
+      <form className="flex flex-col gap-6" onSubmit={handleSubmit(onSubmit)} noValidate>
         <div className="grid gap-6">
           <div className="grid gap-2">
             <Label htmlFor="email">Email address</Label>
             <Input
               id="email"
               type="email"
-              required
               autoFocus
               tabIndex={1}
               autoComplete="email"
-              value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
               placeholder="email@example.com"
               className={cn(errors.email && "border-red-500")}
+              {...register("email")}
             />
-            <InputError message={errors.email} />
+            <InputError message={errors.email?.message} />
           </div>
 
           <div className="grid gap-2">
@@ -111,28 +104,27 @@ const LoginForm = () => {
             <PasswordInput
               id="password"
               type="password"
-              required
               tabIndex={2}
               autoComplete="current-password"
-              value={formData.password}
-              onChange={(e) =>
-                setFormData({ ...formData, password: e.target.value })
-              }
               placeholder="Password"
               className={cn(errors.password && "border-red-500")}
+              {...register("password")}
             />
-            <InputError message={errors.password} />
+            <InputError message={errors.password?.message} />
           </div>
 
           <div className="flex items-center space-x-3">
-            <Checkbox
-              id="remember"
+            <Controller
               name="remember"
-              checked={formData.remember}
-              onClick={() =>
-                setFormData({ ...formData, remember: !formData.remember })
-              }
-              tabIndex={3}
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  id="remember"
+                  tabIndex={3}
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
             />
             <Label htmlFor="remember">Remember me</Label>
           </div>
