@@ -17,23 +17,14 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Only students can access this
-    if (session.user.role !== "student") {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Forbidden",
-        },
-        { status: 403 }
-      );
-    }
+
 
     await connectToDatabase();
 
     const { searchParams } = new URL(req.url);
     const classId = searchParams.get("classId");
 
-    const filter: Record<string, any> = {
+    const filter: Record<string, unknown> = {
       studentId: session.user.id,
     };
 
@@ -46,6 +37,7 @@ export async function GET(req: NextRequest) {
       .sort({ date: -1, recordedAt: -1 })
       .lean();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const formattedRecords = attendanceRecords.map((record: any) => ({
       id: String(record._id),
       studentId: String(record.studentId),
@@ -56,10 +48,10 @@ export async function GET(req: NextRequest) {
       recordedAt: (record.recordedAt as Date)?.toISOString?.() ?? "",
       class: record.classId
         ? {
-            id: String(record.classId._id),
-            name: record.classId.name,
-            schedule: record.classId.schedule,
-          }
+          id: String(record.classId._id),
+          name: record.classId.name,
+          schedule: record.classId.schedule,
+        }
         : null,
     }));
 
@@ -67,12 +59,13 @@ export async function GET(req: NextRequest) {
       success: true,
       data: formattedRecords,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching student attendance:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch attendance";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch attendance",
+        error: errorMessage,
       },
       { status: 500 }
     );

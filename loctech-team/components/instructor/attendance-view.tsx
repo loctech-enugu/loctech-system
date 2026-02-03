@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calendar, CheckCircle, XCircle, Clock } from "lucide-react";
+import { CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   Select,
@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Enrollment } from "@/types";
 
 async function fetchClass(classId: string) {
   const res = await fetch(`/api/classes/${classId}`);
@@ -96,14 +97,16 @@ export default function InstructorAttendanceView({
       queryClient.invalidateQueries({ queryKey: ["attendance"] });
       queryClient.invalidateQueries({ queryKey: ["enrollments"] });
     },
-    onError: (error: any) => {
-      toast.error(error.message || "Failed to record attendance");
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "Failed to record attendance";
+      toast.error(errorMessage);
     },
   });
 
   // Initialize attendance status from existing records
   React.useEffect(() => {
     const statusMap: Record<string, "present" | "absent"> = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     attendanceRecords.forEach((record: any) => {
       if (record.student?.id) {
         statusMap[record.student.id] = record.status;
@@ -118,9 +121,10 @@ export default function InstructorAttendanceView({
 
   const handleSaveAttendance = () => {
     const activeEnrollments = enrollments.filter(
-      (e: any) => e.status === "active"
+      (e: Enrollment) => e.status === "active"
     );
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     activeEnrollments.forEach((enrollment: any) => {
       const studentId = enrollment.studentId || enrollment.student?.id;
       const status = attendanceStatus[studentId] || "absent";
@@ -135,6 +139,7 @@ export default function InstructorAttendanceView({
     });
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const activeEnrollments = enrollments.filter((e: any) => e.status === "active");
 
   return (
@@ -177,6 +182,7 @@ export default function InstructorAttendanceView({
         <CardContent>
           {activeEnrollments.length > 0 ? (
             <div className="space-y-2">
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {activeEnrollments.map((enrollment: any) => {
                 const student = enrollment.student || enrollment.studentId;
                 const studentId = typeof student === "string" ? student : student?.id;
@@ -184,6 +190,7 @@ export default function InstructorAttendanceView({
                 const studentEmail = typeof student === "string" ? "" : student?.email;
                 const currentStatus = attendanceStatus[studentId] || "absent";
                 const existingRecord = attendanceRecords.find(
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   (r: any) => r.student?.id === studentId
                 );
 
@@ -233,8 +240,8 @@ export default function InstructorAttendanceView({
                             existingRecord.method === "pin"
                               ? "bg-blue-50"
                               : existingRecord.method === "barcode"
-                              ? "bg-purple-50"
-                              : ""
+                                ? "bg-purple-50"
+                                : ""
                           }
                         >
                           {existingRecord.method}

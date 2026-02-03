@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ExamTimer } from "./exam-timer";
 import { ViolationWarning } from "./violation-warning";
 import { useExamSecurity } from "@/hooks/use-exam-security";
-import { CheckCircle, XCircle, Flag, ChevronLeft, ChevronRight } from "lucide-react";
+import { Flag, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 
@@ -56,6 +56,7 @@ async function submitExam(userExamId: string) {
   return res.json();
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function recordViolation(userExamId: string, violation: any) {
   const res = await fetch(`/api/student/exams/${userExamId}/violations`, {
     method: "POST",
@@ -78,7 +79,6 @@ export default function ExamTakingInterface({
   examId,
 }: ExamTakingInterfaceProps) {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const { data: session } = useSession();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string | string[]>>(
@@ -101,10 +101,8 @@ export default function ExamTakingInterface({
   const currentQuestion = questions[currentQuestionIndex];
 
   const {
-    violations,
     violationCount,
     warningCount,
-    isFullScreen,
     requestFullScreen,
   } = useExamSecurity({
     enabled: examStarted,
@@ -178,8 +176,9 @@ export default function ExamTakingInterface({
       await submitExam(userExam.id);
       toast.success("Exam submitted successfully");
       router.push(`/dashboard/student/exams/${examId}/results`);
-    } catch (error: any) {
-      toast.error(error.message || "Failed to submit exam");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to submit exam";
+      toast.error(errorMessage);
     }
   };
 
@@ -192,8 +191,9 @@ export default function ExamTakingInterface({
         "Exam automatically submitted due to security violations"
       );
       router.push(`/dashboard/student/exams/${examId}/results`);
-    } catch (error: any) {
-      toast.error(error.message || "Failed to submit exam");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to submit exam";
+      toast.error(errorMessage);
     }
   };
 
@@ -250,6 +250,7 @@ export default function ExamTakingInterface({
               <CardContent className="p-4">
                 <h3 className="font-semibold mb-4">Questions</h3>
                 <div className="grid grid-cols-5 gap-2">
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   {questions.map((q: any, index: number) => {
                     const isAnswered = answers[q.id] !== undefined;
                     const isFlagged = flaggedQuestions.has(q.id);
@@ -261,10 +262,9 @@ export default function ExamTakingInterface({
                         onClick={() => setCurrentQuestionIndex(index)}
                         className={`
                           aspect-square rounded border-2 text-xs font-medium
-                          ${
-                            isCurrent
-                              ? "border-blue-600 bg-blue-50"
-                              : "border-gray-300"
+                          ${isCurrent
+                            ? "border-blue-600 bg-blue-50"
+                            : "border-gray-300"
                           }
                           ${isAnswered ? "bg-green-100" : "bg-white"}
                           ${isFlagged ? "ring-2 ring-yellow-400" : ""}
@@ -381,15 +381,15 @@ export default function ExamTakingInterface({
 
                     {(currentQuestion.type === "essay" ||
                       currentQuestion.type === "fill_blank") && (
-                      <textarea
-                        className="w-full min-h-32 p-3 border rounded-lg"
-                        value={
-                          (answers[currentQuestion.id] as string) || ""
-                        }
-                        onChange={(e) => handleAnswerChange(e.target.value)}
-                        placeholder="Type your answer here..."
-                      />
-                    )}
+                        <textarea
+                          className="w-full min-h-32 p-3 border rounded-lg"
+                          value={
+                            (answers[currentQuestion.id] as string) || ""
+                          }
+                          onChange={(e) => handleAnswerChange(e.target.value)}
+                          placeholder="Type your answer here..."
+                        />
+                      )}
                   </div>
 
                   <div className="flex items-center justify-between pt-4 border-t">

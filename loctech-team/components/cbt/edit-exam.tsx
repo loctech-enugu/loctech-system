@@ -1,10 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, } from "react-hook-form";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import InputError from "../input-error";
 import { useRouter } from "next/navigation";
+import type { Exam } from "@/types";
 
 const editExamSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -30,7 +31,7 @@ const editExamSchema = z.object({
 type EditExamForm = z.infer<typeof editExamSchema>;
 
 interface EditExamProps {
-  exam: any;
+  exam: Exam | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }

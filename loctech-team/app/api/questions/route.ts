@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get("search");
     const tags = searchParams.get("tags");
 
-    const filters: any = {};
+    const filters: Record<string, unknown> = {};
     if (categoryId) filters.categoryId = categoryId;
     if (difficulty) filters.difficulty = difficulty;
     if (type) filters.type = type;
@@ -29,12 +29,13 @@ export async function GET(req: NextRequest) {
       success: true,
       data: questions,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching questions:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch questions";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch questions",
+        error: errorMessage,
       },
       { status: 500 }
     );
@@ -63,19 +64,20 @@ export async function POST(req: NextRequest) {
       data: question,
       message: "Question created successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error creating question:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to create question";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to create question",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("not found")
-          ? 404
-          : 500,
+          : errorMessage.includes("not found")
+            ? 404
+            : 500,
       }
     );
   }

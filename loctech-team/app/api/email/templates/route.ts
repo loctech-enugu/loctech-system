@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     const type = searchParams.get("type");
     const isActive = searchParams.get("isActive");
 
-    const filters: any = {};
+    const filters: Record<string, unknown> = {};
     if (type) filters.type = type;
     if (isActive !== null) filters.isActive = isActive === "true";
 
@@ -20,12 +20,13 @@ export async function GET(req: NextRequest) {
       success: true,
       data: templates,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching email templates:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch email templates";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch email templates",
+        error: errorMessage,
       },
       { status: 500 }
     );
@@ -42,17 +43,18 @@ export async function POST(req: NextRequest) {
       data: template,
       message: "Email template created successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error creating email template:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to create email template";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to create email template",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("already exists")
+          : errorMessage.includes("already exists")
           ? 400
           : 500,
       }

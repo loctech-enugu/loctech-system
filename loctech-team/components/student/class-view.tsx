@@ -4,9 +4,9 @@ import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, User, CheckCircle, XCircle } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import { format } from "date-fns";
+import { ClassAttendance } from "@/types";
 
 async function fetchClass(classId: string) {
   const res = await fetch(`/api/classes/${classId}`);
@@ -48,7 +48,7 @@ export default function StudentClassView({ classId }: StudentClassViewProps) {
 
   const totalSessions = attendanceRecords.length;
   const presentSessions = attendanceRecords.filter(
-    (r: any) => r.status === "present"
+    (r: ClassAttendance) => r.status === "present"
   ).length;
   const attendancePercentage =
     totalSessions > 0 ? (presentSessions / totalSessions) * 100 : 0;
@@ -132,36 +132,38 @@ export default function StudentClassView({ classId }: StudentClassViewProps) {
         <CardContent>
           {attendanceRecords.length > 0 ? (
             <div className="space-y-2">
-              {attendanceRecords.map((record: any) => (
-                <div
-                  key={record.id}
-                  className="flex items-center justify-between p-3 border rounded-lg"
-                >
-                  <div className="flex-1">
-                    <p className="font-medium">
-                      {formatDate(record.date)}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Recorded at {new Date(record.recordedAt).toLocaleTimeString()}
-                      {record.method && ` via ${record.method}`}
-                    </p>
-                  </div>
-                  <Badge
-                    className={
-                      record.status === "present"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-red-100 text-red-800"
-                    }
+              {attendanceRecords.map(
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (record: any) => (
+                  <div
+                    key={record.id}
+                    className="flex items-center justify-between p-3 border rounded-lg"
                   >
-                    {record.status === "present" ? (
-                      <CheckCircle className="mr-1 h-3 w-3" />
-                    ) : (
-                      <XCircle className="mr-1 h-3 w-3" />
-                    )}
-                    {record.status}
-                  </Badge>
-                </div>
-              ))}
+                    <div className="flex-1">
+                      <p className="font-medium">
+                        {format(record.date, "MM/dd/yyyy")}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Recorded at {new Date(record.recordedAt).toLocaleTimeString()}
+                        {record.method && ` via ${record.method}`}
+                      </p>
+                    </div>
+                    <Badge
+                      className={
+                        record.status === "present"
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }
+                    >
+                      {record.status === "present" ? (
+                        <CheckCircle className="mr-1 h-3 w-3" />
+                      ) : (
+                        <XCircle className="mr-1 h-3 w-3" />
+                      )}
+                      {record.status}
+                    </Badge>
+                  </div>
+                ))}
             </div>
           ) : (
             <p className="text-center text-muted-foreground py-8">

@@ -61,8 +61,9 @@ export default function AttendanceMonitoring() {
       toast.success("Notification sent successfully");
       queryClient.invalidateQueries({ queryKey: ["attendance-monitoring"] });
     },
-    onError: (error: any) => {
-      toast.error(error.message || "Failed to send notification");
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "Failed to send notification";
+      toast.error(errorMessage);
     },
   });
 
@@ -72,8 +73,9 @@ export default function AttendanceMonitoring() {
       toast.success("Notifications checked");
       queryClient.invalidateQueries({ queryKey: ["attendance-monitoring"] });
     },
-    onError: (error: any) => {
-      toast.error(error.message || "Failed to check notifications");
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "Failed to check notifications";
+      toast.error(errorMessage);
     },
   });
 
@@ -107,6 +109,7 @@ export default function AttendanceMonitoring() {
           </TableHeader>
           <TableBody>
             {monitoring.length > 0 ? (
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               monitoring.map((item: any) => (
                 <TableRow key={`${item.studentId}-${item.classId}`}>
                   <TableCell>

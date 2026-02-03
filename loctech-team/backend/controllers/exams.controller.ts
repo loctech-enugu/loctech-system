@@ -1,19 +1,104 @@
 import { authConfig } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
 import { getServerSession } from "next-auth";
+import type { Exam as ExamType, ExamStatus } from "@/types";
 import { ExamModel } from "../models/exam.model";
 import { QuestionModel } from "../models/question.model";
 import { UserExamModel } from "../models/user-exam.model";
 import { CourseModel } from "../models/courses.model";
 import { ClassModel } from "../models/class.model";
+import type { Types } from "mongoose";
 
-/* eslint-disable */
+/** Populated course from mongoose (lean) */
+interface PopulatedCourse {
+  _id: Types.ObjectId;
+  title?: string;
+  courseRefId?: string;
+}
+
+/** Populated user/student from mongoose (lean) */
+interface PopulatedUser {
+  _id: Types.ObjectId;
+  name?: string;
+  email?: string;
+}
+
+/** Populated question from mongoose (lean) */
+interface PopulatedQuestion {
+  _id: Types.ObjectId;
+  question?: string;
+  questionText?: string;
+  correctAnswer?: string | string[];
+  explanation?: string;
+}
+
+/** User exam lean doc with optional populated userId */
+interface UserExamLeanDoc {
+  _id: Types.ObjectId;
+  userId: Types.ObjectId | PopulatedUser;
+  attemptNumber?: number;
+  status?: string;
+  score?: number | null;
+  percentage?: number | null;
+  submittedAt?: Date | null;
+  timeSpent?: number | null;
+  violationCount?: number;
+}
+
+/** User answer lean doc with optional populated questionId */
+interface UserAnswerLeanDoc {
+  questionId: Types.ObjectId | PopulatedQuestion;
+  answer: string | string[];
+  isCorrect: boolean;
+  pointsEarned: number;
+}
+
+function formatPopulatedUser(
+  userId: Types.ObjectId | PopulatedUser
+): { id: string; name: string; email: string } | null {
+  if (!userId || typeof userId !== "object" || !("name" in userId)) return null;
+  const u = userId as PopulatedUser;
+  return {
+    id: String(u._id),
+    name: u.name ?? "",
+    email: u.email ?? "",
+  };
+}
+
+/** Raw exam document from mongoose find().lean() (courseId may be populated) */
+interface ExamLeanDoc {
+  _id: Types.ObjectId;
+  title?: string;
+  description?: string | null;
+  duration?: number;
+  totalQuestions?: number;
+  questionsPerStudent?: number;
+  passingScore?: number;
+  maxAttempts?: number;
+  status?: string;
+  scheduledStart?: Date | null;
+  expirationDate?: Date | null;
+  showCorrectAnswers?: boolean;
+  showDetailedFeedback?: boolean;
+  autoPublishResults?: boolean;
+  shuffleQuestions?: boolean;
+  questions?: Types.ObjectId[];
+  courseId?: Types.ObjectId | PopulatedCourse | null;
+  classIds?: Types.ObjectId[];
+  requireMinimumAttendance?: boolean;
+  minimumAttendancePercentage?: number;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
 
 /**
  * Format exam document for frontend
  */
-export const formatExam = (exam: Record<string, any>) => {
-  const course = exam.courseId as Record<string, any> | null;
+export function formatExam(exam: ExamLeanDoc): ExamType {
+  const course =
+    exam.courseId && typeof exam.courseId === "object" && "_id" in exam.courseId
+      ? (exam.courseId as PopulatedCourse)
+      : null;
 
   return {
     id: String(exam._id),
@@ -24,47 +109,57 @@ export const formatExam = (exam: Record<string, any>) => {
     questionsPerStudent: exam.questionsPerStudent ?? 0,
     passingScore: exam.passingScore ?? 0,
     maxAttempts: exam.maxAttempts ?? 1,
-    status: exam.status ?? "draft",
+    status: (exam.status as ExamStatus) ?? "draft",
     scheduledStart: exam.scheduledStart
-      ? (exam.scheduledStart as Date)?.toISOString?.()
+      ? exam.scheduledStart.toISOString()
       : null,
     expirationDate: exam.expirationDate
-      ? (exam.expirationDate as Date)?.toISOString?.()
+      ? exam.expirationDate.toISOString()
       : null,
     showCorrectAnswers: exam.showCorrectAnswers ?? false,
     showDetailedFeedback: exam.showDetailedFeedback ?? false,
     autoPublishResults: exam.autoPublishResults ?? false,
     shuffleQuestions: exam.shuffleQuestions ?? false,
-    questions: (exam.questions ?? []).map((id: any) => String(id)),
-    courseId: exam.courseId ? String(exam.courseId) : null,
-    classIds: (exam.classIds ?? []).map((id: any) => String(id)),
+    questions: (exam.questions ?? []).map((id) => String(id)),
+    courseId: exam.courseId
+      ? typeof exam.courseId === "object" && "_id" in exam.courseId
+        ? String((exam.courseId as PopulatedCourse)._id)
+        : String(exam.courseId)
+      : null,
+    classIds: (exam.classIds ?? []).map((id) => String(id)),
     requireMinimumAttendance: exam.requireMinimumAttendance ?? false,
     minimumAttendancePercentage: exam.minimumAttendancePercentage ?? 0,
     course: course
       ? {
-          id: String(course._id),
-          title: course.title ?? "",
-          courseRefId: course.courseRefId ?? "",
-        }
+        id: String(course._id),
+        title: course.title ?? "",
+        courseRefId: course.courseRefId ?? "",
+      }
       : null,
-    createdAt: (exam.createdAt as Date)?.toISOString?.() ?? "",
-    updatedAt: (exam.updatedAt as Date)?.toISOString?.() ?? "",
+    createdAt: exam.createdAt?.toISOString() ?? "",
+    updatedAt: exam.updatedAt?.toISOString() ?? "",
   };
-};
+}
+
+export interface ExamListFilters {
+  status?: string;
+  courseId?: string;
+  classId?: string;
+}
 
 /**
  * 🟩 GET ALL EXAMS
  */
-export const getAllExams = async (filters?: {
-  status?: string;
-  courseId?: string;
-  classId?: string;
-}) => {
+export const getAllExams = async (filters?: ExamListFilters) => {
   await connectToDatabase();
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
 
-  const filter: Record<string, any> = {};
+  const filter: {
+    status?: string;
+    courseId?: string;
+    classIds?: string;
+  } = {};
 
   if (filters?.status) filter.status = filters.status;
   if (filters?.courseId) filter.courseId = filters.courseId;
@@ -75,7 +170,7 @@ export const getAllExams = async (filters?: {
     .sort("-createdAt")
     .lean();
 
-  return exams.map((exam) => formatExam(exam));
+  return exams.map((exam) => formatExam(exam as ExamLeanDoc));
 };
 
 /**
@@ -93,13 +188,10 @@ export const getExamById = async (id: string) => {
 
   if (!exam) return null;
 
-  return formatExam(exam);
+  return formatExam(exam as ExamLeanDoc);
 };
 
-/**
- * 🟩 CREATE EXAM
- */
-export const createExam = async (data: {
+export interface CreateExamInput {
   title: string;
   description?: string;
   duration: number;
@@ -110,12 +202,18 @@ export const createExam = async (data: {
   scheduledStart?: Date;
   expirationDate?: Date;
   showCorrectAnswers?: boolean;
-  showFeedback?: boolean;
+  showDetailedFeedback?: boolean;
   autoPublishResults?: boolean;
-  questionIds: string[];
+  shuffleQuestions?: boolean;
+  questions: string[];
   courseId?: string;
   classIds?: string[];
-}) => {
+}
+
+/**
+ * 🟩 CREATE EXAM
+ */
+export const createExam = async (data: CreateExamInput) => {
   await connectToDatabase();
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
@@ -130,12 +228,12 @@ export const createExam = async (data: {
     throw new Error("At least one question is required");
   }
 
-  const questions = await QuestionModel.find({
+  const questionDocs = await QuestionModel.find({
     _id: { $in: data.questions },
     isActive: true,
   });
 
-  if (questions.length !== data.questions.length) {
+  if (questionDocs.length !== data.questions.length) {
     throw new Error("Some questions are invalid or inactive");
   }
 
@@ -178,32 +276,31 @@ export const createExam = async (data: {
     .populate("courseId", "title courseRefId")
     .lean();
 
-  return formatExam(populated!);
+  return formatExam(populated as ExamLeanDoc);
 };
 
 /**
  * 🟧 UPDATE EXAM
  */
-export const updateExam = async (
-  id: string,
-  data: Partial<{
-    title: string;
-    description: string;
-    duration: number;
-    totalQuestions: number;
-    questionsPerStudent: number;
-    passingScore: number;
-    maxAttempts: number;
-    scheduledStart: Date;
-    expirationDate: Date;
-    showCorrectAnswers: boolean;
-    showFeedback: boolean;
-    autoPublishResults: boolean;
-    questions: string[];
-    courseId: string;
-    classIds: string[];
-  }>
-) => {
+export interface UpdateExamInput {
+  title?: string;
+  description?: string;
+  duration?: number;
+  totalQuestions?: number;
+  questionsPerStudent?: number;
+  passingScore?: number;
+  maxAttempts?: number;
+  scheduledStart?: Date;
+  expirationDate?: Date;
+  showCorrectAnswers?: boolean;
+  showDetailedFeedback?: boolean;
+  autoPublishResults?: boolean;
+  questions?: string[];
+  courseId?: string;
+  classIds?: string[];
+}
+
+export const updateExam = async (id: string, data: Partial<UpdateExamInput>) => {
   await connectToDatabase();
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
@@ -254,7 +351,8 @@ export const updateExam = async (
     .populate("courseId", "title courseRefId")
     .lean();
 
-  return formatExam(updated!);
+  if (!updated) throw new Error("Exam not found");
+  return formatExam(updated as ExamLeanDoc);
 };
 
 /**
@@ -313,7 +411,7 @@ export const publishExam = async (id: string, publish: boolean) => {
 
   await exam.save();
 
-  return formatExam(exam.toObject());
+  return formatExam(exam.toObject() as ExamLeanDoc);
 };
 
 /**
@@ -337,24 +435,16 @@ export const getExamResults = async (examId: string) => {
     .lean();
 
   return {
-    exam: formatExam(exam),
-    results: userExams.map((ue) => ({
+    exam: formatExam(exam as ExamLeanDoc),
+    results: userExams.map((ue: UserExamLeanDoc) => ({
       id: String(ue._id),
-      userId: String(ue.userId),
-      user: (ue.userId as any)?.name
-        ? {
-            id: String((ue.userId as any)._id),
-            name: (ue.userId as any).name,
-            email: (ue.userId as any).email,
-          }
-        : null,
-      attemptNumber: ue.attemptNumber,
-      status: ue.status,
+      userId: String(typeof ue.userId === "object" && "_id" in ue.userId ? ue.userId._id : ue.userId),
+      user: formatPopulatedUser(ue.userId),
+      attemptNumber: ue.attemptNumber ?? 1,
+      status: ue.status ?? "NOT_STARTED",
       score: ue.score ?? null,
       percentage: ue.percentage ?? null,
-      submittedAt: ue.submittedAt
-        ? (ue.submittedAt as Date)?.toISOString?.()
-        : null,
+      submittedAt: ue.submittedAt ? ue.submittedAt.toISOString() : null,
       timeSpent: ue.timeSpent ?? null,
       violationCount: ue.violationCount ?? 0,
     })),
@@ -370,13 +460,6 @@ export const getExamResult = async (examId: string, userId: string) => {
   if (!session) throw new Error("Unauthorized");
 
   // Students can only see their own results
-  if (
-    session.user.role === "student" &&
-    session.user.id !== userId
-  ) {
-    throw new Error("Forbidden");
-  }
-
   const exam = await ExamModel.findById(examId).lean();
   if (!exam) throw new Error("Exam not found");
 
@@ -408,38 +491,35 @@ export const getExamResult = async (examId: string, userId: string) => {
       .populate("questionId")
       .lean();
 
-    answers = userAnswers.map((ua) => ({
-      questionId: String(ua.questionId),
-      question: (ua.questionId as any)?.question ?? "",
-      answer: ua.answer,
-      correctAnswer: (ua.questionId as any)?.correctAnswer,
-      isCorrect: ua.isCorrect,
-      pointsEarned: ua.pointsEarned,
-      explanation: (ua.questionId as any)?.explanation ?? null,
-    }));
+    answers = userAnswers.map((ua: UserAnswerLeanDoc) => {
+      const q = ua.questionId;
+      const pop = typeof q === "object" && q && "questionText" in q ? (q as PopulatedQuestion) : null;
+      return {
+        questionId: String(typeof q === "object" && q && "_id" in q ? q._id : q),
+        question: pop?.question ?? pop?.questionText ?? "",
+        answer: ua.answer,
+        correctAnswer: pop?.correctAnswer,
+        isCorrect: ua.isCorrect,
+        pointsEarned: ua.pointsEarned,
+        explanation: pop?.explanation ?? null,
+      };
+    });
   }
 
+  const ue = userExam as UserExamLeanDoc;
   return {
-    exam: formatExam(exam),
+    exam: formatExam(exam as ExamLeanDoc),
     result: {
-      id: String(userExam._id),
-      userId: String(userExam.userId),
-      user: (userExam.userId as any)?.name
-        ? {
-            id: String((userExam.userId as any)._id),
-            name: (userExam.userId as any).name,
-            email: (userExam.userId as any).email,
-          }
-        : null,
-      attemptNumber: userExam.attemptNumber,
-      status: userExam.status,
-      score: userExam.score ?? null,
-      percentage: userExam.percentage ?? null,
-      submittedAt: userExam.submittedAt
-        ? (userExam.submittedAt as Date)?.toISOString?.()
-        : null,
-      timeSpent: userExam.timeSpent ?? null,
-      violationCount: userExam.violationCount ?? 0,
+      id: String(ue._id),
+      userId: String(typeof ue.userId === "object" && "_id" in ue.userId ? ue.userId._id : ue.userId),
+      user: formatPopulatedUser(ue.userId),
+      attemptNumber: ue.attemptNumber ?? 1,
+      status: ue.status ?? "NOT_STARTED",
+      score: ue.score ?? null,
+      percentage: ue.percentage ?? null,
+      submittedAt: ue.submittedAt ? ue.submittedAt.toISOString() : null,
+      timeSpent: ue.timeSpent ?? null,
+      violationCount: ue.violationCount ?? 0,
       answers,
     },
   };

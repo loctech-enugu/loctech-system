@@ -3,21 +3,23 @@ import { getEnrollmentsByStudent } from "@/backend/controllers/enrollments.contr
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { studentId: string } }
+  { params }: { params: Promise<{ studentId: string }> }
 ) {
   try {
-    const enrollments = await getEnrollmentsByStudent(params.studentId);
+    const { studentId } = await params;
+    const enrollments = await getEnrollmentsByStudent(studentId);
 
     return NextResponse.json({
       success: true,
       data: enrollments,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching enrollments by student:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch enrollments";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch enrollments",
+        error: errorMessage,
       },
       { status: 500 }
     );

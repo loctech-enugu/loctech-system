@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const filters: any = {};
+    const filters: Record<string, unknown> = {};
     if (recipientEmail) filters.recipientEmail = recipientEmail;
     if (status) filters.status = status;
     if (templateId) filters.templateId = templateId;
@@ -34,17 +34,18 @@ export async function GET(req: NextRequest) {
       success: true,
       data: logs,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching email logs:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch email logs";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch email logs",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("Unauthorized")
+          : errorMessage.includes("Unauthorized")
           ? 401
           : 500,
       }

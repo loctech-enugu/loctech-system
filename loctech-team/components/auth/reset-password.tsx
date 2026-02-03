@@ -78,6 +78,7 @@ export default function ResetPasswordPage() {
       } else {
         setError(data.message || "Invalid or expired reset token");
       }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       setError("Failed to verify reset token. Please try again.");
     } finally {
@@ -167,6 +168,7 @@ export default function ResetPasswordPage() {
       } else {
         setError(data.message || "Failed to reset password");
       }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       setError("An error occurred. Please try again.");
     } finally {

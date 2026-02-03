@@ -53,14 +53,6 @@ export const saveAnswer = async (data: {
   const userExam = await UserExamModel.findById(data.userExamId).lean();
   if (!userExam) throw new Error("Exam attempt not found");
 
-  // Check ownership
-  if (
-    session.user.role === "student" &&
-    String(userExam.userId) !== session.user.id
-  ) {
-    throw new Error("Forbidden");
-  }
-
   if (userExam.status !== "IN_PROGRESS") {
     throw new Error("Exam is not in progress");
   }
@@ -141,14 +133,6 @@ export const getAnswersForUserExam = async (userExamId: string) => {
   const userExam = await UserExamModel.findById(userExamId).lean();
   if (!userExam) throw new Error("Exam attempt not found");
 
-  // Check ownership
-  if (
-    session.user.role === "student" &&
-    String(userExam.userId) !== session.user.id
-  ) {
-    throw new Error("Forbidden");
-  }
-
   const answers = await UserAnswerModel.find({
     userExamId: userExamId,
   })
@@ -171,14 +155,6 @@ export const getAnswerForQuestion = async (
 
   const userExam = await UserExamModel.findById(userExamId).lean();
   if (!userExam) throw new Error("Exam attempt not found");
-
-  // Check ownership
-  if (
-    session.user.role === "student" &&
-    String(userExam.userId) !== session.user.id
-  ) {
-    throw new Error("Forbidden");
-  }
 
   const answer = await UserAnswerModel.findOne({
     userExamId: userExamId,
@@ -209,14 +185,6 @@ export const bulkSaveAnswers = async (
 
   const userExam = await UserExamModel.findById(userExamId).lean();
   if (!userExam) throw new Error("Exam attempt not found");
-
-  // Check ownership
-  if (
-    session.user.role === "student" &&
-    String(userExam.userId) !== session.user.id
-  ) {
-    throw new Error("Forbidden");
-  }
 
   if (userExam.status !== "IN_PROGRESS") {
     throw new Error("Exam is not in progress");

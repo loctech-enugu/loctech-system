@@ -3,11 +3,12 @@ import { submitExam } from "@/backend/controllers/user-exams.controller";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await req.json();
-    const userExamId = body.userExamId || params.id;
+    const userExamId = body.userExamId || id;
 
     const result = await submitExam(userExamId);
 
@@ -16,19 +17,20 @@ export async function POST(
       data: result,
       message: "Exam submitted successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error submitting exam:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to submit exam";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to submit exam",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("not found")
+          : errorMessage.includes("not found")
           ? 404
-          : error.message?.includes("progress")
+          : errorMessage.includes("progress")
           ? 400
           : 500,
       }

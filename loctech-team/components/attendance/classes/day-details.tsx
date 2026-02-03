@@ -8,7 +8,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { format } from "date-fns";
-import { UserCheck, UserX, Clock, FileText, Timer, Edit } from "lucide-react";
+import { UserCheck, UserX, Clock, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -128,13 +128,14 @@ export const AttendanceDetails = ({
       setSelectedStudentId(null);
       setSelectedAction(null);
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(error.message || "Failed to record attendance");
       console.error("Error recording attendance:", error);
     },
   });
 
   const updateMutation = useMutation({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mutationFn: ({ id, data }: { id: string; data: any }) =>
       updateClassAttendance(id, data),
     onSuccess: () => {
@@ -157,7 +158,7 @@ export const AttendanceDetails = ({
       setSelectedAttendanceId(null);
       setIsEditMode(false);
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(error.message || "Failed to update attendance");
       console.error("Error updating attendance:", error);
     },
@@ -196,6 +197,7 @@ export const AttendanceDetails = ({
           id: selectedAttendanceId,
           data: payload,
         });
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (error) {
         // Error handling is done in mutation onError
       }
@@ -212,6 +214,7 @@ export const AttendanceDetails = ({
 
     try {
       await recordMutation.mutateAsync(payload);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       // Error handling is done in mutation onError
     }

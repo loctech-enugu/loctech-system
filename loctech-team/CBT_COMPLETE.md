@@ -95,13 +95,13 @@
 - `components/cbt/create-question.tsx`
 - `components/cbt/edit-question.tsx`
 
-### Student Interface
-- `app/dashboard/student/exams/page.tsx`
-- `components/cbt/student-exams-list.tsx`
-- `app/dashboard/student/exams/[id]/take/page.tsx`
-- `components/cbt/exam-taking-interface.tsx`
-- `app/dashboard/student/exams/[id]/results/page.tsx`
-- `components/cbt/exam-results.tsx`
+### Student Interface (loctech-student app)
+Student-facing exam list and taking flow live in the **loctech-student** app, not in the staff app. In the staff app:
+- `app/dashboard/student/exams/page.tsx` – placeholder page directing to student app / CBT
+- `app/dashboard/student/exams/[id]/take/page.tsx` – legacy route (student app has its own)
+- `app/dashboard/student/exams/[id]/results/page.tsx` – legacy route
+- `components/cbt/exam-taking-interface.tsx` – may be shared or duplicated in student app
+- `components/cbt/exam-results.tsx` – may be shared or duplicated in student app
 
 ## Features Summary
 

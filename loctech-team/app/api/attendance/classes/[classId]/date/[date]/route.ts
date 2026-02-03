@@ -13,17 +13,18 @@ export async function GET(
       success: true,
       data: attendance,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching class attendance:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch attendance";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch attendance",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("Unauthorized")
+          : errorMessage.includes("Unauthorized")
             ? 401
             : 500,
       }

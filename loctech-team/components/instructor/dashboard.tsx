@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Users, AlertTriangle, Clock } from "lucide-react";
 import Link from "next/link";
+import { Class } from "@/types";
 
 async function fetchTodaysClasses() {
   const res = await fetch("/api/classes/instructor/me");
@@ -34,8 +35,8 @@ export default function InstructorDashboard() {
   });
 
   // Filter today's classes
-  const today = new Date().toISOString().split("T")[0];
-  const todaysClasses = classes.filter((classItem: any) => {
+  // const today = new Date().toISOString().split("T")[0];
+  const todaysClasses = classes.filter((classItem: Class) => {
     // Simple check - in a real implementation, you'd check the schedule
     return classItem.status === "active";
   });
@@ -50,7 +51,7 @@ export default function InstructorDashboard() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Classes</CardTitle>
+            <CardTitle className="text-sm font-medium">Today&apos;s Classes</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -91,12 +92,13 @@ export default function InstructorDashboard() {
       {/* Today's Classes */}
       <Card>
         <CardHeader>
-          <CardTitle>Today's Classes</CardTitle>
+          <CardTitle>{`Today's Classes`}</CardTitle>
           <CardDescription>Classes scheduled for today</CardDescription>
         </CardHeader>
         <CardContent>
           {todaysClasses.length > 0 ? (
             <div className="space-y-4">
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {todaysClasses.map((classItem: any) => (
                 <div
                   key={classItem.id}
@@ -144,6 +146,7 @@ export default function InstructorDashboard() {
         <CardContent>
           {atRiskStudents.length > 0 ? (
             <div className="space-y-4">
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {atRiskStudents.slice(0, 10).map((item: any) => (
                 <div
                   key={`${item.studentId}-${item.classId}`}

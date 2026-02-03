@@ -4,7 +4,7 @@ import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, type Resolver } from "react-hook-form";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -59,7 +59,7 @@ const createExamSchema = z.object({
   questions: z.array(z.string()).min(1, "At least one question is required"),
 });
 
-type CreateExamForm = z.infer<typeof createExamSchema>;
+type CreateExamForm = z.output<typeof createExamSchema>;
 
 interface CreateExamProps {
   open: boolean;
@@ -84,7 +84,7 @@ export default function CreateExam({ open, onOpenChange }: CreateExamProps) {
   });
 
   const form = useForm<CreateExamForm>({
-    resolver: zodResolver(createExamSchema),
+    resolver: zodResolver(createExamSchema) as Resolver<CreateExamForm>,
     defaultValues: {
       maxAttempts: 1,
       showCorrectAnswers: false,
@@ -164,7 +164,7 @@ export default function CreateExam({ open, onOpenChange }: CreateExamProps) {
                       <SelectValue placeholder="Select course" />
                     </SelectTrigger>
                     <SelectContent>
-                      {courses.map((course: any) => (
+                      {courses.map((course: { id: string; title: string }) => (
                         <SelectItem key={course.id} value={course.id}>
                           {course.title}
                         </SelectItem>
@@ -301,28 +301,30 @@ export default function CreateExam({ open, onOpenChange }: CreateExamProps) {
             <div className="border rounded-lg p-4 max-h-60 overflow-y-auto">
               {questions.length > 0 ? (
                 <div className="space-y-2">
-                  {questions.map((question: any) => (
-                    <div
-                      key={question.id}
-                      className="flex items-start gap-2 p-2 hover:bg-muted rounded"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedQuestions.includes(question.id)}
-                        onChange={() => toggleQuestion(question.id)}
-                        className="mt-1"
-                      />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">
-                          {question.questionText || question.question}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {question.type} • {question.difficulty} •{" "}
-                          {question.points} points
-                        </p>
+                  {
+                    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+                    questions.map((question: any) => (
+                      <div
+                        key={question.id}
+                        className="flex items-start gap-2 p-2 hover:bg-muted rounded"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedQuestions.includes(question.id)}
+                          onChange={() => toggleQuestion(question.id)}
+                          className="mt-1"
+                        />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            {question.questionText || question.question}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {question.type} • {question.difficulty} •{" "}
+                            {question.points} points
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">

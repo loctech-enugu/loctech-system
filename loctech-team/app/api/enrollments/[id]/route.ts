@@ -27,17 +27,18 @@ export async function GET(
       success: true,
       data: enrollment,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching enrollment:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch enrollment";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch enrollment",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("not found")
+          : errorMessage.includes("not found")
             ? 404
             : 500,
       }
@@ -59,17 +60,18 @@ export async function PATCH(
       data: enrollment,
       message: "Enrollment updated successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error updating enrollment:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to update enrollment";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to update enrollment",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("not found")
+          : errorMessage.includes("not found")
             ? 404
             : 500,
       }
@@ -90,17 +92,18 @@ export async function DELETE(
       data: result,
       message: "Enrollment deleted successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error deleting enrollment:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to delete enrollment";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to delete enrollment",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("not found")
+          : errorMessage.includes("not found")
             ? 404
             : 500,
       }

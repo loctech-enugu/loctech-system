@@ -3,24 +3,26 @@ import { getClassesByInstructor } from "@/backend/controllers/classes.controller
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { instructorId: string } }
+  { params }: { params: Promise<{ instructorId: string }> }
 ) {
   try {
-    const classes = await getClassesByInstructor(params.instructorId);
+    const { instructorId } = await params;
+    const classes = await getClassesByInstructor(instructorId);
 
     return NextResponse.json({
       success: true,
       data: classes,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching classes by instructor:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch classes";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch classes",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden") ? 403 : 500,
+        status: errorMessage.includes("Forbidden") ? 403 : 500,
       }
     );
   }

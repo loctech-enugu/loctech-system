@@ -1,8 +1,6 @@
-import { NextResponse } from "next/server";
 import { updateAttendanceById } from "@/backend/controllers/class-attendance.controller";
 import { errorResponse, successResponse } from "@/lib/server-helper";
 
-/* eslint-disable */
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -17,10 +15,11 @@ export async function PUT(
 
     const record = await updateAttendanceById(id, body);
     return successResponse(record, "Attendance updated successfully");
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to update attendance";
     return errorResponse(
-      error.message || "Failed to update attendance",
-      error.message?.includes("Forbidden") ? 403 : 500
+      errorMessage,
+      errorMessage.includes("Forbidden") ? 403 : 500
     );
   }
 }

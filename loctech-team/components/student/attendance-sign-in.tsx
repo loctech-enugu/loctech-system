@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Key, QrCode, CheckCircle, XCircle } from "lucide-react";
+import { Key, QrCode } from "lucide-react";
 import { toast } from "sonner";
 
 async function fetchStudentEnrollments() {
@@ -49,6 +49,7 @@ export default function StudentAttendanceSignIn() {
     queryFn: fetchStudentEnrollments,
   });
 
+  // eslint-disable-next-line
   const activeEnrollments = enrollments.filter((e: any) => e.status === "active");
 
   const recordAttendanceMutation = useMutation({
@@ -59,7 +60,7 @@ export default function StudentAttendanceSignIn() {
       setBarcode("");
       queryClient.invalidateQueries({ queryKey: ["student-attendance"] });
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(error.message || "Failed to record attendance");
     },
   });
@@ -72,6 +73,7 @@ export default function StudentAttendanceSignIn() {
     }
 
     const enrollment = activeEnrollments.find(
+      // eslint-disable-next-line
       (e: any) => e.classId === selectedClassId
     );
     if (!enrollment) {
@@ -97,6 +99,7 @@ export default function StudentAttendanceSignIn() {
     }
 
     const enrollment = activeEnrollments.find(
+      // eslint-disable-next-line
       (e: any) => e.classId === selectedClassId
     );
     if (!enrollment) {
@@ -149,11 +152,13 @@ export default function StudentAttendanceSignIn() {
                     required
                   >
                     <option value="">Choose a class...</option>
-                    {activeEnrollments.map((enrollment: any) => (
-                      <option key={enrollment.id} value={enrollment.classId}>
-                        {enrollment.class?.name || "Unknown Class"}
-                      </option>
-                    ))}
+                    {activeEnrollments.map(
+                      // eslint-disable-next-line
+                      (enrollment: any) => (
+                        <option key={enrollment.id} value={enrollment.classId}>
+                          {enrollment.class?.name || "Unknown Class"}
+                        </option>
+                      ))}
                   </select>
                 </div>
                 <div className="space-y-2">
@@ -194,11 +199,13 @@ export default function StudentAttendanceSignIn() {
                     required
                   >
                     <option value="">Choose a class...</option>
-                    {activeEnrollments.map((enrollment: any) => (
-                      <option key={enrollment.id} value={enrollment.classId}>
-                        {enrollment.class?.name || "Unknown Class"}
-                      </option>
-                    ))}
+                    {activeEnrollments.map(
+                      // eslint-disable-next-line 
+                      (enrollment: any) => (
+                        <option key={enrollment.id} value={enrollment.classId}>
+                          {enrollment.class?.name || "Unknown Class"}
+                        </option>
+                      ))}
                   </select>
                 </div>
                 <div className="space-y-2">
@@ -240,9 +247,9 @@ export default function StudentAttendanceSignIn() {
               Using PIN
             </h3>
             <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
-              <li>Select the class you're attending</li>
+              <li>Select the class you&apos;re attending</li>
               <li>Enter the 6-digit PIN provided by your instructor</li>
-              <li>Click "Sign In" to record your attendance</li>
+              <li>Click &quot;Sign In&quot; to record your attendance</li>
             </ol>
           </div>
           <div>
@@ -251,9 +258,9 @@ export default function StudentAttendanceSignIn() {
               Using Barcode
             </h3>
             <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
-              <li>Select the class you're attending</li>
+              <li>Select the class you&apos;re attending</li>
               <li>Scan the barcode displayed by your instructor or enter the code manually</li>
-              <li>Click "Sign In" to record your attendance</li>
+              <li>Click &quot;Sign In&quot; to record your attendance</li>
             </ol>
           </div>
         </CardContent>

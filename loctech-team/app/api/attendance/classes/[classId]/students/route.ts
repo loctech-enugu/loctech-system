@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
-import { getClassAttendanceByDateRange } from "@/backend/controllers/class-attendance.controller";
+import {
+  getClassAttendanceByDateRange,
+  recordClassAttendance,
+  updateAttendanceById,
+} from "@/backend/controllers/class-attendance.controller";
 import { errorResponse, successResponse } from "@/lib/server-helper";
-/* eslint-disable */
+
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ classId: string }> }
+  context: { params: Promise<{ classId: string }> }
 ) {
   try {
-    const { classId } = await params;
+    const { classId } = await context.params;
 
     const { searchParams } = new URL(request.url);
     const start = searchParams.get("start") ?? undefined;
@@ -15,22 +19,28 @@ export async function GET(
 
     const records = await getClassAttendanceByDateRange(classId, start, end);
     return successResponse(records);
-  } catch (error: any) {
-    return errorResponse(error.message, 500);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch attendance";
+    return errorResponse(errorMessage, 500);
   }
 }
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ classId: string }> }
+  context: { params: Promise<{ classId: string }> }
 ) {
   try {
     const body = await request.json();
-    const record = await createAttendance(body);
+    const record = await recordClassAttendance({
+      ...body,
+      classId: body.classId,
+      date: body.date ? new Date(body.date) : new Date(),
+    });
     return NextResponse.json({ success: true, data: record });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to create attendance";
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: errorMessage },
       { status: 500 }
     );
   }
@@ -38,15 +48,23 @@ export async function POST(
 
 export async function PUT(
   request: Request,
-  { params }: { params: Promise<{ classId: string }> }
+  context: { params: Promise<{ classId: string }> }
 ) {
   try {
     const body = await request.json();
-    const record = await updateAttendance(body);
+    const id = body.id as string | undefined;
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: "Attendance record id is required" },
+        { status: 400 }
+      );
+    }
+    const record = await updateAttendanceById(id, body);
     return NextResponse.json({ success: true, data: record });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to update attendance";
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: errorMessage },
       { status: 500 }
     );
   }

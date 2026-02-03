@@ -24,11 +24,9 @@ import {
   QrCode,
   Users,
   GraduationCap,
-  UserCheck,
   FileQuestion,
   ClipboardList,
   AlertTriangle,
-  School,
   UserCog,
 } from "lucide-react";
 import AppLogo from "./app-logo";
@@ -52,14 +50,6 @@ const getMainNavItems = (userRole?: string): NavItem[] => {
       title: "Instructor Dashboard",
       href: userLinks.instructor.dashboard,
       icon: UserCog,
-    });
-  }
-
-  if (userRole === "student") {
-    baseItems.push({
-      title: "My Dashboard",
-      href: userLinks.student.dashboard,
-      icon: LayoutGrid,
     });
   }
 
@@ -129,7 +119,7 @@ const getMainNavItems = (userRole?: string): NavItem[] => {
 const getMidNavItems = (userRole?: string): NavItem[] => {
   const items: NavItem[] = [];
 
-  if (userRole === "admin" || userRole === "super_admin" || userRole === "staff") {
+  if (userRole === "admin" || userRole === "super_admin") {
     items.push(
       {
         title: "Staff Attendance",
@@ -172,23 +162,9 @@ const getCbtNavItems = (userRole?: string): NavItem[] => {
   return items;
 };
 
-const getStudentNavItems = (userRole?: string): NavItem[] => {
-  if (userRole === "student") {
-    return [
-      {
-        title: "My Exams",
-        href: userLinks.student.exams,
-        icon: ClipboardList,
-      },
-      {
-        title: "Sign In Attendance",
-        href: userLinks.student.attendance,
-        icon: CalendarCheck,
-      },
-    ];
-  }
-  return [];
-};
+// Student app is separate (loctech-student). No student role in staff app.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const getStudentNavItems = (userRole?: string): NavItem[] => [];
 
 const footerNavItems: NavItem[] = [
   {

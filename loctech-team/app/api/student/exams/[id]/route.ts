@@ -8,9 +8,10 @@ import { getServerSession } from "next-auth";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authConfig);
     if (!session) {
       return NextResponse.json(
@@ -25,33 +26,34 @@ export async function POST(
     const body = await req.json();
     const userId = body.userId || session.user.id;
 
-    const examData = await startExam(params.id, userId);
+    const examData = await startExam(id, userId);
 
     return NextResponse.json({
       success: true,
       data: examData,
       message: "Exam started successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error starting exam:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to start exam";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to start exam",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("Unauthorized")
-          ? 401
-          : error.message?.includes("not found")
-          ? 404
-          : error.message?.includes("available") ||
-            error.message?.includes("started") ||
-            error.message?.includes("expired") ||
-            error.message?.includes("attempts")
-          ? 400
-          : 500,
+          : errorMessage.includes("Unauthorized")
+            ? 401
+            : errorMessage.includes("not found")
+              ? 404
+              : errorMessage.includes("available") ||
+                errorMessage.includes("started") ||
+                errorMessage.includes("expired") ||
+                errorMessage.includes("attempts")
+                ? 400
+                : 500,
       }
     );
   }
@@ -59,9 +61,10 @@ export async function POST(
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: examId } = await context.params;
     const session = await getServerSession(authConfig);
     if (!session) {
       return NextResponse.json(
@@ -90,23 +93,24 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      data: status,
+      data: { ...status, examId },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching exam status:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch exam status";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch exam status",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("Unauthorized")
-          ? 401
-          : error.message?.includes("not found")
-          ? 404
-          : 500,
+          : errorMessage.includes("Unauthorized")
+            ? 401
+            : errorMessage.includes("not found")
+              ? 404
+              : 500,
       }
     );
   }

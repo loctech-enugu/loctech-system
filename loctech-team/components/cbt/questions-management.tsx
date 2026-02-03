@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useDisclosure } from "@/hooks/use-disclosure";
 import CreateQuestion from "./create-question";
 import EditQuestion from "./edit-question";
+import type { Question } from "@/types";
 
 async function fetchQuestions() {
   const res = await fetch("/api/questions");
@@ -44,7 +45,7 @@ export default function QuestionsManagement() {
     onOpenChange: onEditOpenChange,
     isOpen: isEditOpen,
   } = useDisclosure();
-  const [selectedQuestion, setSelectedQuestion] = React.useState<any>(null);
+  const [selectedQuestion, setSelectedQuestion] = React.useState<Question | null>(null);
 
   const { data: questions = [], isLoading } = useQuery({
     queryKey: ["questions"],
@@ -57,12 +58,13 @@ export default function QuestionsManagement() {
       toast.success("Question deleted successfully");
       queryClient.invalidateQueries({ queryKey: ["questions"] });
     },
-    onError: (error: any) => {
-      toast.error(error.message || "Failed to delete question");
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete question";
+      toast.error(errorMessage);
     },
   });
 
-  const handleEdit = (question: any) => {
+  const handleEdit = (question: Question) => {
     setSelectedQuestion(question);
     onEditOpen();
   };
@@ -108,7 +110,7 @@ export default function QuestionsManagement() {
           </TableHeader>
           <TableBody>
             {questions.length > 0 ? (
-              questions.map((question: any) => (
+              questions.map((question: Question) => (
                 <TableRow key={question.id}>
                   <TableCell className="max-w-md">
                     <p className="truncate">

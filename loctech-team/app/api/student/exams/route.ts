@@ -25,17 +25,18 @@ export async function GET(req: NextRequest) {
       success: true,
       data: exams,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching available exams:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch available exams";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch available exams",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("Unauthorized")
+          : errorMessage.includes("Unauthorized")
           ? 401
           : 500,
       }

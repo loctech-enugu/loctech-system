@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
@@ -38,6 +38,7 @@ const editQuestionSchema = z.object({
 type EditQuestionForm = z.infer<typeof editQuestionSchema>;
 
 interface EditQuestionProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   question: any;
   open: boolean;
   onOpenChange: (open: boolean) => void;

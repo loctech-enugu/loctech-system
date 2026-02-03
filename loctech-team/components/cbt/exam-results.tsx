@@ -4,7 +4,7 @@ import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Clock } from "lucide-react";
+import { CheckCircle, XCircle } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 async function fetchExamResult(examId: string, userId: string) {
@@ -43,6 +43,7 @@ export default function ExamResults({ examId }: ExamResultsProps) {
   }
 
   const passed = result.percentage >= (result.exam?.passingScore || 50);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const correctCount = result.answers?.filter((a: any) => a.isCorrect).length || 0;
   const totalQuestions = result.answers?.length || 0;
 
@@ -97,6 +98,7 @@ export default function ExamResults({ examId }: ExamResultsProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {result.answers?.map((answer: any, index: number) => (
               <div
                 key={answer.questionId}
