@@ -3,33 +3,35 @@ import { publishExam } from "@/backend/controllers/exams.controller";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await req.json();
     const publish = body.publish ?? true;
-    const exam = await publishExam(params.id, publish);
+    const { id } = await params;
+    const exam = await publishExam(id, publish);
 
     return NextResponse.json({
       success: true,
       data: exam,
       message: publish ? "Exam published successfully" : "Exam unpublished successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error publishing exam:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to publish exam";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to publish exam",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("not found")
-          ? 404
-          : error.message?.includes("questions")
-          ? 400
-          : 500,
+          : errorMessage.includes("not found")
+            ? 404
+            : errorMessage.includes("questions")
+              ? 400
+              : 500,
       }
     );
   }

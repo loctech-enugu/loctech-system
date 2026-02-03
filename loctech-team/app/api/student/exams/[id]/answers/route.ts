@@ -7,11 +7,12 @@ import {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { searchParams } = new URL(req.url);
-    const userExamId = searchParams.get("userExamId") || params.id;
+    const userExamId = searchParams.get("userExamId") || id;
 
     const answers = await getAnswersForUserExam(userExamId);
 
@@ -19,19 +20,20 @@ export async function GET(
       success: true,
       data: answers,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching answers:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch answers";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch answers",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("not found")
-          ? 404
-          : 500,
+          : errorMessage.includes("not found")
+            ? 404
+            : 500,
       }
     );
   }
@@ -39,10 +41,18 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: examId } = await context.params;
     const body = await req.json();
+
+    if (body.examId && body.examId !== examId) {
+      return NextResponse.json(
+        { success: false, error: "Exam ID in body does not match URL" },
+        { status: 400 }
+      );
+    }
 
     // Check if bulk save
     if (Array.isArray(body.answers)) {
@@ -67,21 +77,22 @@ export async function POST(
       data: answer,
       message: "Answer saved successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error saving answer:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to save answer";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to save answer",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("not found")
-          ? 404
-          : error.message?.includes("progress")
-          ? 400
-          : 500,
+          : errorMessage.includes("not found")
+            ? 404
+            : errorMessage.includes("progress")
+              ? 400
+              : 500,
       }
     );
   }

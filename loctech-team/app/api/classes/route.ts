@@ -11,6 +11,7 @@ export async function GET(req: NextRequest) {
     const instructorId = searchParams.get("instructorId");
     const status = searchParams.get("status");
 
+    // eslint-disable-next-line
     const filters: any = {};
     if (courseId) filters.courseId = courseId;
     if (instructorId) filters.instructorId = instructorId;
@@ -22,6 +23,7 @@ export async function GET(req: NextRequest) {
       success: true,
       data: classes,
     });
+    // eslint-disable-next-line
   } catch (error: any) {
     console.error("Error fetching classes:", error);
     return NextResponse.json(
@@ -44,6 +46,7 @@ export async function POST(req: NextRequest) {
       data: classData,
       message: "Class created successfully",
     });
+    // eslint-disable-next-line
   } catch (error: any) {
     console.error("Error creating class:", error);
     return NextResponse.json(

@@ -153,6 +153,7 @@ export default function CreateClass({ open, onOpenChange }: CreateClassProps) {
                       </SelectTrigger>
                       <SelectContent>
                         {!loadingCourses &&
+                          /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
                           courses.map((course: any) => (
                             <SelectItem key={course.id} value={course.id}>
                               {course.title}

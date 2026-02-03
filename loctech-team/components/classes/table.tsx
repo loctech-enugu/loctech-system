@@ -17,7 +17,6 @@ import {
   ArrowUpDown,
   ChevronDown,
   MoreHorizontal,
-  Users,
   Calendar,
 } from "lucide-react";
 
@@ -43,7 +42,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Class } from "@/types";
-import { toast } from "sonner";
 import { DataTablePagination } from "../data-table-pagination";
 import { useQuery } from "@tanstack/react-query";
 import { SpinnerLoader } from "../spinner";
@@ -70,7 +68,8 @@ export function ClassesTable({ onClassEdited }: ClassesTableProps) {
     queryFn: fetchClasses,
   });
 
-  const formatDate = (date: string | undefined) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _formatDate = (date: string | undefined) => {
     if (!date) return "-";
     return new Date(date).toLocaleDateString();
   };

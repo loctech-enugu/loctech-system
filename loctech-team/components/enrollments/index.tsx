@@ -1,7 +1,6 @@
 "use client";
 
 import { useDisclosure } from "@/hooks/use-disclosure";
-import { useState } from "react";
 import { EnrollmentsTable } from "./table";
 import CreateEnrollment from "./create-enrollment";
 import { Button } from "@/components/ui/button";

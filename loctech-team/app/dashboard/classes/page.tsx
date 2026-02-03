@@ -1,6 +1,5 @@
 import AppLayout from "@/layouts/app-layout";
 import { BreadcrumbItem } from "@/types";
-import { userLinks } from "@/lib/utils";
 import Classes from "@/components/classes";
 
 const breadcrumbs: BreadcrumbItem[] = [

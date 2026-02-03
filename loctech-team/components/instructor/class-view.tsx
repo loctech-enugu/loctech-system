@@ -6,10 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Calendar, QrCode, Key, Clipboard } from "lucide-react";
+import { Users, Calendar, QrCode, } from "lucide-react";
 import { toast } from "sonner";
 import Enrollments from "@/components/enrollments";
-import { formatDate } from "@/lib/utils";
+import { format } from "date-fns";
 import Link from "next/link";
 
 async function fetchClass(classId: string) {
@@ -46,38 +46,46 @@ interface InstructorClassViewProps {
 }
 
 export default function InstructorClassView({ classId }: InstructorClassViewProps) {
-  const queryClient = useQueryClient();
-  const [generatedPIN, setGeneratedPIN] = React.useState<string | null>(null);
-  const [generatedBarcode, setGeneratedBarcode] = React.useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _queryClient = useQueryClient();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_generatedPIN, setGeneratedPIN] = React.useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_generatedBarcode, setGeneratedBarcode] = React.useState<string | null>(null);
 
   const { data: classItem, isLoading } = useQuery({
     queryKey: ["class", classId],
     queryFn: () => fetchClass(classId),
   });
 
-  const generatePINMutation = useMutation({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _generatePINMutation = useMutation({
     mutationFn: () => generatePIN(classId),
     onSuccess: (data) => {
       setGeneratedPIN(data.data.pin);
       toast.success("PIN generated successfully");
     },
-    onError: (error: any) => {
-      toast.error(error.message || "Failed to generate PIN");
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate PIN";
+      toast.error(errorMessage);
     },
   });
 
-  const generateBarcodeMutation = useMutation({
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _generateBarcodeMutation = useMutation({
     mutationFn: () => generateBarcode(classId),
     onSuccess: (data) => {
       setGeneratedBarcode(data.data.barcode);
       toast.success("Barcode generated successfully");
     },
-    onError: (error: any) => {
-      toast.error(error.message || "Failed to generate barcode");
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "Failed to generate barcode";
+      toast.error(errorMessage);
     },
   });
 
-  const copyToClipboard = (text: string, type: string) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _copyToClipboard = (text: string, type: string) => {
     navigator.clipboard.writeText(text);
     toast.success(`${type} copied to clipboard`);
   };
@@ -129,7 +137,7 @@ export default function InstructorClassView({ classId }: InstructorClassViewProp
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm">
-                <strong>Created:</strong> {formatDate(classItem.createdAt)}
+                <strong>Created:</strong> {format(classItem.createdAt, "MM/dd/yyyy")}
               </span>
             </div>
           </div>
@@ -140,17 +148,17 @@ export default function InstructorClassView({ classId }: InstructorClassViewProp
       <Card>
         <CardHeader>
           <CardTitle>Attendance Codes</CardTitle>
-          <CardDescription>View today's PIN and barcode for class attendance</CardDescription>
+          <CardDescription>{`View today's PIN and barcode for class attendance`}</CardDescription>
         </CardHeader>
         <CardContent>
           <Button asChild className="w-full">
             <Link href={`/dashboard/classes/${classId}/attendance/codes`}>
               <QrCode className="mr-2 h-4 w-4" />
-              View Today's Attendance Codes
+              View Today&apos;s Attendance Codes
             </Link>
           </Button>
           <p className="text-xs text-muted-foreground mt-2 text-center">
-            Display today's PIN and QR code for students to sign in. Codes are valid for the entire day.
+            Display today&apos;s PIN and QR code for students to sign in. Codes are valid for the entire day.
           </p>
         </CardContent>
       </Card>

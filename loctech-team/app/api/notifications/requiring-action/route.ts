@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getNotificationsRequiringAction } from "@/backend/controllers/notifications.controller";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const notifications = await getNotificationsRequiringAction();
 
@@ -9,19 +9,20 @@ export async function GET(req: NextRequest) {
       success: true,
       data: notifications,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching notifications requiring action:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch notifications";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch notifications",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("Unauthorized")
-          ? 401
-          : 500,
+          : errorMessage.includes("Unauthorized")
+            ? 401
+            : 500,
       }
     );
   }

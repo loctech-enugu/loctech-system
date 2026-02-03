@@ -19,7 +19,7 @@ const ExamSchema = new Schema(
     scheduledStart: { type: Date },
     expirationDate: { type: Date },
     showCorrectAnswers: { type: Boolean, default: false },
-    showFeedback: { type: Boolean, default: false },
+    showDetailedFeedback: { type: Boolean, default: false },
     autoPublishResults: { type: Boolean, default: false },
     questions: [{ type: Schema.Types.ObjectId, ref: "Question" }],
     courseId: { type: Schema.Types.ObjectId, ref: "Course" }, // optional course link

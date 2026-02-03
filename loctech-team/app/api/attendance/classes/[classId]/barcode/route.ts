@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getTodayClassSession } from "@/backend/controllers/class-attendance.controller";
 
 export async function GET(
-  req: NextRequest,
-  { params }: { params: { classId: string } }
+  _req: NextRequest,
+  { params }: { params: Promise<{ classId: string }> }
 ) {
   try {
-    const session = await getTodayClassSession(params.classId);
+    const { classId } = await params;
+    const session = await getTodayClassSession(classId);
 
     return NextResponse.json({
       success: true,
@@ -19,19 +20,20 @@ export async function GET(
       },
       message: "Attendance barcode retrieved successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching attendance barcode:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch attendance barcode";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch attendance barcode",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("not found")
-          ? 404
-          : 500,
+          : errorMessage.includes("not found")
+            ? 404
+            : 500,
       }
     );
   }
@@ -40,7 +42,7 @@ export async function GET(
 // Keep POST for backward compatibility
 export async function POST(
   req: NextRequest,
-  { params }: { params: { classId: string } }
+  { params }: { params: Promise<{ classId: string }> }
 ) {
-  return GET(req, { params });
+  return GET(req, { params: Promise.resolve(await params) });
 }

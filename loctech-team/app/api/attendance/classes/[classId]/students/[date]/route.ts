@@ -1,14 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { errorResponse, successResponse } from "@/lib/server-helper";
 import { getClassAttendanceByDate } from "@/backend/controllers/student-attendance.controller";
 
-/* eslint-disable */
 export async function GET(
-  req: Request,
-  { params }: { params: Promise<{ classId: string; date: string }> }
+  request: NextRequest,
+  context: { params: Promise<{ classId: string; date: string }> }
 ) {
   try {
-    const { classId, date } = await params;
+    const { classId, date } = await context.params;
 
     if (!classId || !date) {
       return NextResponse.json(
@@ -20,13 +19,14 @@ export async function GET(
     const records = await getClassAttendanceByDate(classId, date);
 
     return successResponse(records);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(
       "Error in GET /api/attendance/classes/[classId]/students/[date]:",
       error
     );
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch attendance records";
     return errorResponse(
-      error.message || "Failed to fetch attendance records",
+      errorMessage,
       500
     );
   }

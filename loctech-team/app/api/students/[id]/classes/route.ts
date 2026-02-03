@@ -3,10 +3,11 @@ import { errorResponse, successResponse } from "@/lib/server-helper";
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const classes = await getStudentClasses(params.id);
+    const { id } = await params;
+    const classes = await getStudentClasses(id);
     return successResponse(classes, "Student classes fetched successfully");
   } catch (error) {
     return errorResponse(

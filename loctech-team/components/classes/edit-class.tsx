@@ -76,9 +76,13 @@ export default function EditClass({
       name: classItem?.name || "",
       schedule: classItem?.schedule
         ? {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           daysOfWeek: (classItem.schedule as any)?.daysOfWeek || [],
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           startTime: (classItem.schedule as any)?.startTime || "",
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           endTime: (classItem.schedule as any)?.endTime || "",
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           timezone: (classItem.schedule as any)?.timezone || "Africa/Lagos",
         }
         : {
@@ -88,7 +92,7 @@ export default function EditClass({
           timezone: "Africa/Lagos",
         },
       capacity: classItem?.capacity,
-      status: (classItem?.status as any) || "active",
+      status: (classItem?.status) || "active",
     },
   });
 
@@ -99,10 +103,10 @@ export default function EditClass({
         name: classItem.name || "",
         schedule: classItem.schedule
           ? {
-            daysOfWeek: (classItem.schedule as any)?.daysOfWeek || [],
-            startTime: (classItem.schedule as any)?.startTime || "",
-            endTime: (classItem.schedule as any)?.endTime || "",
-            timezone: (classItem.schedule as any)?.timezone || "Africa/Lagos",
+            daysOfWeek: (classItem.schedule)?.daysOfWeek || [],
+            startTime: (classItem.schedule)?.startTime || "",
+            endTime: (classItem.schedule)?.endTime || "",
+            timezone: (classItem.schedule)?.timezone || "Africa/Lagos",
           }
           : {
             daysOfWeek: [],
@@ -111,7 +115,7 @@ export default function EditClass({
             timezone: "Africa/Lagos",
           },
         capacity: classItem.capacity,
-        status: (classItem.status as any) || "active",
+        status: (classItem.status) || "active",
       });
     }
   }, [classItem, form]);

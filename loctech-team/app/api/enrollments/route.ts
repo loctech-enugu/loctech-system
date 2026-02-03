@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     const studentId = searchParams.get("studentId");
     const status = searchParams.get("status");
 
-    const filters: any = {};
+    const filters: Record<string, unknown> = {};
     if (classId) filters.classId = classId;
     if (studentId) filters.studentId = studentId;
     if (status) filters.status = status;
@@ -23,12 +23,13 @@ export async function GET(req: NextRequest) {
       success: true,
       data: enrollments,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching enrollments:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch enrollments";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch enrollments",
+        error: errorMessage,
       },
       { status: 500 }
     );
@@ -57,14 +58,15 @@ export async function POST(req: NextRequest) {
       data: enrollment,
       message: "Enrollment created successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error creating enrollment:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to create enrollment";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to create enrollment",
+        error: errorMessage,
       },
-      { status: error.message?.includes("Forbidden") ? 403 : 500 }
+      { status: errorMessage.includes("Forbidden") ? 403 : 500 }
     );
   }
 }

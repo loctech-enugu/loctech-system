@@ -14,7 +14,6 @@ import {
   getPaginationRowModel,
 } from "@tanstack/react-table";
 import {
-  ArrowUpDown,
   ChevronDown,
   MoreHorizontal,
   UserCheck,
@@ -112,8 +111,9 @@ export function EnrollmentsTable({
       toast.success("Enrollment updated successfully");
       queryClient.invalidateQueries({ queryKey: ["enrollments"] });
     },
-    onError: (error: any) => {
-      toast.error(error.message || "Failed to update enrollment");
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "Failed to update enrollment";
+      toast.error(errorMessage);
     },
   });
 

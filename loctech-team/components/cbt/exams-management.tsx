@@ -12,13 +12,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Eye, Edit, Trash2, Play, Pause } from "lucide-react";
+import { Plus, Eye, Edit, Play, Pause } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useDisclosure } from "@/hooks/use-disclosure";
 import CreateExam from "./create-exam";
 import EditExam from "./edit-exam";
 import { SpinnerLoader } from "../spinner";
+import { Exam } from "@/types";
 
 async function fetchExams() {
   const res = await fetch("/api/exams");
@@ -48,9 +49,10 @@ export default function ExamsManagement() {
     onOpenChange: onEditOpenChange,
     isOpen: isEditOpen,
   } = useDisclosure();
-  const [selectedExam, setSelectedExam] = React.useState<any>(null);
 
-  const { data: exams = [], isLoading } = useQuery({
+  const [selectedExam, setSelectedExam] = React.useState<Exam | null>(null);
+
+  const { data: exams = [], isLoading } = useQuery<Exam[]>({
     queryKey: ["exams"],
     queryFn: fetchExams,
   });
@@ -62,17 +64,18 @@ export default function ExamsManagement() {
       toast.success("Exam status updated");
       queryClient.invalidateQueries({ queryKey: ["exams"] });
     },
-    onError: (error: any) => {
-      toast.error(error.message || "Failed to update exam");
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "Failed to update exam";
+      toast.error(errorMessage);
     },
   });
 
-  const handleEdit = (exam: any) => {
+  const handleEdit = (exam: Exam) => {
     setSelectedExam(exam);
     onEditOpen();
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: Exam["status"]) => {
     const variants: Record<string, string> = {
       draft: "bg-gray-200 text-gray-800",
       published: "bg-green-100 text-green-800",
@@ -115,7 +118,7 @@ export default function ExamsManagement() {
           </TableHeader>
           <TableBody>
             {exams.length > 0 ? (
-              exams.map((exam: any) => (
+              exams.map((exam) => (
                 <TableRow key={exam.id}>
                   <TableCell className="font-medium">{exam.title}</TableCell>
                   <TableCell>{exam.course?.title || "-"}</TableCell>

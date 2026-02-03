@@ -3,28 +3,30 @@ import { getExamResult } from "@/backend/controllers/exams.controller";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string; userId: string } }
+  { params }: { params: Promise<{ id: string; userId: string }> }
 ) {
   try {
-    const result = await getExamResult(params.id, params.userId);
+    const { id, userId } = await params;
+    const result = await getExamResult(id, userId);
 
     return NextResponse.json({
       success: true,
       data: result,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching exam result:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch exam result";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch exam result",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("not found")
-          ? 404
-          : 500,
+          : errorMessage.includes("not found")
+            ? 404
+            : 500,
       }
     );
   }

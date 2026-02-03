@@ -16,10 +16,10 @@ export const formatEmailLog = (log: Record<string, any>) => {
     templateId: log.templateId ? String(log.templateId) : null,
     template: template
       ? {
-          id: String(template._id),
-          name: template.name ?? "",
-          type: template.type ?? "",
-        }
+        id: String(template._id),
+        name: template.name ?? "",
+        type: template.type ?? "",
+      }
       : null,
     recipientEmail: log.recipientEmail ?? "",
     subject: log.subject ?? "",
@@ -91,14 +91,14 @@ export const getEmailLogById = async (id: string) => {
 
 /**
  * GET EMAIL LOGS BY RECIPIENT
+ * Only admin and super_admin can view email logs (staff app has no student role).
  */
 export const getEmailLogsByRecipient = async (email: string) => {
   await connectToDatabase();
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
 
-  // Users can only see their own email logs
-  if (session.user.role === "student" && session.user.email !== email) {
+  if (session.user.role !== "admin" && session.user.role !== "super_admin") {
     throw new Error("Forbidden");
   }
 

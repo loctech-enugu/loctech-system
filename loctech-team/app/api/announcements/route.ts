@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     data = createAnnouncementSchema.parse(body);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     return Response.json({ error: "Invalid input" }, { status: 400 });
   }
@@ -56,6 +57,7 @@ export async function POST(req: NextRequest) {
     await announcement.save();
 
     return Response.json(announcement, { status: 201 });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     return Response.json(
       { error: "Failed to create announcement" },

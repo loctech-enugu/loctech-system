@@ -21,7 +21,6 @@ import {
   GraduationCap,
   AlertTriangle,
   FileQuestion,
-  UserCheck,
 } from "lucide-react";
 import { DashboardStats } from "@/types";
 import Link from "next/link";

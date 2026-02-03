@@ -5,9 +5,10 @@ import { getServerSession } from "next-auth";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await getServerSession(authConfig);
     if (!session) {
       return NextResponse.json(
@@ -22,25 +23,26 @@ export async function GET(
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId") || session.user.id;
 
-    const result = await getExamResult(params.id, userId);
+    const result = await getExamResult(id, userId);
 
     return NextResponse.json({
       success: true,
       data: result,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching exam result:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch exam result";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch exam result",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("Unauthorized")
+          : errorMessage.includes("Unauthorized")
           ? 401
-          : error.message?.includes("not found")
+          : errorMessage.includes("not found")
           ? 404
           : 500,
       }

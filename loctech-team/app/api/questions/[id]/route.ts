@@ -7,10 +7,11 @@ import {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const question = await getQuestionById(params.id);
+    const { id } = await params;
+    const question = await getQuestionById(id);
 
     if (!question) {
       return NextResponse.json(
@@ -26,12 +27,13 @@ export async function GET(
       success: true,
       data: question,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching question:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch question";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch question",
+        error: errorMessage,
       },
       { status: 500 }
     );
@@ -40,30 +42,32 @@ export async function GET(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await req.json();
-    const question = await updateQuestion(params.id, body);
+    const question = await updateQuestion(id, body);
 
     return NextResponse.json({
       success: true,
       data: question,
       message: "Question updated successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error updating question:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to update question";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to update question",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("not found")
-          ? 404
-          : 500,
+          : errorMessage.includes("not found")
+            ? 404
+            : 500,
       }
     );
   }
@@ -71,31 +75,33 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const result = await deleteQuestion(params.id);
+    const { id } = await params;
+    const result = await deleteQuestion(id);
 
     return NextResponse.json({
       success: true,
       data: result,
       message: "Question deleted successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error deleting question:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to delete question";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to delete question",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("not found")
-          ? 404
-          : error.message?.includes("exams")
-          ? 400
-          : 500,
+          : errorMessage.includes("not found")
+            ? 404
+            : errorMessage.includes("exams")
+              ? 400
+              : 500,
       }
     );
   }

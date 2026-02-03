@@ -2,7 +2,6 @@
 // app/announcements/page.tsx
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import Link from "next/link";
 import { AlertCircle, Calendar, User } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";

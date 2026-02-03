@@ -3,10 +3,11 @@ import { getNotificationById } from "@/backend/controllers/notifications.control
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const notification = await getNotificationById(params.id);
+    const { id } = await params;
+    const notification = await getNotificationById(id);
 
     if (!notification) {
       return NextResponse.json(
@@ -22,17 +23,18 @@ export async function GET(
       success: true,
       data: notification,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching notification:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch notification";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch notification",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("not found")
+          : errorMessage.includes("not found")
           ? 404
           : 500,
       }

@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const isActive = searchParams.get("isActive");
 
+    // eslint-disable-next-line
     const filters: any = {};
     if (isActive !== null) filters.isActive = isActive === "true";
 
@@ -18,6 +19,7 @@ export async function GET(req: NextRequest) {
       success: true,
       data: categories,
     });
+    // eslint-disable-next-line
   } catch (error: any) {
     console.error("Error fetching categories:", error);
     return NextResponse.json(
@@ -40,6 +42,7 @@ export async function POST(req: NextRequest) {
       data: category,
       message: "Category created successfully",
     });
+    // eslint-disable-next-line
   } catch (error: any) {
     console.error("Error creating category:", error);
     return NextResponse.json(
@@ -51,8 +54,8 @@ export async function POST(req: NextRequest) {
         status: error.message?.includes("Forbidden")
           ? 403
           : error.message?.includes("already exists")
-          ? 400
-          : 500,
+            ? 400
+            : 500,
       }
     );
   }

@@ -3,14 +3,15 @@ import { getStudentAttendanceHistory } from "@/backend/controllers/class-attenda
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { studentId: string } }
+  { params }: { params: Promise<{ studentId: string }> }
 ) {
   try {
     const { searchParams } = new URL(req.url);
     const classId = searchParams.get("classId");
 
+    const { studentId } = await params;
     const history = await getStudentAttendanceHistory(
-      params.studentId,
+      studentId,
       classId || undefined
     );
 
@@ -18,19 +19,20 @@ export async function GET(
       success: true,
       data: history,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching student attendance history:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch attendance history";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch attendance history",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("Unauthorized")
-          ? 401
-          : 500,
+          : errorMessage.includes("Unauthorized")
+            ? 401
+            : 500,
       }
     );
   }

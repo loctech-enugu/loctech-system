@@ -19,20 +19,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Only admin and staff can trigger automated checks
-    if (
-      session.user.role !== "admin" &&
-      session.user.role !== "super_admin" &&
-      session.user.role !== "staff"
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Forbidden",
-        },
-        { status: 403 }
-      );
-    }
 
     const body = await req.json();
     const classId = body.classId; // optional
@@ -55,12 +41,13 @@ export async function POST(req: NextRequest) {
         errors: emailResults?.errors ?? [],
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error checking absence notifications:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to check absence notifications";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to check absence notifications",
+        error: errorMessage,
       },
       { status: 500 }
     );

@@ -41,8 +41,8 @@ const createQuestionSchema = z.object({
   explanation: z.string().optional(),
   points: z.number().min(1),
   difficulty: z.enum(["easy", "medium", "hard"]),
-  categoryId: z.string().optional(),
-  isActive: z.boolean().default(true),
+  categoryId: z.string().min(1, "Category is required"),
+  isActive: z.boolean(),
 });
 
 type CreateQuestionForm = z.infer<typeof createQuestionSchema>;
@@ -73,6 +73,11 @@ export default function CreateQuestion({
       points: 1,
       difficulty: "medium",
       isActive: true,
+      options: [],
+      explanation: "",
+      categoryId: "",
+      questionText: "",
+      correctAnswer: "",
     },
   });
 
@@ -84,8 +89,15 @@ export default function CreateQuestion({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...data,
+          type: data.type,
+          question: data.questionText, // API expects "question" not "questionText"
           options: questionType === "mcq" ? options : undefined,
+          correctAnswer: data.correctAnswer,
+          explanation: data.explanation || "",
+          points: data.points,
+          difficulty: data.difficulty,
+          categoryId: data.categoryId,
+          isActive: data.isActive,
         }),
       });
       const result = await res.json();
@@ -95,8 +107,19 @@ export default function CreateQuestion({
     onSuccess: () => {
       toast.success("Question created successfully");
       queryClient.invalidateQueries({ queryKey: ["questions"] });
-      form.reset();
+      form.reset({
+        type: "mcq",
+        points: 1,
+        difficulty: "medium",
+        isActive: true,
+        options: [],
+        explanation: "",
+        categoryId: "",
+        questionText: "",
+        correctAnswer: "",
+      });
       setOptions([]);
+      setNewOption("");
       onOpenChange(false);
       router.refresh();
     },
@@ -106,22 +129,45 @@ export default function CreateQuestion({
   });
 
   const onSubmit = (values: CreateQuestionForm) => {
-    if (questionType === "mcq" && options.length < 2) {
-      toast.error("MCQ questions require at least 2 options");
+    // Validate MCQ options
+    if (questionType === "mcq") {
+      if (options.length < 2) {
+        toast.error("MCQ questions require at least 2 options");
+        return;
+      }
+      // Ensure correct answer is one of the options
+      if (!options.includes(values.correctAnswer)) {
+        toast.error("Correct answer must be one of the options");
+        return;
+      }
+    }
+
+    // Validate category is selected
+    if (!values.categoryId) {
+      toast.error("Please select a category");
       return;
     }
+
     createQuestion(values);
   };
 
   const addOption = () => {
     if (newOption.trim()) {
-      setOptions([...options, newOption.trim()]);
+      const updatedOptions = [...options, newOption.trim()];
+      setOptions(updatedOptions);
+      form.setValue("options", updatedOptions);
       setNewOption("");
     }
   };
 
   const removeOption = (index: number) => {
-    setOptions(options.filter((_, i) => i !== index));
+    const updatedOptions = options.filter((_, i) => i !== index);
+    setOptions(updatedOptions);
+    form.setValue("options", updatedOptions);
+    // If the removed option was the correct answer, clear it
+    if (form.getValues("correctAnswer") === options[index]) {
+      form.setValue("correctAnswer", "");
+    }
   };
 
   return (
@@ -166,6 +212,7 @@ export default function CreateQuestion({
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                       {categories.map((category: any) => (
                         <SelectItem key={category.id} value={category.id}>
                           {category.name}

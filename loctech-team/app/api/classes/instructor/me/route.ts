@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authConfig } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
 import { ClassModel } from "@/backend/models/class.model";
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const session = await getServerSession(authConfig);
     if (!session) {
@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
       .sort({ createdAt: -1 })
       .lean();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const formattedClasses = classes.map((classItem: any) => ({
       id: String(classItem._id),
       courseId: String(classItem.courseId?._id || classItem.courseId),
@@ -49,17 +50,17 @@ export async function GET(req: NextRequest) {
       status: classItem.status,
       course: classItem.courseId
         ? {
-            id: String(classItem.courseId._id),
-            title: classItem.courseId.title,
-            courseRefId: classItem.courseId.courseRefId,
-          }
+          id: String(classItem.courseId._id),
+          title: classItem.courseId.title,
+          courseRefId: classItem.courseId.courseRefId,
+        }
         : null,
       instructor: classItem.instructorId
         ? {
-            id: String(classItem.instructorId._id),
-            name: classItem.instructorId.name,
-            email: classItem.instructorId.email,
-          }
+          id: String(classItem.instructorId._id),
+          name: classItem.instructorId.name,
+          email: classItem.instructorId.email,
+        }
         : null,
       createdAt: (classItem.createdAt as Date)?.toISOString?.() ?? "",
       updatedAt: (classItem.updatedAt as Date)?.toISOString?.() ?? "",
@@ -69,12 +70,13 @@ export async function GET(req: NextRequest) {
       success: true,
       data: formattedClasses,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching instructor classes:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch classes";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch classes",
+        error: errorMessage,
       },
       { status: 500 }
     );

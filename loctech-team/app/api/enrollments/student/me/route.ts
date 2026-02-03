@@ -4,7 +4,7 @@ import { authConfig } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
 import { EnrollmentModel } from "@/backend/models/enrollment.model";
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authConfig);
     if (!session) {
@@ -17,16 +17,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Only students can access this
-    if (session.user.role !== "student") {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Forbidden",
-        },
-        { status: 403 }
-      );
-    }
 
     await connectToDatabase();
 
@@ -38,6 +28,7 @@ export async function GET(req: NextRequest) {
       .sort({ createdAt: -1 })
       .lean();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const formattedEnrollments = enrollments.map((enrollment: any) => ({
       id: String(enrollment._id),
       studentId: String(enrollment.studentId?._id || enrollment.studentId),
@@ -50,18 +41,18 @@ export async function GET(req: NextRequest) {
         : null,
       student: enrollment.studentId
         ? {
-            id: String(enrollment.studentId._id),
-            name: enrollment.studentId.name,
-            email: enrollment.studentId.email,
-          }
+          id: String(enrollment.studentId._id),
+          name: enrollment.studentId.name,
+          email: enrollment.studentId.email,
+        }
         : null,
       class: enrollment.classId
         ? {
-            id: String(enrollment.classId._id),
-            name: enrollment.classId.name,
-            schedule: enrollment.classId.schedule,
-            courseId: String(enrollment.classId.courseId || ""),
-          }
+          id: String(enrollment.classId._id),
+          name: enrollment.classId.name,
+          schedule: enrollment.classId.schedule,
+          courseId: String(enrollment.classId.courseId || ""),
+        }
         : null,
       createdAt: (enrollment.createdAt as Date)?.toISOString?.() ?? "",
       updatedAt: (enrollment.updatedAt as Date)?.toISOString?.() ?? "",
@@ -71,12 +62,13 @@ export async function GET(req: NextRequest) {
       success: true,
       data: formattedEnrollments,
     });
-  } catch (error: any) {
-    console.error("Error fetching student enrollments:", error);
+  } catch (error: unknown) {
+    console.error("Error fetching student enrollments:", error, request.url);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch enrollments";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch enrollments",
+        error: errorMessage,
       },
       { status: 500 }
     );

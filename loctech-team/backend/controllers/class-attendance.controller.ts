@@ -35,24 +35,24 @@ export const formatClassAttendance = (attendance: Record<string, any>) => {
     pin: attendance.pin ?? null,
     student: student
       ? {
-          id: String(student._id),
-          name: student.name ?? "",
-          email: student.email ?? "",
-        }
+        id: String(student._id),
+        name: student.name ?? "",
+        email: student.email ?? "",
+      }
       : null,
     class: classItem
       ? {
-          id: String(classItem._id),
-          name: classItem.name ?? "",
-          courseId: String(classItem.courseId),
-        }
+        id: String(classItem._id),
+        name: classItem.name ?? "",
+        courseId: String(classItem.courseId),
+      }
       : null,
     recordedBy: recordedBy
       ? {
-          id: String(recordedBy._id),
-          name: recordedBy.name ?? "",
-          email: recordedBy.email ?? "",
-        }
+        id: String(recordedBy._id),
+        name: recordedBy.name ?? "",
+        email: recordedBy.email ?? "",
+      }
       : null,
     createdAt: (attendance.createdAt as Date)?.toISOString?.() ?? "",
     updatedAt: (attendance.updatedAt as Date)?.toISOString?.() ?? "",
@@ -460,17 +460,17 @@ export const getAttendanceMonitoring = async (filters?: {
         studentId: String(studentId),
         student: (enrollment.studentId as any)?.name
           ? {
-              id: String((enrollment.studentId as any)._id),
-              name: (enrollment.studentId as any).name,
-              email: (enrollment.studentId as any).email,
-            }
+            id: String((enrollment.studentId as any)._id),
+            name: (enrollment.studentId as any).name,
+            email: (enrollment.studentId as any).email,
+          }
           : null,
         classId: String(classId),
         class: (enrollment.classId as any)?.name
           ? {
-              id: String((enrollment.classId as any)._id),
-              name: (enrollment.classId as any).name,
-            }
+            id: String((enrollment.classId as any)._id),
+            name: (enrollment.classId as any).name,
+          }
           : null,
         lastAttendanceDate: lastAttendanceDate
           ? lastAttendanceDate.toISOString()
@@ -478,12 +478,12 @@ export const getAttendanceMonitoring = async (filters?: {
         consecutiveAbsences,
         notificationStatus: notification
           ? {
-              id: String(notification._id),
-              notified: notification.emailSent,
-              notifiedAt: notification.sentAt
-                ? (notification.sentAt as Date).toISOString()
-                : null,
-            }
+            id: String(notification._id),
+            notified: notification.emailSent,
+            notifiedAt: notification.sentAt
+              ? (notification.sentAt as Date).toISOString()
+              : null,
+          }
           : null,
       });
     }
@@ -689,16 +689,7 @@ export const getStudentAttendanceHistory = async (
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
 
-  // Students can only see their own attendance
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  if (
-    (session.user.role as any) === "student" &&
-    session.user.id !== studentId
-  ) {
-    throw new Error("Forbidden");
-  }
-
-  const filter: Record<string, any> = { studentId };
+  const filter: { studentId: string; classId?: string } = { studentId };
   if (classId) filter.classId = classId;
 
   const attendance = await ClassAttendanceModel.find(filter)

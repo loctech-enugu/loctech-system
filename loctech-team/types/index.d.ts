@@ -143,17 +143,17 @@ export interface Student {
   nationality: string;
   occupation: string;
   heardFrom:
-    | "Google"
-    | "Facebook"
-    | "Twitter"
-    | "Others"
-    | "Loctech Website"
-    | "Radio"
-    | "Billboard"
-    | "Instagram"
-    | "Flyers"
-    | "Friends"
-    | "Other";
+  | "Google"
+  | "Facebook"
+  | "Twitter"
+  | "Others"
+  | "Loctech Website"
+  | "Radio"
+  | "Billboard"
+  | "Instagram"
+  | "Flyers"
+  | "Friends"
+  | "Other";
   status: "active" | "graduated" | "suspended";
   hasPassword: boolean;
   nextOfKin: {
@@ -208,7 +208,7 @@ export interface Class {
     startTime: string;
     endTime: string;
     timezone?: string;
-  } | string; // Support both new object format and legacy string format
+  }; // Support both new object format and legacy string format
   capacity?: number;
   status: "active" | "inactive" | "completed";
   course?: {
@@ -301,28 +301,43 @@ export interface ClassAttendance {
   updatedAt: string;
 }
 
+export type ExamStatus =
+  | "draft"
+  | "published"
+  | "ongoing"
+  | "completed"
+  | "cancelled";
+
+export interface ExamCourseRef {
+  id: string;
+  title: string;
+  courseRefId: string;
+}
+
 export interface Exam {
   id: string;
   title: string;
-  description?: string;
+  description?: string | null;
   duration: number; // minutes
   totalQuestions: number;
   questionsPerStudent: number;
   shuffleQuestions: boolean;
   passingScore: number; // percentage 0-100
   maxAttempts: number;
-  status: "draft" | "published" | "ongoing" | "completed" | "cancelled";
-  scheduledStart?: string;
-  expirationDate?: string;
+  status: ExamStatus;
+  scheduledStart?: string | null;
+  expirationDate?: string | null;
   autoPublishResults: boolean;
   showCorrectAnswers: boolean;
   showDetailedFeedback: boolean;
   questions: string[]; // Question IDs
-  courseId?: string;
+  courseId?: string | null;
   classIds?: string[];
-  createdBy: string;
+  createdBy?: string;
   requireMinimumAttendance?: boolean;
   minimumAttendancePercentage?: number;
+  /** Populated when listing/viewing exam (from API) */
+  course?: ExamCourseRef | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -411,15 +426,15 @@ export interface EmailTemplate {
   subject: string;
   body: string; // HTML
   type:
-    | "registration_success"
-    | "exam_published"
-    | "exam_submission_confirmation"
-    | "result_published"
-    | "admin_student_registration"
-    | "exam_reminder"
-    | "system_notification"
-    | "absence_notification"
-    | "password_reset";
+  | "registration_success"
+  | "exam_published"
+  | "exam_submission_confirmation"
+  | "result_published"
+  | "admin_student_registration"
+  | "exam_reminder"
+  | "system_notification"
+  | "absence_notification"
+  | "password_reset";
   variables: string[];
   isActive: boolean;
   createdAt: string;
@@ -434,7 +449,7 @@ export interface EmailLog {
   status: "pending" | "sent" | "failed" | "delivered" | "bounced";
   errorMessage?: string;
   sentAt?: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   template?: {
     id: string;
     name: string;
@@ -447,18 +462,18 @@ export interface EmailLog {
 export interface DashboardStats {
   // ============ General / Today’s Overview ============
   todayAttendance:
-    | {
-        // For admin/super_admin
-        signedIn: number;
-        total: number;
-        rate: string;
-      }
-    | {
-        // For staff
-        status: string;
-        time?: Date | string;
-      }
-    | null;
+  | {
+    // For admin/super_admin
+    signedIn: number;
+    total: number;
+    rate: string;
+  }
+  | {
+    // For staff
+    status: string;
+    time?: Date | string;
+  }
+  | null;
 
   reportsToday: number | null;
 

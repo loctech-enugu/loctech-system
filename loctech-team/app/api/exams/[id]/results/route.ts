@@ -6,28 +6,30 @@ import {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const results = await getExamResults(params.id);
+    const { id } = await params;
+    const results = await getExamResults(id);
 
     return NextResponse.json({
       success: true,
       data: results,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching exam results:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch exam results";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch exam results",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("not found")
-          ? 404
-          : 500,
+          : errorMessage.includes("not found")
+            ? 404
+            : 500,
       }
     );
   }
@@ -35,31 +37,33 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await req.json();
     const userIds = body.userIds; // optional array of user IDs
-    const result = await publishExamResults(params.id, userIds);
+    const { id } = await params;
+    const result = await publishExamResults(id, userIds);
 
     return NextResponse.json({
       success: true,
       data: result,
       message: "Exam results published successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error publishing exam results:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to publish exam results";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to publish exam results",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("not found")
-          ? 404
-          : 500,
+          : errorMessage.includes("not found")
+            ? 404
+            : 500,
       }
     );
   }

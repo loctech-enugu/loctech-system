@@ -3,26 +3,28 @@ import { getEmailLogsByRecipient } from "@/backend/controllers/email-logs.contro
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { email: string } }
+  { params }: { params: Promise<{ email: string }> }
 ) {
   try {
-    const logs = await getEmailLogsByRecipient(params.email);
+    const { email } = await params;
+    const logs = await getEmailLogsByRecipient(email);
 
     return NextResponse.json({
       success: true,
       data: logs,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching email logs by recipient:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch email logs";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch email logs",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("Unauthorized")
+          : errorMessage.includes("Unauthorized")
           ? 401
           : 500,
       }

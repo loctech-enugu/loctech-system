@@ -3,31 +3,33 @@ import { sendAbsenceNotification } from "@/backend/controllers/notifications.con
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const result = await sendAbsenceNotification(params.id);
+    const { id } = await params;
+    const result = await sendAbsenceNotification(id);
 
     return NextResponse.json({
       success: true,
       data: result,
       message: "Notification email sent successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error sending notification:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to send notification";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to send notification",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("not found")
-          ? 404
-          : error.message?.includes("already sent")
-          ? 400
-          : 500,
+          : errorMessage.includes("not found")
+            ? 404
+            : errorMessage.includes("already sent")
+              ? 400
+              : 500,
       }
     );
   }

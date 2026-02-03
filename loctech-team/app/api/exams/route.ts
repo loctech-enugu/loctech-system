@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     const courseId = searchParams.get("courseId");
     const classId = searchParams.get("classId");
 
-    const filters: any = {};
+    const filters: Record<string, unknown> = {};
     if (status) filters.status = status;
     if (courseId) filters.courseId = courseId;
     if (classId) filters.classId = classId;
@@ -19,12 +19,13 @@ export async function GET(req: NextRequest) {
       success: true,
       data: exams,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching exams:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch exams";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch exams",
+        error: errorMessage,
       },
       { status: 500 }
     );
@@ -41,17 +42,18 @@ export async function POST(req: NextRequest) {
       data: exam,
       message: "Exam created successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error creating exam:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to create exam";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to create exam",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("not found") || error.message?.includes("required")
+          : errorMessage.includes("not found") || errorMessage.includes("required")
           ? 400
           : 500,
       }

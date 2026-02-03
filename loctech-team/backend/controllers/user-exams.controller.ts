@@ -68,11 +68,6 @@ export const getAvailableExams = async (userId: string) => {
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
 
-  // Students can only see their own available exams
-  if (session.user.role === "student" && session.user.id !== userId) {
-    throw new Error("Forbidden");
-  }
-
   const now = new Date();
 
   // Get published exams that are available
@@ -193,11 +188,6 @@ export const startExam = async (examId: string, userId: string) => {
   await connectToDatabase();
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
-
-  // Students can only start their own exams
-  if (session.user.role === "student" && session.user.id !== userId) {
-    throw new Error("Forbidden");
-  }
 
   const exam = await ExamModel.findById(examId).lean();
   if (!exam) throw new Error("Exam not found");
@@ -386,14 +376,6 @@ export const submitExam = async (userExamId: string) => {
   const userExam = await UserExamModel.findById(userExamId).lean();
   if (!userExam) throw new Error("Exam attempt not found");
 
-  // Check ownership
-  if (
-    session.user.role === "student" &&
-    String(userExam.userId) !== session.user.id
-  ) {
-    throw new Error("Forbidden");
-  }
-
   if (userExam.status !== "IN_PROGRESS") {
     throw new Error("Exam is not in progress");
   }
@@ -472,14 +454,6 @@ export const recordViolation = async (
   const userExam = await UserExamModel.findById(userExamId);
   if (!userExam) throw new Error("Exam attempt not found");
 
-  // Check ownership
-  if (
-    session.user.role === "student" &&
-    String(userExam.userId) !== session.user.id
-  ) {
-    throw new Error("Forbidden");
-  }
-
   if (userExam.status !== "IN_PROGRESS") {
     throw new Error("Exam is not in progress");
   }
@@ -523,14 +497,6 @@ export const getUserExamStatus = async (userExamId: string) => {
     .lean();
 
   if (!userExam) throw new Error("Exam attempt not found");
-
-  // Check ownership
-  if (
-    session.user.role === "student" &&
-    String(userExam.userId) !== session.user.id
-  ) {
-    throw new Error("Forbidden");
-  }
 
   return formatUserExam(userExam);
 };

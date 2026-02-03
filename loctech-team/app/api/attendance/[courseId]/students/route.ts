@@ -19,8 +19,9 @@ export async function GET(
 
     const records = await getAllStudentAttendance(courseId, start, end);
     return successResponse(records);
-  } catch (error: any) {
-    return errorResponse(error.message, 500);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch attendance";
+    return errorResponse(errorMessage, 500);
   }
 }
 
@@ -32,9 +33,10 @@ export async function POST(
     const body = await request.json();
     const record = await createAttendance(body);
     return NextResponse.json({ success: true, data: record });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to create attendance";
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: errorMessage },
       { status: 500 }
     );
   }
@@ -48,9 +50,10 @@ export async function PUT(
     const body = await request.json();
     const record = await updateAttendance(body);
     return NextResponse.json({ success: true, data: record });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Failed to update attendance";
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: errorMessage },
       { status: 500 }
     );
   }

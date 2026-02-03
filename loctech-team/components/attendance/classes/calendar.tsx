@@ -57,7 +57,7 @@ export const CalendarOfClassAttendance = ({ classId = "" }) => {
     const dateStr = format(date, "yyyy-MM-dd");
     return (
       data?.filter(
-        (attendance: any) => {
+        (attendance: { date?: string | null }) => {
           if (!attendance.date) return false;
           return format(new Date(attendance.date), "yyyy-MM-dd") === dateStr;
         }
@@ -167,6 +167,7 @@ export const CalendarOfClassAttendance = ({ classId = "" }) => {
                     {format(day, "d")}
                   </div>
                   <div className="space-y-1">
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {dayReports.slice(0, 2).map((attendance: any) => (
                       <div
                         key={attendance.id}
@@ -190,6 +191,7 @@ export const CalendarOfClassAttendance = ({ classId = "" }) => {
                   </div>
                   {dayReports.length > 0 && (
                     <div className="gap-0.5 centered p-0 md:hidden">
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                       {dayReports.slice(0, 1).map((attendance: any, i: number) => (
                         <div
                           key={i}

@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
       data: attendance,
       message: "Attendance recorded successfully",
     });
+    // eslint-disable-next-line
   } catch (error: any) {
     console.error("Error recording attendance:", error);
     return NextResponse.json(

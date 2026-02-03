@@ -7,6 +7,7 @@ export async function GET(req: NextRequest) {
     const classId = searchParams.get("classId");
     const minAbsences = searchParams.get("minAbsences");
 
+    // eslint-disable-next-line
     const filters: any = {};
     if (classId) filters.classId = classId;
     if (minAbsences) filters.minAbsences = parseInt(minAbsences, 10);
@@ -17,6 +18,7 @@ export async function GET(req: NextRequest) {
       success: true,
       data: monitoring,
     });
+    // eslint-disable-next-line
   } catch (error: any) {
     console.error("Error fetching attendance monitoring:", error);
     return NextResponse.json(
@@ -28,8 +30,8 @@ export async function GET(req: NextRequest) {
         status: error.message?.includes("Forbidden")
           ? 403
           : error.message?.includes("Unauthorized")
-          ? 401
-          : 500,
+            ? 401
+            : 500,
       }
     );
   }

@@ -3,10 +3,11 @@ import { getEmailTemplateByType } from "@/backend/controllers/email-templates.co
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { type: string } }
+  { params }: { params: Promise<{ type: string }> }
 ) {
   try {
-    const template = await getEmailTemplateByType(params.type);
+    const { type } = await params;
+    const template = await getEmailTemplateByType(type);
 
     if (!template) {
       return NextResponse.json(
@@ -22,12 +23,13 @@ export async function GET(
       success: true,
       data: template,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching email template:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch email template";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch email template",
+        error: errorMessage,
       },
       { status: 500 }
     );

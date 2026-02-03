@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Get all notifications with filters
-    const filters: any = {};
+    const filters: Record<string, unknown> = {};
     if (studentId) filters.studentId = studentId;
     if (classId) filters.classId = classId;
     if (type) filters.type = type;
@@ -34,12 +34,13 @@ export async function GET(req: NextRequest) {
       success: true,
       data: notifications,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching notifications:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch notifications";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch notifications",
+        error: errorMessage,
       },
       { status: 500 }
     );
@@ -56,14 +57,15 @@ export async function POST(req: NextRequest) {
       data: notification,
       message: "Notification created successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error creating notification:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to create notification";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to create notification",
+        error: errorMessage,
       },
-      { status: error.message?.includes("Forbidden") ? 403 : 500 }
+      { status: errorMessage.includes("Forbidden") ? 403 : 500 }
     );
   }
 }

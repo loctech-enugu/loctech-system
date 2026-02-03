@@ -3,10 +3,11 @@ import { getEmailLogById } from "@/backend/controllers/email-logs.controller";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const log = await getEmailLogById(params.id);
+    const { id } = await params;
+    const log = await getEmailLogById(id);
 
     if (!log) {
       return NextResponse.json(
@@ -22,17 +23,18 @@ export async function GET(
       success: true,
       data: log,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching email log:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to fetch email log";
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch email log",
+        error: errorMessage,
       },
       {
-        status: error.message?.includes("Forbidden")
+        status: errorMessage.includes("Forbidden")
           ? 403
-          : error.message?.includes("not found")
+          : errorMessage.includes("not found")
           ? 404
           : 500,
       }
