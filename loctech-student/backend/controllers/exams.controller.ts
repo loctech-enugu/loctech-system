@@ -39,10 +39,10 @@ export const formatExam = (exam: Record<string, any>) => {
     minimumAttendancePercentage: exam.minimumAttendancePercentage ?? 0,
     course: course
       ? {
-          id: String(course._id),
-          title: course.title ?? "",
-          courseRefId: course.courseRefId ?? "",
-        }
+        id: String(course._id),
+        title: course.title ?? "",
+        courseRefId: course.courseRefId ?? "",
+      }
       : null,
     createdAt: (exam.createdAt as Date)?.toISOString?.() ?? "",
     updatedAt: (exam.updatedAt as Date)?.toISOString?.() ?? "",
@@ -59,7 +59,6 @@ export const getExamResult = async (examId: string, userId: string) => {
 
   // Students can only see their own results
   if (
-    session.user.role === "student" &&
     session.user.id !== userId
   ) {
     throw new Error("Forbidden");
@@ -110,10 +109,10 @@ export const getExamResult = async (examId: string, userId: string) => {
       userId: String(userExam.userId),
       user: (userExam.userId as any)?.name
         ? {
-            id: String((userExam.userId as any)._id),
-            name: (userExam.userId as any).name,
-            email: (userExam.userId as any).email,
-          }
+          id: String((userExam.userId as any)._id),
+          name: (userExam.userId as any).name,
+          email: (userExam.userId as any).email,
+        }
         : null,
       attemptNumber: userExam.attemptNumber,
       status: userExam.status,

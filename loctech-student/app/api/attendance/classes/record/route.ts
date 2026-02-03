@@ -6,7 +6,7 @@ import { recordClassAttendance } from "@/backend/controllers/class-attendance.co
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authConfig);
-    if (!session || session.user.role !== "student") {
+    if (!session) {
       return NextResponse.json(
         {
           success: false,
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    
+
     // Ensure studentId matches the logged-in student
     if (body.studentId !== session.user.id) {
       return NextResponse.json(
@@ -73,8 +73,8 @@ export async function POST(req: NextRequest) {
             error.message?.includes("Invalid") ||
             error.message?.includes("expired") ||
             error.message?.includes("No active session")
-          ? 400
-          : 500,
+            ? 400
+            : 500,
       }
     );
   }

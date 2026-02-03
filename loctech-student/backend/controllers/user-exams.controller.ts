@@ -41,18 +41,18 @@ export const formatUserExam = (userExam: Record<string, any>) => {
     questions: (userExam.questions ?? []).map((id: any) => String(id)),
     exam: exam
       ? {
-          id: String(exam._id),
-          title: exam.title ?? "",
-          duration: exam.duration ?? 0,
-          totalQuestions: exam.totalQuestions ?? 0,
-        }
+        id: String(exam._id),
+        title: exam.title ?? "",
+        duration: exam.duration ?? 0,
+        totalQuestions: exam.totalQuestions ?? 0,
+      }
       : null,
     user: user
       ? {
-          id: String(user._id),
-          name: user.name ?? "",
-          email: user.email ?? "",
-        }
+        id: String(user._id),
+        name: user.name ?? "",
+        email: user.email ?? "",
+      }
       : null,
     createdAt: (userExam.createdAt as Date)?.toISOString?.() ?? "",
     updatedAt: (userExam.updatedAt as Date)?.toISOString?.() ?? "",
@@ -68,7 +68,7 @@ export const getAvailableExams = async (userId: string) => {
   if (!session) throw new Error("Unauthorized");
 
   // Students can only see their own available exams
-  if (session.user.role === "student" && session.user.id !== userId) {
+  if (session.user.id !== userId) {
     throw new Error("Forbidden");
   }
 
@@ -80,10 +80,6 @@ export const getAvailableExams = async (userId: string) => {
     $or: [
       { scheduledStart: { $lte: now } },
       { scheduledStart: null },
-    ],
-    $or: [
-      { expirationDate: { $gte: now } },
-      { expirationDate: null },
     ],
   })
     .populate("courseId", "title courseRefId")
@@ -194,7 +190,7 @@ export const startExam = async (examId: string, userId: string) => {
   if (!session) throw new Error("Unauthorized");
 
   // Students can only start their own exams
-  if (session.user.role === "student" && session.user.id !== userId) {
+  if (session.user.id !== userId) {
     throw new Error("Forbidden");
   }
 
@@ -387,7 +383,6 @@ export const submitExam = async (userExamId: string) => {
 
   // Check ownership
   if (
-    session.user.role === "student" &&
     String(userExam.userId) !== session.user.id
   ) {
     throw new Error("Forbidden");
@@ -473,7 +468,6 @@ export const recordViolation = async (
 
   // Check ownership
   if (
-    session.user.role === "student" &&
     String(userExam.userId) !== session.user.id
   ) {
     throw new Error("Forbidden");
@@ -525,7 +519,6 @@ export const getUserExamStatus = async (userExamId: string) => {
 
   // Check ownership
   if (
-    session.user.role === "student" &&
     String(userExam.userId) !== session.user.id
   ) {
     throw new Error("Forbidden");

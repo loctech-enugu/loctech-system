@@ -23,13 +23,13 @@ export const formatUserAnswer = (answer: Record<string, any>) => {
     timeSpent: answer.timeSpent ?? 0,
     question: question
       ? {
-          id: String(question._id),
-          question: question.question ?? "",
-          type: question.type ?? "",
-          options: question.options ?? [],
-          correctAnswer: question.correctAnswer,
-          points: question.points ?? 1,
-        }
+        id: String(question._id),
+        question: question.question ?? "",
+        type: question.type ?? "",
+        options: question.options ?? [],
+        correctAnswer: question.correctAnswer,
+        points: question.points ?? 1,
+      }
       : null,
     createdAt: (answer.createdAt as Date)?.toISOString?.() ?? "",
     updatedAt: (answer.updatedAt as Date)?.toISOString?.() ?? "",
@@ -55,7 +55,6 @@ export const saveAnswer = async (data: {
 
   // Check ownership
   if (
-    session.user.role === "student" &&
     String(userExam.userId) !== session.user.id
   ) {
     throw new Error("Forbidden");
@@ -143,7 +142,6 @@ export const getAnswersForUserExam = async (userExamId: string) => {
 
   // Check ownership
   if (
-    session.user.role === "student" &&
     String(userExam.userId) !== session.user.id
   ) {
     throw new Error("Forbidden");
@@ -174,7 +172,6 @@ export const getAnswerForQuestion = async (
 
   // Check ownership
   if (
-    session.user.role === "student" &&
     String(userExam.userId) !== session.user.id
   ) {
     throw new Error("Forbidden");
@@ -212,7 +209,6 @@ export const bulkSaveAnswers = async (
 
   // Check ownership
   if (
-    session.user.role === "student" &&
     String(userExam.userId) !== session.user.id
   ) {
     throw new Error("Forbidden");

@@ -30,24 +30,24 @@ export const formatClassAttendance = (attendance: Record<string, any>) => {
     pin: attendance.pin ?? null,
     student: student
       ? {
-          id: String(student._id),
-          name: student.name ?? "",
-          email: student.email ?? "",
-        }
+        id: String(student._id),
+        name: student.name ?? "",
+        email: student.email ?? "",
+      }
       : null,
     class: classItem
       ? {
-          id: String(classItem._id),
-          name: classItem.name ?? "",
-          courseId: String(classItem.courseId),
-        }
+        id: String(classItem._id),
+        name: classItem.name ?? "",
+        courseId: String(classItem.courseId),
+      }
       : null,
     recordedBy: recordedBy
       ? {
-          id: String(recordedBy._id),
-          name: recordedBy.name ?? "",
-          email: recordedBy.email ?? "",
-        }
+        id: String(recordedBy._id),
+        name: recordedBy.name ?? "",
+        email: recordedBy.email ?? "",
+      }
       : null,
     createdAt: (attendance.createdAt as Date)?.toISOString?.() ?? "",
     updatedAt: (attendance.updatedAt as Date)?.toISOString?.() ?? "",
@@ -72,17 +72,11 @@ export const getTodayClassSession = async (classId: string) => {
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
 
-  // Students can access class sessions for their enrolled classes
-  if (session.user.role === "student") {
-    const enrollment = await EnrollmentModel.findOne({
-      studentId: session.user.id,
-      classId,
-      status: "active",
-    }).lean();
-    if (!enrollment) {
-      throw new Error("Forbidden: You are not enrolled in this class");
-    }
-  }
+  const enrollment = await EnrollmentModel.findOne({
+    studentId: session.user.id,
+    classId,
+    status: "active",
+  }).lean();
 
   const dateKey = getUtcDateKey();
   const classSession = await ClassSessionModel.findOne({
@@ -119,7 +113,7 @@ export const recordClassAttendance = async (data: {
   if (!session) throw new Error("Unauthorized");
 
   // Students can only record their own attendance
-  if (session.user.role === "student" && session.user.id !== data.studentId) {
+  if (session.user.id !== data.studentId) {
     throw new Error("Forbidden: Cannot record attendance for another student");
   }
 
