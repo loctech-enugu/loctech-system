@@ -70,18 +70,15 @@ export const getAvailableExams = async (userId: string) => {
 
   const now = new Date();
 
-  // Get published exams that are available
-  const exams = await ExamModel.find({
-    status: "published",
-    $or: [
-      { scheduledStart: { $lte: now } },
-      { scheduledStart: null },
+  // Get published exams that are available (started or no start date, and not expired or no expiry)
+  const examFilter = {
+    status: "published" as const,
+    $and: [
+      { $or: [{ scheduledStart: { $lte: now } }, { scheduledStart: null }] },
+      { $or: [{ expirationDate: { $gte: now } }, { expirationDate: null }] },
     ],
-    $or: [
-      { expirationDate: { $gte: now } },
-      { expirationDate: null },
-    ],
-  })
+  };
+  const exams = await ExamModel.find(examFilter)
     .populate("courseId", "title courseRefId")
     .lean();
 
