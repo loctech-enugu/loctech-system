@@ -32,7 +32,7 @@ const editUserSchema = z.object({
   name: z.string().min(2, "Name is required"),
   email: z.email("Invalid email"),
   phone: z.string().optional(),
-  role: z.enum(["admin", "staff", "super_admin"]),
+  role: z.enum(["admin", "staff", "super_admin", 'instructor']),
   title: z.string().optional(),
   isActive: z.boolean(),
 });
