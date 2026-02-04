@@ -114,14 +114,14 @@ export default function QuestionsManagement() {
                 <TableRow key={question.id}>
                   <TableCell className="max-w-md">
                     <p className="truncate">
-                      {question.questionText || question.question}
+                      {question.questionText}
                     </p>
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">{question.type}</Badge>
                   </TableCell>
                   <TableCell>
-                    {question.category?.name || "-"}
+                    {question.category || "-"}
                   </TableCell>
                   <TableCell>
                     {getDifficultyBadge(question.difficulty)}

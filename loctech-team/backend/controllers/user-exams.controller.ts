@@ -42,18 +42,18 @@ export const formatUserExam = (userExam: Record<string, any>) => {
     questions: (userExam.questions ?? []).map((id: any) => String(id)),
     exam: exam
       ? {
-          id: String(exam._id),
-          title: exam.title ?? "",
-          duration: exam.duration ?? 0,
-          totalQuestions: exam.totalQuestions ?? 0,
-        }
+        id: String(exam._id),
+        title: exam.title ?? "",
+        duration: exam.duration ?? 0,
+        totalQuestions: exam.totalQuestions ?? 0,
+      }
       : null,
     user: user
       ? {
-          id: String(user._id),
-          name: user.name ?? "",
-          email: user.email ?? "",
-        }
+        id: String(user._id),
+        name: user.name ?? "",
+        email: user.email ?? "",
+      }
       : null,
     createdAt: (userExam.createdAt as Date)?.toISOString?.() ?? "",
     updatedAt: (userExam.updatedAt as Date)?.toISOString?.() ?? "",
