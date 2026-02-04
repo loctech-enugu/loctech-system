@@ -1,4 +1,5 @@
 import { clsx, type ClassValue } from "clsx";
+import { format, parse } from "date-fns";
 import { toast } from "sonner";
 import { twMerge } from "tailwind-merge";
 
@@ -135,3 +136,8 @@ export const goToTop = () => {
     behavior: "smooth",
   });
 };
+export const formatTimeToAMPM = (time: string): string => {
+  if (!time) return "";
+  const parsed = parse(time, "HH:mm", new Date());
+  return format(parsed, "h:mm a");
+}

@@ -396,14 +396,7 @@ export const getAttendanceMonitoring = async (filters?: {
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
 
-  // Only admin and staff can view monitoring
-  if (
-    session.user.role !== "admin" &&
-    session.user.role !== "super_admin" &&
-    session.user.role !== "staff"
-  ) {
-    throw new Error("Forbidden");
-  }
+
 
   // Get all active enrollments
   const enrollmentFilter: Record<string, any> = { status: "active" };
@@ -415,6 +408,7 @@ export const getAttendanceMonitoring = async (filters?: {
     .populate("studentId", "name email")
     .populate("classId", "name courseId")
     .lean();
+
 
   const monitoringData = [];
 

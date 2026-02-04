@@ -46,13 +46,8 @@ import { Class } from "@/types";
 import { DataTablePagination } from "../data-table-pagination";
 import { useQuery } from "@tanstack/react-query";
 import { SpinnerLoader } from "../spinner";
-import { format, parse } from "date-fns";
+import { formatTimeToAMPM } from "@/lib/utils";
 
-function formatTimeToAMPM(time: string): string {
-  if (!time) return "";
-  const parsed = parse(time, "HH:mm", new Date());
-  return format(parsed, "h:mm a");
-}
 async function fetchClasses() {
   const res = await fetch("/api/classes");
   if (!res.ok) throw new Error("Failed to fetch classes");

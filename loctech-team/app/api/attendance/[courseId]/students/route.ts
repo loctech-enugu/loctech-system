@@ -5,7 +5,7 @@ import {
   updateAttendance,
 } from "@/backend/controllers/student-attendance.controller";
 import { errorResponse, successResponse } from "@/lib/server-helper";
-/* eslint-disable */
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ courseId: string }> }

@@ -9,15 +9,18 @@ import {
     ComboboxList,
 } from "@/components/ui/combobox"
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface ComboSelectProps<T extends Record<string, any>> {
     items: T[]
     placeholder?: string
     valueKey?: keyof T
     displayKey?: keyof T
     onSelect?: (item: T) => void
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     value?: any | null
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function ComboSelect<T extends Record<string, any>>({
     items,
     placeholder = "Select an item",
