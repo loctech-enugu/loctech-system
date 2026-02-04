@@ -26,7 +26,7 @@ interface MigrationStats {
 
 async function migrateInstructorRole(): Promise<MigrationStats> {
   await connectToDatabase();
-  
+
   const stats: MigrationStats = {
     usersProcessed: 0,
     rolesUpdated: 0,
@@ -51,9 +51,6 @@ async function migrateInstructorRole(): Promise<MigrationStats> {
 
     // Collect all instructor user IDs
     for (const course of courses) {
-      if (course.instructor) {
-        instructorUserIds.add(String(course.instructor));
-      }
       if (course.instructors && Array.isArray(course.instructors)) {
         course.instructors.forEach((id: any) => {
           instructorUserIds.add(String(id));
@@ -104,9 +101,7 @@ async function migrateInstructorRole(): Promise<MigrationStats> {
           const course = await CourseModel.findById(classItem.courseId).lean();
           if (course) {
             let instructorId = null;
-            if (course.instructor) {
-              instructorId = course.instructor;
-            } else if (course.instructors && (course.instructors as any[]).length > 0) {
+            if (course.instructors && (course.instructors as any[]).length > 0) {
               instructorId = (course.instructors as any[])[0];
             }
 

@@ -14,26 +14,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { ComboSelect } from "@/components/combo-select";
 import { Class, User } from "@/types";
 import InputError from "../input-error";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ScheduleInput } from "./schedule-input";
+import { fetchInstructors } from "./create-class";
 
-async function fetchInstructors() {
-  const res = await fetch("/api/users");
-  if (!res.ok) throw new Error("Failed to fetch instructors");
-  const data = await res.json();
-  return data.data || [];
-}
 
 const editClassSchema = z.object({
   instructorId: z.string().min(1, "Instructor is required"),
@@ -44,23 +35,18 @@ const editClassSchema = z.object({
     endTime: z.string().min(1, "End time is required"),
     timezone: z.string(),
   }),
-  capacity: z.number(),
+  capacity: z.number().optional(),
   status: z.enum(["active", "inactive", "completed"]),
 });
 
 type EditClassForm = z.infer<typeof editClassSchema>;
 
 interface EditClassProps {
-  classItem: Class | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  classId: string;
+  classItem: Class;
 }
 
-export default function EditClass({
-  classItem,
-  open,
-  onOpenChange,
-}: EditClassProps) {
+export default function EditClass({ classId, classItem }: EditClassProps) {
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -69,21 +55,22 @@ export default function EditClass({
     queryFn: fetchInstructors,
   });
 
+  const scheduleObj =
+    classItem.schedule && typeof classItem.schedule === "object"
+      ? classItem.schedule
+      : null;
+
   const form = useForm<EditClassForm>({
     resolver: zodResolver(editClassSchema),
     defaultValues: {
-      instructorId: classItem?.instructorId || "",
-      name: classItem?.name || "",
-      schedule: classItem?.schedule
+      instructorId: classItem.instructorId || "",
+      name: classItem.name || "",
+      schedule: scheduleObj
         ? {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          daysOfWeek: (classItem.schedule as any)?.daysOfWeek || [],
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          startTime: (classItem.schedule as any)?.startTime || "",
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          endTime: (classItem.schedule as any)?.endTime || "",
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          timezone: (classItem.schedule as any)?.timezone || "Africa/Lagos",
+          daysOfWeek: scheduleObj.daysOfWeek ?? [],
+          startTime: scheduleObj.startTime ?? "",
+          endTime: scheduleObj.endTime ?? "",
+          timezone: scheduleObj.timezone ?? "Africa/Lagos",
         }
         : {
           daysOfWeek: [],
@@ -91,38 +78,38 @@ export default function EditClass({
           endTime: "",
           timezone: "Africa/Lagos",
         },
-      capacity: classItem?.capacity,
-      status: (classItem?.status) || "active",
+      capacity: classItem.capacity,
+      status: classItem.status ?? "active",
     },
   });
 
+
   React.useEffect(() => {
-    if (classItem) {
-      form.reset({
-        instructorId: classItem.instructorId || "",
-        name: classItem.name || "",
-        schedule: classItem.schedule
-          ? {
-            daysOfWeek: (classItem.schedule)?.daysOfWeek || [],
-            startTime: (classItem.schedule)?.startTime || "",
-            endTime: (classItem.schedule)?.endTime || "",
-            timezone: (classItem.schedule)?.timezone || "Africa/Lagos",
-          }
-          : {
-            daysOfWeek: [],
-            startTime: "",
-            endTime: "",
-            timezone: "Africa/Lagos",
-          },
-        capacity: classItem.capacity,
-        status: (classItem.status) || "active",
-      });
-    }
+    const s = classItem.schedule && typeof classItem.schedule === "object" ? classItem.schedule : null;
+    form.reset({
+      instructorId: classItem.instructor?.id || "",
+      name: classItem.name || "",
+      schedule: s
+        ? {
+          daysOfWeek: s.daysOfWeek ?? [],
+          startTime: s.startTime ?? "",
+          endTime: s.endTime ?? "",
+          timezone: s.timezone ?? "Africa/Lagos",
+        }
+        : {
+          daysOfWeek: [],
+          startTime: "",
+          endTime: "",
+          timezone: "Africa/Lagos",
+        },
+      capacity: classItem.capacity,
+      status: classItem.status ?? "active",
+    });
   }, [classItem, form]);
 
   const { mutate: updateClass, isPending } = useMutation({
     mutationFn: async (data: EditClassForm) => {
-      const res = await fetch(`/api/classes/${classItem?.id}`, {
+      const res = await fetch(`/api/classes/${classId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -134,8 +121,7 @@ export default function EditClass({
     onSuccess: () => {
       toast.success("Class updated successfully");
       queryClient.invalidateQueries({ queryKey: ["classes"] });
-      onOpenChange(false);
-      router.refresh();
+      router.push("/dashboard/classes");
     },
     onError: (error) => {
       toast.error(error.message || "Error updating class");
@@ -144,15 +130,13 @@ export default function EditClass({
 
   const onSubmit = (values: EditClassForm) => updateClass(values);
 
-  if (!classItem) return null;
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Edit Class</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+    <>
+      <div className="mb-2 flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Edit Class</h1>
+      </div>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div className="space-y-4">
           {/* Instructor */}
           <div className="grid gap-2">
             <Label htmlFor="instructorId">Instructor</Label>
@@ -160,23 +144,14 @@ export default function EditClass({
               control={form.control}
               name="instructorId"
               render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={
-                        loadingInstructors ? "Loading..." : "Select instructor"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {!loadingInstructors &&
-                      instructors.map((instructor: User) => (
-                        <SelectItem key={instructor.id} value={instructor.id}>
-                          {instructor.name} ({instructor.email})
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                <ComboSelect<User>
+                  items={instructors}
+                  placeholder={loadingInstructors ? "Loading..." : "Select instructor"}
+                  valueKey="id"
+                  displayKey="name"
+                  value={field.value}
+                  onSelect={(instructor) => field.onChange(instructor.id)}
+                />
               )}
             />
             <InputError message={form.formState.errors.instructorId?.message} />
@@ -241,22 +216,17 @@ export default function EditClass({
             />
             <InputError message={form.formState.errors.status?.message} />
           </div>
+        </div>
 
-          {/* Actions */}
-          <div className="flex justify-end gap-2 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isPending}>
-              {isPending ? "Saving..." : "Save Changes"}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="button" variant="outline" asChild>
+            <Link href="/dashboard/classes">Cancel</Link>
+          </Button>
+          <Button type="submit" disabled={isPending}>
+            {isPending ? "Saving..." : "Save Changes"}
+          </Button>
+        </div>
+      </form>
+    </>
   );
 }

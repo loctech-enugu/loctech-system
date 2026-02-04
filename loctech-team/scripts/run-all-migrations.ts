@@ -11,13 +11,11 @@
  */
 
 import { migrateInstructorRole } from "./migrate-instructor-role";
-import { migrateCourseToClass } from "./migrate-course-to-class";
-import { migrateAttendanceRecords } from "./migrate-attendance-records";
 import { validateMigrations } from "./validate-migrations";
 
 async function runAllMigrations() {
   console.log("🚀 Starting All Migrations\n");
-  console.log("=" .repeat(50));
+  console.log("=".repeat(50));
   console.log("\n");
 
   try {
@@ -27,28 +25,17 @@ async function runAllMigrations() {
     await migrateInstructorRole();
     console.log("\n");
 
-    // Step 2: Migrate courses to classes
-    console.log("📋 Step 2: Migrating Courses to Classes");
-    console.log("-".repeat(50));
-    await migrateCourseToClass();
-    console.log("\n");
 
-    // Step 3: Migrate attendance records
-    console.log("📋 Step 3: Migrating Attendance Records");
-    console.log("-".repeat(50));
-    await migrateAttendanceRecords();
-    console.log("\n");
-
-    // Step 4: Validate migrations
+    // Step 2: Validate migrations
     console.log("📋 Step 4: Validating Migrations");
     console.log("-".repeat(50));
     const validationResults = await validateMigrations();
     console.log("\n");
 
     // Summary
-    console.log("=" .repeat(50));
+    console.log("=".repeat(50));
     console.log("📊 Migration Summary\n");
-    
+
     if (validationResults.passed) {
       console.log("✅ All migrations completed successfully!");
       console.log("✅ Data validation passed!");

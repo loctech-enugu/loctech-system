@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Users, AlertTriangle, Clock } from "lucide-react";
 import Link from "next/link";
 import { Class } from "@/types";
+import { formatTimeToAMPM } from "@/lib/utils";
 
 async function fetchTodaysClasses() {
   const res = await fetch("/api/classes/instructor/me");
@@ -36,7 +37,7 @@ export default function InstructorDashboard() {
 
   // Filter today's classes
   // const today = new Date().toISOString().split("T")[0];
-  const todaysClasses = classes.filter((classItem: Class) => {
+  const todaysClasses: Class[] = classes.filter((classItem: Class) => {
     // Simple check - in a real implementation, you'd check the schedule
     return classItem.status === "active";
   });
@@ -99,7 +100,7 @@ export default function InstructorDashboard() {
           {todaysClasses.length > 0 ? (
             <div className="space-y-4">
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {todaysClasses.map((classItem: any) => (
+              {todaysClasses.map((classItem) => (
                 <div
                   key={classItem.id}
                   className="flex items-center justify-between p-4 border rounded-lg"
@@ -111,7 +112,11 @@ export default function InstructorDashboard() {
                     </p>
                     <p className="text-sm text-muted-foreground mt-1">
                       <Clock className="inline h-3 w-3 mr-1" />
-                      {classItem.schedule || "Schedule TBD"}
+                      <span>
+                        {classItem?.schedule
+                          ? `${classItem.schedule.daysOfWeek?.join(", ") || "Days TBD"} ${formatTimeToAMPM(classItem.schedule.startTime)} - ${formatTimeToAMPM(classItem.schedule.endTime)}`
+                          : "Schedule TBD"}
+                      </span>
                     </p>
                   </div>
                   <div className="flex gap-2">

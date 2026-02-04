@@ -13,6 +13,7 @@ import {
   VisibilityState,
   getPaginationRowModel,
 } from "@tanstack/react-table";
+import Link from "next/link";
 import {
   ArrowUpDown,
   ChevronDown,
@@ -45,10 +46,7 @@ import { Class } from "@/types";
 import { DataTablePagination } from "../data-table-pagination";
 import { useQuery } from "@tanstack/react-query";
 import { SpinnerLoader } from "../spinner";
-
-interface ClassesTableProps {
-  onClassEdited?: (classItem: Class) => void;
-}
+import { formatTimeToAMPM } from "@/lib/utils";
 
 async function fetchClasses() {
   const res = await fetch("/api/classes");
@@ -57,7 +55,7 @@ async function fetchClasses() {
   return data.data || [];
 }
 
-export function ClassesTable({ onClassEdited }: ClassesTableProps) {
+export function ClassesTable() {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
@@ -169,7 +167,7 @@ export function ClassesTable({ onClassEdited }: ClassesTableProps) {
               ?.map((d) => DAYS[d])
               .join(", ") || "";
             const time = scheduleObj.startTime && scheduleObj.endTime
-              ? `${scheduleObj.startTime} - ${scheduleObj.endTime}`
+              ? `${formatTimeToAMPM(scheduleObj.startTime)} - ${formatTimeToAMPM(scheduleObj.endTime)}`
               : "";
 
             if (!days && !time) {
@@ -228,8 +226,10 @@ export function ClassesTable({ onClassEdited }: ClassesTableProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-[160px]">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => onClassEdited?.(classItem)}>
-                  Edit class
+                <DropdownMenuItem asChild>
+                  <Link href={`/dashboard/classes/${classItem.id}/edit`}>
+                    Edit class
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
@@ -248,7 +248,7 @@ export function ClassesTable({ onClassEdited }: ClassesTableProps) {
         },
       },
     ],
-    [onClassEdited]
+    []
   );
 
   const table = useReactTable({

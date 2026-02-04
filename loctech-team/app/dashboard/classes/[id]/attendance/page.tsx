@@ -1,8 +1,11 @@
 import { getClassById } from "@/backend/controllers/classes.controller";
 import { CalendarOfClassAttendance } from "@/components/attendance/classes/calendar";
+import { Button } from "@/components/ui/button";
 import AppLayout from "@/layouts/app-layout";
 import { BreadcrumbItem } from "@/types";
+import { QrCode } from "lucide-react";
 import { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 export const metadata: Metadata = {
@@ -38,7 +41,7 @@ async function ClassAttendancePage({
   const classItem = await getClassById(id);
 
   if (!classItem) notFound();
-  
+
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <div className="flex flex-col gap-6 p-6">
@@ -53,6 +56,13 @@ async function ClassAttendancePage({
               </p>
             )}
           </div>
+
+          <Button asChild>
+            <Link href={`/dashboard/classes/${id}/attendance/codes`}>
+              <QrCode className="mr-2 h-4 w-4" />
+              Generate Attendance Codes
+            </Link>
+          </Button>
         </div>
 
         <CalendarOfClassAttendance classId={id} />

@@ -184,9 +184,6 @@ export const updateClass = async (id: string, data: Partial<ClassData>) => {
   if (data.instructorId) {
     const instructor = await UserModel.findById(data.instructorId);
     if (!instructor) throw new Error("Instructor not found");
-    if (instructor.role !== "instructor" && instructor.role !== "admin" && instructor.role !== "super_admin") {
-      throw new Error("User is not an instructor");
-    }
   }
 
   // Validate course if being changed

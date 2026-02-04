@@ -37,7 +37,7 @@ interface ValidationResults {
 
 async function validateMigrations(): Promise<ValidationResults> {
   await connectToDatabase();
-  
+
   const results: ValidationResults = {
     passed: true,
     checks: [],
@@ -53,7 +53,7 @@ async function validateMigrations(): Promise<ValidationResults> {
     const studentsWithCourses = await StudentModel.find({
       courses: { $exists: true, $ne: [] },
     }).lean();
-    
+
     if (studentsWithCourses.length > 0) {
       results.checks.push({
         name: "Students without course links",
@@ -62,7 +62,6 @@ async function validateMigrations(): Promise<ValidationResults> {
         details: studentsWithCourses.map((s) => ({
           id: s._id,
           name: s.name,
-          courses: s.courses,
         })),
       });
       results.errors.push(`Students should not have direct course links`);
@@ -82,11 +81,11 @@ async function validateMigrations(): Promise<ValidationResults> {
     const enrolledStudentIds = new Set(
       allEnrollments.map((e) => String(e.studentId))
     );
-    
+
     const studentsWithoutEnrollments = allStudents.filter(
       (s) => !enrolledStudentIds.has(String(s._id))
     );
-    
+
     if (studentsWithoutEnrollments.length > 0) {
       results.checks.push({
         name: "Students with enrollments",
@@ -112,11 +111,11 @@ async function validateMigrations(): Promise<ValidationResults> {
     const attendanceWithCourses = await StudentAttendanceModel.find({
       course: { $exists: true, $ne: null },
     }).lean();
-    
+
     const attendanceWithoutClasses = await StudentAttendanceModel.find({
       class: { $exists: false },
     }).lean();
-    
+
     if (attendanceWithCourses.length > 0 || attendanceWithoutClasses.length > 0) {
       results.checks.push({
         name: "Attendance records structure",
@@ -138,7 +137,7 @@ async function validateMigrations(): Promise<ValidationResults> {
     const classesWithoutInstructors = await ClassModel.find({
       instructorId: { $exists: false },
     }).lean();
-    
+
     if (classesWithoutInstructors.length > 0) {
       results.checks.push({
         name: "Classes with instructors",
@@ -163,11 +162,11 @@ async function validateMigrations(): Promise<ValidationResults> {
     console.log("✓ Checking enrollment references...");
     const allEnrollments2 = await EnrollmentModel.find({}).lean();
     const invalidEnrollments = [];
-    
+
     for (const enrollment of allEnrollments2) {
       const student = await StudentModel.findById(enrollment.studentId);
       const classItem = await ClassModel.findById(enrollment.classId);
-      
+
       if (!student || !classItem) {
         invalidEnrollments.push({
           enrollmentId: enrollment._id,
@@ -178,7 +177,7 @@ async function validateMigrations(): Promise<ValidationResults> {
         });
       }
     }
-    
+
     if (invalidEnrollments.length > 0) {
       results.checks.push({
         name: "Enrollment references",
@@ -201,7 +200,7 @@ async function validateMigrations(): Promise<ValidationResults> {
     const coursesWithStudents = await CourseModel.find({
       students: { $exists: true, $ne: [] },
     }).lean();
-    
+
     if (coursesWithStudents.length > 0) {
       results.checks.push({
         name: "Courses without direct student links",
@@ -210,7 +209,6 @@ async function validateMigrations(): Promise<ValidationResults> {
         details: coursesWithStudents.map((c) => ({
           id: c._id,
           title: c.title,
-          studentCount: (c.students as any[])?.length || 0,
         })),
       });
       results.warnings.push(`Some courses still have direct student links (may be legacy data)`);
@@ -230,11 +228,11 @@ async function validateMigrations(): Promise<ValidationResults> {
     const classInstructorIds = new Set(
       classes.map((c) => c.instructorId && String(c.instructorId))
     );
-    
+
     const invalidInstructors = Array.from(classInstructorIds).filter(
       (id) => id && !instructorIds.has(id)
     );
-    
+
     if (invalidInstructors.length > 0) {
       results.checks.push({
         name: "Instructor role assignments",
@@ -267,7 +265,7 @@ if (require.main === module) {
   validateMigrations()
     .then((results) => {
       console.log("📊 Validation Results:\n");
-      
+
       results.checks.forEach((check) => {
         const icon = check.passed ? "✅" : "❌";
         console.log(`${icon} ${check.name}: ${check.message}`);
