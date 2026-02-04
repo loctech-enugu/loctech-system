@@ -9,7 +9,6 @@ import StaffDashboard, {
 import { Separator } from "@/components/ui/separator";
 import AdminOverview from "@/components/dashboard/enhanced-admin-overview";
 import { getDashboardStats } from "@/backend/controllers/dashboard.controller";
-import { userLinks } from "@/lib/utils";
 import InstructorDashboard from "@/components/instructor/dashboard";
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -34,7 +33,10 @@ export default async function Dashboard() {
         <Separator className="my-2" />
 
         {user?.role !== "admin" && user?.role !== "super_admin" ? (
-          <InstructorDashboard />
+          <>
+            <StaffDashboard stats={stats} />
+            <InstructorDashboard />
+          </>
         ) : (
           <AdminOverview stats={stats} />
         )}
