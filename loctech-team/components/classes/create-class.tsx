@@ -14,29 +14,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { User } from "@/types";
+import { ComboSelect } from "@/components/combo-select";
+import type { Course, User } from "@/types";
 import InputError from "../input-error";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ScheduleInput } from "./schedule-input";
-import { ScrollArea } from "../ui/scroll-area";
 
-async function fetchCourses() {
+export async function fetchCourses() {
   const res = await fetch("/api/courses");
   if (!res.ok) throw new Error("Failed to fetch courses");
   const data = await res.json();
   return data.data || [];
 }
 
-async function fetchInstructors() {
+export async function fetchInstructors() {
   const res = await fetch("/api/users");
   if (!res.ok) throw new Error("Failed to fetch instructors");
   const data = await res.json();
@@ -53,18 +48,13 @@ const createClassSchema = z.object({
     endTime: z.string().min(1, "End time is required"),
     timezone: z.string(),
   }),
-  capacity: z.number(),
+  capacity: z.number().optional(),
   status: z.enum(["active", "inactive", "completed"]),
 });
 
 type CreateClassForm = z.infer<typeof createClassSchema>;
 
-interface CreateClassProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
-
-export default function CreateClass({ open, onOpenChange }: CreateClassProps) {
+export default function CreateClass() {
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -108,9 +98,7 @@ export default function CreateClass({ open, onOpenChange }: CreateClassProps) {
     onSuccess: () => {
       toast.success("Class created successfully");
       queryClient.invalidateQueries({ queryKey: ["classes"] });
-      form.reset();
-      onOpenChange(false);
-      router.refresh();
+      router.push("/dashboard/classes");
     },
     onError: (error) => {
       toast.error(error.message || "Error creating class");
@@ -127,150 +115,123 @@ export default function CreateClass({ open, onOpenChange }: CreateClassProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Create Class</DialogTitle>
-        </DialogHeader>
+    <>
+      <div className="mb-2 flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Create Class</h1>
+      </div>
+      <div className="container">
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <div className="space-y-4">
+            {/* Course */}
+            <div className="grid gap-2">
+              <Label htmlFor="courseId">Course</Label>
+              <Controller
+                control={form.control}
+                name="courseId"
+                render={({ field }) => (
+                  <ComboSelect<Course>
+                    items={courses}
+                    placeholder={loadingCourses ? "Loading..." : "Select course"}
+                    valueKey="id"
+                    displayKey="title"
+                    value={field.value}
+                    onSelect={(course) => field.onChange(course.id)}
+                  />
+                )}
+              />
+              <InputError message={form.formState.errors.courseId?.message} />
+            </div>
 
-          <ScrollArea className="h-[calc(100vh-200px)] space-y-4">
-            <div className="space-y-4">
-              {/* Course */}
-              <div className="grid gap-2">
-                <Label htmlFor="courseId">Course</Label>
-                <Controller
-                  control={form.control}
-                  name="courseId"
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger>
-                        <SelectValue
-                          placeholder={
-                            loadingCourses ? "Loading..." : "Select course"
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {!loadingCourses &&
-                          /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-                          courses.map((course: any) => (
-                            <SelectItem key={course.id} value={course.id}>
-                              {course.title}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                <InputError message={form.formState.errors.courseId?.message} />
-              </div>
+            {/* Instructor */}
+            <div className="grid gap-2">
+              <Label htmlFor="instructorId">Instructor</Label>
+              <Controller
+                control={form.control}
+                name="instructorId"
+                render={({ field }) => (
+                  <ComboSelect<User>
+                    items={instructors}
+                    placeholder={loadingInstructors ? "Loading..." : "Select instructor"}
+                    valueKey="id"
+                    displayKey="name"
+                    value={field.value}
+                    onSelect={(instructor) => field.onChange(instructor.id)}
+                  />
+                )}
+              />
+              <InputError message={form.formState.errors.instructorId?.message} />
+            </div>
 
-              {/* Instructor */}
-              <div className="grid gap-2">
-                <Label htmlFor="instructorId">Instructor</Label>
-                <Controller
-                  control={form.control}
-                  name="instructorId"
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger>
-                        <SelectValue
-                          placeholder={
-                            loadingInstructors ? "Loading..." : "Select instructor"
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {!loadingInstructors &&
-                          instructors.map((instructor: User) => (
-                            <SelectItem key={instructor.id} value={instructor.id}>
-                              {instructor.name} ({instructor.email})
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                <InputError message={form.formState.errors.instructorId?.message} />
-              </div>
+            {/* Class Name */}
+            <div className="grid gap-2">
+              <Label htmlFor="name">Class Name</Label>
+              <Input
+                id="name"
+                {...form.register("name")}
+                placeholder="e.g., Web Dev - Morning Batch"
+              />
+              <InputError message={form.formState.errors.name?.message} />
+            </div>
 
-              {/* Class Name */}
-              <div className="grid gap-2">
-                <Label htmlFor="name">Class Name</Label>
-                <Input
-                  id="name"
-                  {...form.register("name")}
-                  placeholder="e.g., Web Dev - Morning Batch"
-                />
-                <InputError message={form.formState.errors.name?.message} />
-              </div>
+            {/* Schedule */}
+            <div className="grid gap-2">
+              <Controller
+                control={form.control}
+                name="schedule"
+                render={({ field }) => (
+                  <ScheduleInput
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={form.formState.errors.schedule?.message}
+                  />
+                )}
+              />
+            </div>
 
-              {/* Schedule */}
-              <div className="grid gap-2">
-                <Controller
-                  control={form.control}
-                  name="schedule"
-                  render={({ field }) => (
-                    <ScheduleInput
-                      value={field.value}
-                      onChange={field.onChange}
-                      error={form.formState.errors.schedule?.message}
-                    />
-                  )}
-                />
-              </div>
+            {/* Capacity */}
+            <div className="grid gap-2">
+              <Label htmlFor="capacity">Capacity (Optional)</Label>
+              <Input
+                id="capacity"
+                type="number"
+                {...form.register("capacity", { valueAsNumber: true })}
+                placeholder="Maximum number of students"
+              />
+              <InputError message={form.formState.errors.capacity?.message} />
+            </div>
 
-              {/* Capacity */}
-              <div className="grid gap-2">
-                <Label htmlFor="capacity">Capacity (Optional)</Label>
-                <Input
-                  id="capacity"
-                  type="number"
-                  {...form.register("capacity", { valueAsNumber: true })}
-                  placeholder="Maximum number of students"
-                />
-                <InputError message={form.formState.errors.capacity?.message} />
-              </div>
+            {/* Status */}
+            <div className="grid gap-2">
+              <Label htmlFor="status">Status</Label>
+              <Controller
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <InputError message={form.formState.errors.status?.message} />
+            </div>
+          </div>
 
-              {/* Status */}
-              <div className="grid gap-2">
-                <Label htmlFor="status">Status</Label>
-                <Controller
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                <InputError message={form.formState.errors.status?.message} />
-              </div>
-            </div>   </ScrollArea>
-
-          {/* Actions */}
           <div className="flex justify-end gap-2 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
+            <Button type="button" variant="outline" asChild>
+              <Link href="/dashboard/classes">Cancel</Link>
             </Button>
             <Button type="submit" disabled={isPending}>
               {isPending ? "Creating..." : "Create Class"}
             </Button>
           </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </form></div>
+    </>
   );
 }

@@ -11,6 +11,7 @@
     "mail": "email dev"
   },
   "dependencies": {
+    "@base-ui/react": "^1.1.0",
     "@headlessui/react": "^2.2.9",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-alert-dialog": "^1.1.15",
