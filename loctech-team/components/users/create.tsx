@@ -204,6 +204,7 @@ export default function AddUserModal() {
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="staff">Staff</SelectItem>
                 <SelectItem value="super_admin">Super Admin</SelectItem>
+                <SelectItem value="instructor">Instructor</SelectItem>
               </SelectContent>
             </Select>
             <InputError message={errors.role} />
