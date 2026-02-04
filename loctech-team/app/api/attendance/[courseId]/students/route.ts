@@ -27,7 +27,6 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ courseId: string }> }
 ) {
   try {
     const body = await request.json();
@@ -44,7 +43,6 @@ export async function POST(
 
 export async function PUT(
   request: Request,
-  { params }: { params: Promise<{ courseId: string }> }
 ) {
   try {
     const body = await request.json();
