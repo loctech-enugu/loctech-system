@@ -44,14 +44,11 @@ const getMainNavItems = (userRole?: string): NavItem[] => {
     },
   ];
 
-  // Role-specific dashboard links
-  if (userRole === "instructor") {
-    baseItems.push({
-      title: "Instructor Dashboard",
-      href: userLinks.instructor.dashboard,
-      icon: UserCog,
-    });
-  }
+  // baseItems.push({
+  //   title: "Instructor Dashboard",
+  //   href: userLinks.instructor.dashboard,
+  //   icon: UserCog,
+  // });
 
   // Common items
   baseItems.push(
@@ -73,7 +70,7 @@ const getMainNavItems = (userRole?: string): NavItem[] => {
   );
 
   // Admin/Staff items
-  if (userRole === "admin" || userRole === "super_admin" || userRole === "staff") {
+  if (userRole === "admin" || userRole === "super_admin") {
     baseItems.push(
       {
         title: "Staff",
