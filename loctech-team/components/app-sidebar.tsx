@@ -27,7 +27,6 @@ import {
   FileQuestion,
   ClipboardList,
   AlertTriangle,
-  UserCog,
 } from "lucide-react";
 import AppLogo from "./app-logo";
 import Link from "next/link";
