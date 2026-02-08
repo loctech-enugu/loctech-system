@@ -167,12 +167,9 @@ export const updateClass = async (id: string, data: Partial<ClassData>) => {
   if (!classDoc) throw new Error("Class not found");
 
   // Check access
-  if (session.user.role === "instructor") {
-    if (String(classDoc.instructorId) !== session.user.id) {
-      throw new Error("Forbidden: You can only update your assigned classes");
-    }
-    // Instructors can only update limited fields (not instructor assignment)
-    delete (data as any).instructorId;
+  if (String(classDoc.instructorId) !== session.user.id) {
+    throw new Error("Forbidden: You can only update your assigned classes");
+
   } else if (
     session.user.role !== "admin" &&
     session.user.role !== "super_admin"
@@ -256,7 +253,6 @@ export const getClassesByInstructor = async (instructorId: string) => {
 
   // Instructors can only see their own classes
   if (
-    session.user.role === "instructor" &&
     instructorId !== session.user.id
   ) {
     throw new Error("Forbidden");

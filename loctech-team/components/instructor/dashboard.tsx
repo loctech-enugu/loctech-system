@@ -9,6 +9,7 @@ import { Calendar, Users, AlertTriangle, Clock } from "lucide-react";
 import Link from "next/link";
 import { Class } from "@/types";
 import { formatTimeToAMPM } from "@/lib/utils";
+import { SpinnerLoader } from "../spinner";
 
 async function fetchTodaysClasses() {
   const res = await fetch("/api/classes/instructor/me");
@@ -43,7 +44,10 @@ export default function InstructorDashboard() {
   });
 
   if (loadingClasses || loadingAtRisk) {
-    return <div>Loading dashboard...</div>;
+    return <SpinnerLoader
+      title="Loading"
+      message="Please wait while we load the dashboard."
+    />;
   }
 
   return (
