@@ -17,16 +17,6 @@ export async function GET() {
       );
     }
 
-    // Only instructors can access this
-    if (session.user.role !== "instructor") {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Forbidden",
-        },
-        { status: 403 }
-      );
-    }
 
     await connectToDatabase();
 
