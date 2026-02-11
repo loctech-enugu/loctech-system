@@ -95,16 +95,11 @@ const getMainNavItems = (userRole?: string): NavItem[] => {
         isAdmin: true,
       }
     );
-  } else if (userRole === "instructor") {
-    baseItems.push({
-      title: "Courses",
-      href: userLinks.courses,
-      icon: BookA,
-    });
+
   } else {
     baseItems.push({
-      title: "Courses",
-      href: userLinks.courses,
+      title: "Classes",
+      href: userLinks.classes,
       icon: BookA,
     });
   }
