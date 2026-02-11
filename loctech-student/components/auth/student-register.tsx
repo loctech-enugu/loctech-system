@@ -83,7 +83,7 @@ export default function CreateStudentForm({ courses }: { courses: Course[] }) {
   // 🚀 Submit Mutation
   const mutation = useMutation({
     mutationFn: async (values: StudentFormValues) => {
-      const res = await fetch("/api/students", {
+      const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
