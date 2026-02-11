@@ -396,12 +396,32 @@ export const getAttendanceMonitoring = async (filters?: {
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
 
+  const isAdminOrSuperAdmin =
+    session.user.role === "admin" || session.user.role === "super_admin";
 
-
-  // Get all active enrollments
-  const enrollmentFilter: Record<string, any> = { status: "active" };
+  // Restrict to classes the user instructs when not admin/super_admin
+  const enrollmentFilter: Record<string, unknown> = { status: "active" };
   if (filters?.classId) {
+    if (!isAdminOrSuperAdmin) {
+      const classDoc = await ClassModel.findById(filters.classId)
+        .select("instructorId")
+        .lean();
+      if (!classDoc || String(classDoc.instructorId) !== session.user.id) {
+        throw new Error("Forbidden: You can only view monitoring for your classes");
+      }
+    }
     enrollmentFilter.classId = filters.classId;
+  } else if (!isAdminOrSuperAdmin) {
+    const instructorClasses = await ClassModel.find({
+      instructorId: session.user.id,
+    })
+      .select("_id")
+      .lean();
+    const instructorClassIds = instructorClasses.map((c) => c._id);
+    if (instructorClassIds.length === 0) {
+      return [];
+    }
+    enrollmentFilter.classId = { $in: instructorClassIds };
   }
 
   const enrollments = await EnrollmentModel.find(enrollmentFilter)
@@ -683,8 +703,34 @@ export const getStudentAttendanceHistory = async (
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
 
-  const filter: { studentId: string; classId?: string } = { studentId };
-  if (classId) filter.classId = classId;
+  const isAdminOrSuperAdmin =
+    session.user.role === "admin" || session.user.role === "super_admin";
+
+  const filter: { studentId: string; classId?: string | { $in: unknown[] } } = {
+    studentId,
+  };
+
+  if (!isAdminOrSuperAdmin) {
+    if (classId) {
+      const classDoc = await ClassModel.findById(classId)
+        .select("instructorId")
+        .lean();
+      if (!classDoc || String(classDoc.instructorId) !== session.user.id) {
+        throw new Error("Forbidden: You can only view attendance for your classes");
+      }
+      filter.classId = classId;
+    } else {
+      const instructorClassIds = (
+        await ClassModel.find({ instructorId: session.user.id })
+          .select("_id")
+          .lean()
+      ).map((c) => c._id);
+      if (instructorClassIds.length === 0) return [];
+      filter.classId = { $in: instructorClassIds };
+    }
+  } else if (classId) {
+    filter.classId = classId;
+  }
 
   const attendance = await ClassAttendanceModel.find(filter)
     .populate("classId", "name courseId")

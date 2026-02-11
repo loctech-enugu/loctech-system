@@ -107,7 +107,7 @@ export default function InstructorDashboard() {
               {todaysClasses.map((classItem) => (
                 <div
                   key={classItem.id}
-                  className="flex items-center justify-between p-4 border rounded-lg"
+                  className="flex items-center justify-between flex-col gap-4 md:flex-row p-4 border rounded-lg"
                 >
                   <div className="flex-1">
                     <h3 className="font-semibold">{classItem.name}</h3>
@@ -130,7 +130,7 @@ export default function InstructorDashboard() {
                       </Link>
                     </Button>
                     <Button variant="outline" size="sm" asChild>
-                      <Link href={`/dashboard/instructor/classes/${classItem.id}/attendance`}>
+                      <Link href={`/dashboard/classes/${classItem.id}/attendance`}>
                         Take Attendance
                       </Link>
                     </Button>
@@ -159,7 +159,7 @@ export default function InstructorDashboard() {
               {atRiskStudents.slice(0, 10).map((item: any) => (
                 <div
                   key={`${item.studentId}-${item.classId}`}
-                  className="flex items-center justify-between p-4 border rounded-lg"
+                  className="flex items-center justify-between flex-col gap-4 md:flex-row p-4 border rounded-lg"
                 >
                   <div className="flex-1">
                     <h3 className="font-semibold">{item.student?.name}</h3>

@@ -108,9 +108,12 @@ export const getClassById = async (id: string) => {
   if (!classDoc) return null;
 
   // Check access for instructors
+  const isAdmin = session.user.role === "admin" || session.user.role === 'super_admin'
+
+
   if (
-    session.user.role === "instructor" &&
-    String(classDoc.instructorId) !== session.user.id
+    !isAdmin &&
+    String(classDoc.instructorId._id) !== session.user.id
   ) {
     throw new Error("Forbidden: You can only access your assigned classes");
   }

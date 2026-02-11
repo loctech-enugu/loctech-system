@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAttendanceMonitoring } from "@/backend/controllers/class-attendance.controller";
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
+    const { searchParams } = new URL(request.url);
     const classId = searchParams.get("classId");
     const minAbsences = searchParams.get("minAbsences");
 
-    // eslint-disable-next-line
-    const filters: any = {};
+    const filters: { classId?: string; minAbsences?: number } = {};
     if (classId) filters.classId = classId;
     if (minAbsences) filters.minAbsences = parseInt(minAbsences, 10);
 
@@ -18,18 +17,15 @@ export async function GET(req: NextRequest) {
       success: true,
       data: monitoring,
     });
-    // eslint-disable-next-line
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error fetching attendance monitoring:", error);
+    const message = error instanceof Error ? error.message : "Failed to fetch attendance monitoring";
     return NextResponse.json(
+      { success: false, error: message },
       {
-        success: false,
-        error: error.message || "Failed to fetch attendance monitoring",
-      },
-      {
-        status: error.message?.includes("Forbidden")
+        status: message.includes("Forbidden")
           ? 403
-          : error.message?.includes("Unauthorized")
+          : message.includes("Unauthorized")
             ? 401
             : 500,
       }
