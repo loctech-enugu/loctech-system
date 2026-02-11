@@ -1,9 +1,51 @@
-import { authConfig } from "@/lib/auth";
+import { render } from "@react-email/render";
+import { authConfig, hashPassword } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { EnrollmentModel } from "../models/enrollment.model";
 import { StudentModel } from "../models/students.model";
+import { Student } from "@/types";
+import { SlackService } from "../services/slack.service";
+import { ResendService } from "../services/resend.service";
+import { buildStudentRegistrationBlock } from "@/lib/slack-blocks";
+import StudentWelcomeEmail from "@/emails/student-welcome";
 
+/**
+ * Format student for client
+ */
+/* eslint-disable */
+export const formatStudent = (student: Record<string, any>): Student => ({
+  id: String(student._id),
+  name: student.name,
+  email: student.email,
+  address: student.address,
+  dateOfBirth: student.dateOfBirth
+    ? new Date(student.dateOfBirth).toISOString()
+    : "",
+  highestQualification: student.highestQualification,
+  phone: student.phone,
+  stateOfOrigin: student.stateOfOrigin,
+  nationality: student.nationality,
+  occupation: student.occupation,
+  heardFrom: student.heardFrom,
+  status: student.status,
+
+  nextOfKin: {
+    name: student.nextOfKin?.name || "",
+    relationship: student.nextOfKin?.relationship || "",
+    contact: student.nextOfKin?.contact || "",
+  },
+
+  courses: [], // Deprecated - students enroll via classes
+
+  createdAt: student.createdAt
+    ? new Date(student.createdAt).toISOString()
+    : undefined,
+  updatedAt: student.updatedAt
+    ? new Date(student.updatedAt).toISOString()
+    : undefined,
+  hasPassword: student.passwordHash ? true : false,
+});
 /**
  * GET STUDENT'S OWN ENROLLMENTS
  */
@@ -181,4 +223,80 @@ export const updateMyProfile = async (
     createdAt: (student.createdAt as Date)?.toISOString?.() ?? "",
     updatedAt: (student.updatedAt as Date)?.toISOString?.() ?? "",
   };
+};
+
+/**
+ * Create student
+ */
+export const createStudent = async (
+  data: Partial<Student>
+): Promise<Student | null> => {
+  await connectToDatabase();
+
+  let password: string | null = null;
+  // 1. Generate password if not provided
+  if (!password && data.name) {
+    const normalizedName = data.name.toLowerCase().replace(/\s+/g, "");
+    password = `${normalizedName}@loctech`;
+  }
+
+  const normalizedEmail = data.email?.toLowerCase().replace(/\s+/g, "");
+
+  // Check if student already exists
+  const existingStudent = await StudentModel.findOne({ email: normalizedEmail });
+  if (existingStudent) {
+    return formatStudent(existingStudent.toObject());
+  }
+
+  // Hash password
+  const passwordHash = await hashPassword(password as string);
+  const newStudent = await StudentModel.create({
+    ...data,
+    passwordHash,
+    email: normalizedEmail,
+    status: "pending",
+  });
+
+  await SlackService.sendChannelMessage(
+    "#student-mgt",
+    buildStudentRegistrationBlock(
+      newStudent.name,
+      newStudent.email,
+      newStudent.phone,
+      0 // No courses - enrollments are via classes
+    )
+  );
+
+  // Send welcome email with login details to student
+  const fromDomain = process.env.RESEND_DOMAIN ?? "";
+  const studentPortalUrl =
+    process.env.NEXTAUTH_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    "http://localhost:3001";
+  const loginUrl = `${studentPortalUrl.replace(/\/$/, "")}/auth/login`;
+
+  if (fromDomain && normalizedEmail) {
+    try {
+      const html = await render(
+        StudentWelcomeEmail({
+          name: newStudent.name ?? "Student",
+          email: normalizedEmail,
+          plainPassword: password as string,
+          loginUrl,
+        })
+      );
+
+      await ResendService.sendEmail({
+        from: `Loctech Training Institute <hello@${fromDomain}>`,
+        to: normalizedEmail,
+        subject: "Welcome to Loctech – Your Student Portal Login Details",
+        html,
+      });
+    } catch (emailError) {
+      console.error("Failed to send student welcome email:", emailError);
+      // Don't fail registration if email fails
+    }
+  }
+
+  return formatStudent(newStudent.toObject());
 };
