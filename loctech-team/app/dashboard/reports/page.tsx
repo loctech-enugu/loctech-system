@@ -23,6 +23,7 @@ export const metadata: Metadata = {
 
 async function ReportsPage() {
   const session = await getServerSession(authConfig);
+  const isAdmin = session?.user?.role === "admin" || session?.user?.role === "super_admin";
   return (
     <AppLayout breadcrumbs={[{ title: "Reports", href: "/reports" }]}>
       <div className="flex flex-col gap-6 p-6">
@@ -30,7 +31,7 @@ async function ReportsPage() {
           <h1 className="text-2xl font-bold">Reports</h1>
           <div className="flex gap-2">
             <SubmitReportModal />
-            {session?.user.role != "staff" && <ReportDialog />}
+            {isAdmin && <ReportDialog />}
           </div>
         </div>
         {/* List of email lists will go here */}
