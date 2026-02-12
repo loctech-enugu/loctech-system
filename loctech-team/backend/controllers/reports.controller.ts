@@ -71,6 +71,7 @@ export const getAllReports = async (
   await connectToDatabase();
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
+  const isAdmin = session.user.role === "admin" || session.user.role === "super_admin";
 
   // eslint-disable-next-line
   const filter: Record<string, any> = {};
@@ -83,7 +84,7 @@ export const getAllReports = async (
       filter.date.$lte = new Date(endDate);
     }
   }
-  if (session.user.role === "staff") {
+  if (!isAdmin) {
     filter.user = session.user.id;
   }
   console.log(filter, session.user.role);
