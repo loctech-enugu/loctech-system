@@ -31,6 +31,7 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Loctech", url: "https://loctech.com" }],
   creator: "Loctech",
+  manifest: "/logo/site.webmanifest",
 };
 
 export default function RootLayout({
