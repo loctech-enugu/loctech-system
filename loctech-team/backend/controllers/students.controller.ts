@@ -1,3 +1,4 @@
+import { render } from "@react-email/render";
 import { connectToDatabase } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authConfig, hashPassword } from "@/lib/auth";
@@ -8,7 +9,9 @@ import { ClassModel } from "../models/class.model";
 import { CourseModel } from "../models/courses.model";
 import { revalidatePath } from "next/cache";
 import { SlackService } from "../services/slack.service";
+import { ResendService } from "../services/resend.service";
 import { buildStudentRegistrationBlock } from "@/lib/slack-blocks";
+import StudentCredentialsEmail from "@/emails/student-credentials";
 import { parse } from "csv-parse";
 import fs from "fs";
 import path from "path";
@@ -373,6 +376,13 @@ export const generatePasswordForStudent = async (): Promise<boolean> => {
 
   if (!students.length) return false;
 
+  const fromDomain = process.env.RESEND_DOMAIN ?? "";
+  const studentPortalUrl =
+    process.env.NEXT_PUBLIC_STUDENT_PORTAL_URL ||
+    process.env.NEXTAUTH_URL ||
+    "http://localhost:3001";
+  const loginUrl = `${studentPortalUrl.replace(/\/$/, "")}/auth/login`;
+
   for (const student of students) {
     const plainPassword = generatePassword(student.name);
     const hashed = await hashPassword(plainPassword);
@@ -380,7 +390,33 @@ export const generatePasswordForStudent = async (): Promise<boolean> => {
     student.passwordHash = hashed;
     await student.save();
 
-    console.log(`✅ Updated: ${student.name} (${student._id})`);
+    // Send login details email to student
+    const email = student.email?.trim();
+    if (fromDomain && email) {
+      try {
+        const html = await render(
+          StudentCredentialsEmail({
+            name: student.name ?? "Student",
+            email,
+            plainPassword,
+            loginUrl,
+          })
+        );
+
+        await ResendService.sendEmail({
+          from: `Loctech Training Institute <hello@${fromDomain}>`,
+          to: email,
+          subject: "Your Loctech Student Portal Login Details",
+          html,
+        });
+        console.log(`✅ Updated & emailed: ${student.name} (${student._id})`);
+      } catch (emailError) {
+        console.error(`Failed to email ${student.name} (${student._id}):`, emailError);
+        console.log(`✅ Updated (email failed): ${student.name} (${student._id})`);
+      }
+    } else {
+      console.log(`✅ Updated: ${student.name} (${student._id})`);
+    }
   }
 
   console.log("🎉 Password generation completed successfully");

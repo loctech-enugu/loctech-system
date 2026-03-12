@@ -4,8 +4,8 @@ import InstallPrompt from "@/components/pwa/install-prompt";
 import AuthLayout from "@/layouts/auth-layout";
 
 export const metadata = {
-  title: "Login - Loctech Team",
-  description: "Log in to your Loctech Team account",
+  title: "Login - Loctech Student",
+  description: "Log in to your Loctech Student account",
 };
 
 export default function Login() {

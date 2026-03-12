@@ -1,6 +1,6 @@
 {
-  "name": "MyWebSite",
-  "short_name": "MySite",
+  "name": "Loctech Student Portal",
+  "short_name": "Loctech Student",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",

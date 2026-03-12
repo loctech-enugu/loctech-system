@@ -3,7 +3,7 @@ self.addEventListener("push", function (event) {
     const data = event.data.json();
     const options = {
       body: data.body,
-      icon: data.icon || "/icon.png",
+      icon: data.icon || "/logo/favicon-96x96.png",
       badge: "/badge.png",
       vibrate: [100, 50, 100],
       data: {
@@ -18,5 +18,5 @@ self.addEventListener("push", function (event) {
 self.addEventListener("notificationclick", function (event) {
   console.log("Notification click received.");
   event.notification.close();
-  event.waitUntil(clients.openWindow("<https://your-website.com>"));
+  event.waitUntil(clients.openWindow("<https://loctech-student.vercel.app>"));
 });
