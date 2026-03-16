@@ -1,23 +1,33 @@
 "use client";
 
-import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Calendar, CheckCircle, XCircle } from "lucide-react";
 import Link from "next/link";
-import { Enrollment } from "@/types";
+import { format, parse } from "date-fns";
+import { SpinnerLoader } from "../spinner";
+
+function formatTimeToAMPM(time: string): string {
+  if (!time) return "";
+  const parsed = parse(time, "HH:mm", new Date());
+  return format(parsed, "h:mm a");
+}
 
 async function fetchStudentEnrollments() {
-  const res = await fetch("/api/enrollments/student/me");
+  const res = await fetch("/api/enrollments/student/me", {
+    credentials: "include",
+  });
   if (!res.ok) throw new Error("Failed to fetch enrollments");
   const data = await res.json();
   return data.data || [];
 }
 
 async function fetchStudentAttendance() {
-  const res = await fetch("/api/attendance/students/me");
+  const res = await fetch("/api/attendance/students/me", {
+    credentials: "include",
+  });
   if (!res.ok) throw new Error("Failed to fetch attendance");
   const data = await res.json();
   return data.data || [];
@@ -35,14 +45,20 @@ export default function StudentDashboard() {
   });
 
   // Calculate attendance stats
-  const activeEnrollments = enrollments.filter((e: Enrollment) => e.status === "active");
+  const activeEnrollments = enrollments.filter((e: { status: string }) => e.status === "active");
   const totalSessions = attendanceRecords.length;
-  // eslint-disable-next-line
-  const presentSessions = attendanceRecords.filter((r: any) => r.status === "present").length;
+  const presentSessions = attendanceRecords.filter(
+    (r: { status: string }) => r.status === "present"
+  ).length;
   const attendancePercentage = totalSessions > 0 ? (presentSessions / totalSessions) * 100 : 0;
 
   if (loadingEnrollments || loadingAttendance) {
-    return <div>Loading dashboard...</div>;
+    return (
+      <SpinnerLoader
+        title="Loading"
+        message="Please wait while we load the dashboard."
+      />
+    );
   }
 
   return (
@@ -101,16 +117,25 @@ export default function StudentDashboard() {
           {activeEnrollments.length > 0 ? (
             <div className="space-y-4">
               {activeEnrollments.map(
-                // eslint-disable-next-line
-                (enrollment: any) => {
+                (enrollment: {
+                  id: string;
+                  classId: string;
+                  class?: {
+                    name?: string;
+                    courseId?: string;
+                    schedule?: {
+                      daysOfWeek?: string[];
+                      startTime?: string;
+                      endTime?: string;
+                    };
+                  };
+                }) => {
                   const classItem = enrollment.class;
                   const classAttendance = attendanceRecords.filter(
-                    // eslint-disable-next-line
-                    (r: any) => r.classId === enrollment.classId
+                    (r: { classId: string }) => r.classId === enrollment.classId
                   );
                   const classPresent = classAttendance.filter(
-                    // eslint-disable-next-line
-                    (r: any) => r.status === "present"
+                    (r: { status: string }) => r.status === "present"
                   ).length;
                   const classTotal = classAttendance.length;
                   const classPercentage =
@@ -129,7 +154,11 @@ export default function StudentDashboard() {
                         <div className="flex items-center gap-4 mt-2">
                           <div className="flex items-center gap-1 text-sm">
                             <Calendar className="h-3 w-3" />
-                            <span>{classItem?.schedule || "Schedule TBD"}</span>
+                            <span>
+                              {classItem?.schedule
+                                ? `${classItem.schedule.daysOfWeek?.join(", ") || "Days TBD"} ${formatTimeToAMPM(classItem.schedule.startTime || "")} - ${formatTimeToAMPM(classItem.schedule.endTime || "")}`
+                                : "Schedule TBD"}
+                            </span>
                           </div>
                           <div className="flex items-center gap-1 text-sm">
                             <CheckCircle className="h-3 w-3 text-green-600" />
@@ -151,7 +180,8 @@ export default function StudentDashboard() {
                       </div>
                     </div>
                   );
-                })}
+                }
+              )}
             </div>
           ) : (
             <p className="text-center text-muted-foreground py-8">
@@ -170,8 +200,14 @@ export default function StudentDashboard() {
         <CardContent>
           {attendanceRecords.length > 0 ? (
             <div className="space-y-2">
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {attendanceRecords.slice(0, 10).map((record: any) => (
+              {attendanceRecords.slice(0, 10).map(
+                (record: {
+                  id: string;
+                  class?: { name?: string };
+                  date: string;
+                  recordedAt: string;
+                  status: string;
+                }) => (
                 <div
                   key={record.id}
                   className="flex items-center justify-between p-3 border rounded-lg"
@@ -198,7 +234,8 @@ export default function StudentDashboard() {
                     {record.status}
                   </Badge>
                 </div>
-              ))}
+              )
+            )}
             </div>
           ) : (
             <p className="text-center text-muted-foreground py-8">

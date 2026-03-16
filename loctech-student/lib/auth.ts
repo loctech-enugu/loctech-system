@@ -82,9 +82,6 @@ export const authConfig: NextAuthOptions = {
         if (!user || !user.passwordHash) {
           return Promise.reject(new Error("Invalid email or password"));
         }
-        if (user.status !== "active") {
-          return Promise.reject(new Error("User account is inactive"));
-        }
         const valid = await verifyPassword(
           String(credentials.password),
           user.passwordHash
@@ -92,6 +89,9 @@ export const authConfig: NextAuthOptions = {
         if (!valid)
           return Promise.reject(new Error("Invalid email or password"));
 
+        if (user.status !== "active") {
+          return Promise.reject(new Error("User account is inactive"));
+        }
         return {
           id: String(user._id),
           name: user.name,

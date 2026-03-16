@@ -37,8 +37,8 @@ const getStudentNavItems = (): NavItem[] => {
       icon: ClipboardList,
     },
     {
-      title: "Sign In Attendance",
-      href: userLinks.attendance,
+      title: "Classes",
+      href: userLinks.classes,
       icon: CalendarCheck,
     },
     {
