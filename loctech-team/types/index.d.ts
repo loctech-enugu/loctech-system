@@ -21,6 +21,15 @@ export interface NavItem {
   isActive?: boolean;
   isAdmin?: boolean;
 }
+
+export interface NavGroupItem {
+  title: string;
+  href?: string;
+  icon?: LucideIcon | null;
+  isActive?: boolean;
+  isAdmin?: boolean;
+  items?: { title: string; href: string; isAdmin?: boolean }[];
+}
 export interface User {
   id: string;
   email: string;

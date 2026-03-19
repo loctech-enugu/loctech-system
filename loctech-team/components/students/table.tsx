@@ -279,7 +279,7 @@ export function StudentsTable({
     getPaginationRowModel: getPaginationRowModel(),
     state: { sorting, columnFilters, columnVisibility, rowSelection },
   });
-  const hasNoPassword = students?.some((student) => !student.hasPassword);
+  const hasNoPassword = true;
   // console.log(hasNoPassword, students);
 
   return (

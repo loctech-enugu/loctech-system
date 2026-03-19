@@ -18,6 +18,7 @@ import {
   CalendarCheck,
   Mic,
   Globe,
+  LogIn,
 } from "lucide-react";
 import AppLogo from "./app-logo";
 import Link from "next/link";
@@ -40,6 +41,11 @@ const getStudentNavItems = (): NavItem[] => {
       title: "Classes",
       href: userLinks.classes,
       icon: CalendarCheck,
+    },
+    {
+      title: "Walk-in Sign In",
+      href: userLinks.walkInSignIn,
+      icon: LogIn,
     },
     {
       title: "Announcements",

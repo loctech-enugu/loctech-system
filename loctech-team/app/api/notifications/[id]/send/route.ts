@@ -1,13 +1,26 @@
-import { NextRequest, NextResponse } from "next/server";
-import { sendAbsenceNotification } from "@/backend/controllers/notifications.controller";
+import { NextResponse } from "next/server";
+import {
+  sendAbsenceNotification,
+  sendAtRiskNotification,
+} from "@/backend/controllers/notifications.controller";
+import { connectToDatabase } from "@/lib/db";
+import { NotificationModel } from "@/backend/models/notification.model";
 
 export async function POST(
-  req: NextRequest,
+  _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const result = await sendAbsenceNotification(id);
+    await connectToDatabase();
+    const notification = await NotificationModel.findById(id).select("type").lean();
+    if (!notification) {
+      return NextResponse.json({ success: false, error: "Notification not found" }, { status: 404 });
+    }
+    const result =
+      notification.type === "at_risk_attendance" || notification.type === "at_risk_grade"
+        ? await sendAtRiskNotification(id)
+        : await sendAbsenceNotification(id);
 
     return NextResponse.json({
       success: true,

@@ -33,9 +33,19 @@ const editQuestionSchema = z.object({
   points: z.number().min(1),
   difficulty: z.enum(["easy", "medium", "hard"]),
   isActive: z.boolean(),
+  tags: z.array(z.string()).optional(),
 });
 
 type EditQuestionForm = z.infer<typeof editQuestionSchema>;
+
+const parseTags = (value: string): string[] =>
+  value
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+
+const formatTags = (tags: string[] | undefined): string =>
+  Array.isArray(tags) ? tags.join(", ") : "";
 
 interface EditQuestionProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -51,6 +61,7 @@ export default function EditQuestion({
 }: EditQuestionProps) {
   const queryClient = useQueryClient();
   const router = useRouter();
+  const [tagsInput, setTagsInput] = React.useState("");
 
   const form = useForm<EditQuestionForm>({
     resolver: zodResolver(editQuestionSchema),
@@ -61,11 +72,13 @@ export default function EditQuestion({
       points: question?.points || 1,
       difficulty: question?.difficulty || "medium",
       isActive: question?.isActive ?? true,
+      tags: question?.tags || [],
     },
   });
 
   React.useEffect(() => {
     if (question) {
+      const normalizedTags = question.tags || [];
       form.reset({
         questionText: question.questionText || question.question || "",
         correctAnswer: question.correctAnswer || "",
@@ -73,16 +86,26 @@ export default function EditQuestion({
         points: question.points || 1,
         difficulty: question.difficulty || "medium",
         isActive: question.isActive ?? true,
+        tags: normalizedTags,
       });
+      setTagsInput(formatTags(normalizedTags));
     }
   }, [question, form]);
 
   const { mutate: updateQuestion, isPending } = useMutation({
     mutationFn: async (data: EditQuestionForm) => {
       const res = await fetch(`/api/questions/${question?.id}`, {
-        method: "PUT",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          question: data.questionText,
+          correctAnswer: data.correctAnswer,
+          explanation: data.explanation || "",
+          points: data.points,
+          difficulty: data.difficulty,
+          isActive: data.isActive,
+          tags: data.tags || [],
+        }),
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Failed to update question");
@@ -99,7 +122,11 @@ export default function EditQuestion({
     },
   });
 
-  const onSubmit = (values: EditQuestionForm) => updateQuestion(values);
+  const onSubmit = (values: EditQuestionForm) =>
+    updateQuestion({
+      ...values,
+      tags: parseTags(tagsInput),
+    });
 
   if (!question) return null;
 
@@ -172,6 +199,23 @@ export default function EditQuestion({
               {...form.register("explanation")}
               rows={2}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="tags">Tags (Optional)</Label>
+            <Input
+              id="tags"
+              value={tagsInput}
+              onChange={(e) => {
+                const value = e.target.value;
+                setTagsInput(value);
+                form.setValue("tags", parseTags(value));
+              }}
+              placeholder="e.g. networking, osi model, fundamentals"
+            />
+            <p className="text-xs text-muted-foreground">
+              Separate tags with commas.
+            </p>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">

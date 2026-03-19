@@ -16,6 +16,7 @@ import {
 import {
   ChevronDown,
   MoreHorizontal,
+  Trash2,
   UserCheck,
   UserX,
 } from "lucide-react";
@@ -32,6 +33,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -46,6 +57,7 @@ import { toast } from "sonner";
 import { DataTablePagination } from "../data-table-pagination";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { SpinnerLoader } from "../spinner";
+import { useSession } from "next-auth/react";
 
 interface EnrollmentsTableProps {
   classId?: string;
@@ -82,15 +94,30 @@ async function updateEnrollmentStatus(
   return res.json();
 }
 
+async function deleteEnrollment(enrollmentId: string) {
+  const res = await fetch(`/api/enrollments/${enrollmentId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || "Failed to delete enrollment");
+  }
+  return res.json();
+}
+
 export function EnrollmentsTable({
   classId,
   studentId,
 }: EnrollmentsTableProps) {
+  const { data: session } = useSession();
   const queryClient = useQueryClient();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
+  const [enrollmentToDelete, setEnrollmentToDelete] = React.useState<Enrollment | null>(null);
+  const canDeleteEnrollment =
+    session?.user?.role === "admin" || session?.user?.role === "super_admin";
 
   const { data: enrollments = [], isLoading } = useQuery({
     queryKey: ["enrollments", classId, studentId],
@@ -113,6 +140,18 @@ export function EnrollmentsTable({
     },
     onError: (error: unknown) => {
       const errorMessage = error instanceof Error ? error.message : "Failed to update enrollment";
+      toast.error(errorMessage);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteEnrollment,
+    onSuccess: () => {
+      toast.success("Enrollment deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["enrollments"] });
+    },
+    onError: (error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete enrollment";
       toast.error(errorMessage);
     },
   });
@@ -250,13 +289,25 @@ export function EnrollmentsTable({
                 >
                   Mark Complete
                 </DropdownMenuItem>
+                {canDeleteEnrollment && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="text-red-600 focus:text-red-600"
+                      onClick={() => setEnrollmentToDelete(enrollment)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           );
         },
       },
     ],
-    [updateStatusMutation]
+    [updateStatusMutation, canDeleteEnrollment]
   );
 
   const table = useReactTable({
@@ -366,6 +417,34 @@ export function EnrollmentsTable({
         </Table>
       </div>
       <DataTablePagination table={table} />
+      <AlertDialog
+        open={!!enrollmentToDelete}
+        onOpenChange={(open) => {
+          if (!open) setEnrollmentToDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete enrollment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the student from this class enrollment record permanently.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (enrollmentToDelete) {
+                  deleteMutation.mutate(enrollmentToDelete.id);
+                  setEnrollmentToDelete(null);
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

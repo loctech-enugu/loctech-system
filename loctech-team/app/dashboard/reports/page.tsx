@@ -1,6 +1,7 @@
 import { CalendarOfReports } from "@/components/reports/CalendarEvent";
 import SubmitReportModal from "@/components/reports/create";
 import ReportDialog from "@/components/reports/generate-report";
+import ExportReports from "@/components/reports/export-reports";
 import AppLayout from "@/layouts/app-layout";
 import { authConfig } from "@/lib/auth";
 import { Metadata } from "next";
@@ -34,8 +35,7 @@ async function ReportsPage() {
             {isAdmin && <ReportDialog />}
           </div>
         </div>
-        {/* List of email lists will go here */}
-        {/* <EmailListTable lists={emailLists} handleEdit={handleEdit} /> */}
+        {isAdmin && <ExportReports />}
         <CalendarOfReports />
       </div>
       {/* <EditList list={editing} {...{ open, setOpen }} /> */}

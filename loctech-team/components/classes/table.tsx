@@ -242,6 +242,11 @@ export function ClassesTable() {
                     View Attendance
                   </a>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href={`/dashboard/classes/${classItem.id}/grades`}>
+                    View Grades
+                  </Link>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           );

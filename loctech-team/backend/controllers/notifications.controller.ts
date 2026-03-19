@@ -1,3 +1,4 @@
+import { render } from "@react-email/render";
 import { authConfig } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
 import { getServerSession } from "next-auth";
@@ -5,10 +6,13 @@ import { NotificationModel } from "../models/notification.model";
 import { ClassModel } from "../models/class.model";
 import { StudentModel } from "../models/students.model";
 import { ClassAttendanceModel } from "../models/class-attendance.model";
-import { EmailTemplateModel } from "../models/email-template.model";
 import { EmailLogModel } from "../models/email-log.model";
 import { ResendService } from "../services/resend.service";
 import { EnrollmentModel } from "../models/enrollment.model";
+import AbsenceNotificationEmail from "@/emails/absence-notification";
+import AtRiskNotificationEmail from "@/emails/at-risk-notification";
+import { GradeConfigModel } from "../models/grade-config.model";
+import { getAttendancePercentage } from "./grades.controller";
 
 /* eslint-disable */
 
@@ -29,10 +33,10 @@ export const formatNotification = (notification: Record<string, any>) => {
     sentAt: (notification.sentAt as Date)?.toISOString?.() ?? "",
     notifiedBy: notifiedBy
       ? {
-          id: String(notifiedBy._id),
-          name: notifiedBy.name ?? "",
-          email: notifiedBy.email ?? "",
-        }
+        id: String(notifiedBy._id),
+        name: notifiedBy.name ?? "",
+        email: notifiedBy.email ?? "",
+      }
       : null,
     emailSent: notification.emailSent ?? false,
     isResolved: notification.isResolved ?? false,
@@ -43,18 +47,21 @@ export const formatNotification = (notification: Record<string, any>) => {
       ? String(notification.resolvedBy)
       : null,
     message: notification.message ?? null,
+    attendancePercentage: notification.attendancePercentage ?? null,
+    gradePercentage: notification.gradePercentage ?? null,
+    threshold: notification.threshold ?? null,
     student: student
       ? {
-          id: String(student._id),
-          name: student.name ?? "",
-          email: student.email ?? "",
-        }
+        id: String(student._id),
+        name: student.name ?? "",
+        email: student.email ?? "",
+      }
       : null,
     class: classDoc
       ? {
-          id: String(classDoc._id),
-          name: classDoc.name ?? "",
-        }
+        id: String(classDoc._id),
+        name: classDoc.name ?? "",
+      }
       : null,
     createdAt: (notification.createdAt as Date)?.toISOString?.() ?? "",
     updatedAt: (notification.updatedAt as Date)?.toISOString?.() ?? "",
@@ -133,8 +140,11 @@ export const getNotificationById = async (id: string) => {
 export const createNotification = async (data: {
   studentId: string;
   classId: string;
-  type?: "absence_streak" | "enrollment_paused" | "exam_reminder";
+  type?: "absence_streak" | "enrollment_paused" | "exam_reminder" | "at_risk_attendance" | "at_risk_grade";
   absenceStreak?: number;
+  attendancePercentage?: number;
+  gradePercentage?: number;
+  threshold?: number;
   notifiedBy?: string;
   message?: string;
 }) => {
@@ -155,7 +165,10 @@ export const createNotification = async (data: {
     classId: data.classId,
     type: data.type ?? "absence_streak",
     absenceStreak: data.absenceStreak ?? 0,
-    notifiedBy: data.notifiedBy ? (data.notifiedBy as any) : undefined,
+    attendancePercentage: data.attendancePercentage,
+    gradePercentage: data.gradePercentage,
+    threshold: data.threshold,
+    notifiedBy: data.notifiedBy ? (data.notifiedBy as unknown) : undefined,
     message: data.message,
     sentAt: new Date(),
     emailSent: false,
@@ -202,61 +215,42 @@ export const sendAbsenceNotification = async (notificationId: string) => {
   const student = notification.studentId as Record<string, any>;
   const classDoc = notification.classId as Record<string, any>;
 
-  // Find or create absence notification email template
-  let template = await EmailTemplateModel.findOne({
-    type: "absence_notification",
-    isActive: true,
-  });
+  const studentName = student.name ?? "Student";
+  const className = classDoc.name ?? "your class";
+  const absenceStreak = notification.absenceStreak ?? 2;
 
-  if (!template) {
-    // Create default template
-    template = await EmailTemplateModel.create({
-      name: "Absence Notification",
-      subject: "Attendance Alert - {{studentName}}",
-      body: `
-        <h2>Attendance Alert</h2>
-        <p>Dear {{studentName}},</p>
-        <p>This is to inform you that you have missed {{absenceStreak}} consecutive class sessions for {{className}}.</p>
-        <p>Please contact your instructor or the administration if you have any concerns.</p>
-        <p>Best regards,<br>Loctech Training Institution</p>
-      `,
-      type: "absence_notification",
-      variables: ["studentName", "absenceStreak", "className"],
-      isActive: true,
-    });
-  }
+  // Render email using React template
+  const html = await render(
+    AbsenceNotificationEmail({
+      studentName,
+      className,
+      absenceStreak,
+      contactEmail: process.env.EMAIL_FROM || "enquiries@loctechng.com",
+    })
+  );
 
-  // Replace template variables
-  let subject = template.subject;
-  let body = template.body;
+  const subject = `Attendance Alert - ${studentName}`;
 
-  subject = subject.replace(/{{studentName}}/g, student.name ?? "");
-  subject = subject.replace(/{{absenceStreak}}/g, String(notification.absenceStreak));
-  subject = subject.replace(/{{className}}/g, classDoc.name ?? "");
-
-  body = body.replace(/{{studentName}}/g, student.name ?? "");
-  body = body.replace(/{{absenceStreak}}/g, String(notification.absenceStreak));
-  body = body.replace(/{{className}}/g, classDoc.name ?? "");
-
-  // Send email using Resend service
   try {
     if (!student.email) {
       throw new Error("Student email not found");
     }
 
+    const fromDomain = process.env.RESEND_DOMAIN ?? "";
+    const from = fromDomain ? `Loctech Training Institution <hello@${fromDomain}>` : (process.env.EMAIL_FROM || "Loctech <noreply@loctech.com>");
+
     await ResendService.sendEmail({
-      from: process.env.EMAIL_FROM || "Loctech <noreply@loctech.com>",
+      from,
       to: student.email,
       subject,
-      html: body,
+      html,
     });
 
     // Log email
     await EmailLogModel.create({
-      templateId: template._id,
       recipientEmail: student.email,
       subject,
-      body,
+      body: html,
       status: "sent",
       sentAt: new Date(),
     });
@@ -272,10 +266,9 @@ export const sendAbsenceNotification = async (notificationId: string) => {
   } catch (error: any) {
     // Log failed email
     await EmailLogModel.create({
-      templateId: template._id,
       recipientEmail: student.email ?? "",
       subject,
-      body,
+      body: html,
       status: "failed",
       errorMessage: error.message,
     });
@@ -420,16 +413,11 @@ export const getNotificationsRequiringAction = async () => {
     throw new Error("Forbidden");
   }
 
-  const filter: Record<string, any> = {
-    type: "absence_streak",
+  const filter: Record<string, unknown> = {
+    type: { $in: ["absence_streak", "at_risk_attendance", "at_risk_grade"] },
     emailSent: false,
     isResolved: false,
   };
-
-  // Role-based filtering
-  if (session.user.role === "staff") {
-    // Staff can see all notifications
-  }
 
   const notifications = await NotificationModel.find(filter)
     .populate("studentId", "name email")
@@ -439,4 +427,101 @@ export const getNotificationsRequiringAction = async () => {
     .lean();
 
   return notifications.map((notification) => formatNotification(notification));
+};
+
+export const sendAtRiskNotification = async (notificationId: string) => {
+  await connectToDatabase();
+  const session = await getServerSession(authConfig);
+  if (!session) throw new Error("Unauthorized");
+  if (session.user.role !== "admin" && session.user.role !== "super_admin" && session.user.role !== "staff") {
+    throw new Error("Forbidden");
+  }
+  const notification = await NotificationModel.findById(notificationId)
+    .populate("studentId", "name email")
+    .populate("classId", "name")
+    .lean();
+  if (!notification) throw new Error("Notification not found");
+  if (notification.type !== "at_risk_attendance" && notification.type !== "at_risk_grade") {
+    throw new Error("Not an at-risk notification");
+  }
+  if (notification.emailSent) throw new Error("Notification email already sent");
+  const student = notification.studentId as Record<string, any>;
+  const classDoc = notification.classId as Record<string, any>;
+  const reason = notification.type === "at_risk_attendance" ? "attendance" : "grade";
+  const html = await render(
+    AtRiskNotificationEmail({
+      studentName: (student.name as string) ?? "Student",
+      className: (classDoc.name as string) ?? "your class",
+      reason,
+      attendancePercentage: notification.attendancePercentage ?? 0,
+      gradePercentage: notification.gradePercentage ?? 0,
+      threshold: notification.threshold ?? 70,
+      contactEmail: process.env.EMAIL_FROM || "enquiries@loctechng.com",
+    })
+  );
+  const subject = `At-Risk Alert - ${student.name ?? "Student"}`;
+  const fromDomain = process.env.RESEND_DOMAIN ?? "";
+  const from = fromDomain ? `Loctech Training Institution <hello@${fromDomain}>` : (process.env.EMAIL_FROM || "Loctech <noreply@loctech.com>");
+  try {
+    if (!student.email) throw new Error("Student email not found");
+    await ResendService.sendEmail({ from, to: student.email as string, subject, html });
+    await EmailLogModel.create({ recipientEmail: student.email as string, subject, body: html, status: "sent", sentAt: new Date() });
+    await NotificationModel.findByIdAndUpdate(notificationId, { emailSent: true, sentAt: new Date(), notifiedBy: session.user.id });
+    return { success: true, message: "At-risk notification email sent" };
+  } catch (error: unknown) {
+    await EmailLogModel.create({
+      recipientEmail: (student.email as string) ?? "",
+      subject,
+      body: html,
+      status: "failed",
+      errorMessage: error instanceof Error ? error.message : String(error),
+    });
+    throw new Error(`Failed to send email: ${error instanceof Error ? error.message : String(error)}`);
+  }
+};
+
+interface EnrollmentLean {
+  studentId: unknown;
+  classId: unknown;
+}
+
+interface GradeConfigLean {
+  attendanceThreshold?: number;
+  passingScore?: number;
+}
+
+export const checkAndCreateAtRiskNotifications = async (classId?: string): Promise<void> => {
+  await connectToDatabase();
+  const enrollmentFilter: { status: string; classId?: string } = { status: "active" };
+  if (classId) enrollmentFilter.classId = classId;
+  const enrollments = await EnrollmentModel.find(enrollmentFilter).lean();
+  for (const enrollment of enrollments as EnrollmentLean[]) {
+    const studentId = String(enrollment.studentId);
+    const classIdForEnrollment = String(enrollment.classId);
+    const config = await GradeConfigModel.findOne({
+      $or: [{ classId: classIdForEnrollment }, { isGlobal: true }],
+    }).lean();
+    const configTyped = config as GradeConfigLean | null;
+    const threshold = configTyped?.attendanceThreshold ?? 70;
+    const passingScore = configTyped?.passingScore ?? 60;
+    const attendancePct = await getAttendancePercentage(studentId, classIdForEnrollment);
+    if (attendancePct < threshold && attendancePct > 0) {
+      const existing = await NotificationModel.findOne({ studentId, classId: classIdForEnrollment, type: "at_risk_attendance", isResolved: false });
+      if (!existing) {
+        await NotificationModel.create({ studentId, classId: classIdForEnrollment, type: "at_risk_attendance", attendancePercentage: attendancePct, threshold, emailSent: false, isResolved: false });
+      }
+    } else if (attendancePct >= threshold) {
+      await NotificationModel.updateMany({ studentId, classId: classIdForEnrollment, type: "at_risk_attendance", isResolved: false }, { isResolved: true, resolvedAt: new Date() });
+    }
+    const { getStudentClassGrade } = await import("./grades.controller");
+    const gradeData = await getStudentClassGrade(studentId, classIdForEnrollment);
+    if (gradeData.overallGrade < passingScore && gradeData.examAttempts > 0) {
+      const existing = await NotificationModel.findOne({ studentId, classId: classIdForEnrollment, type: "at_risk_grade", isResolved: false });
+      if (!existing) {
+        await NotificationModel.create({ studentId, classId: classIdForEnrollment, type: "at_risk_grade", gradePercentage: gradeData.overallGrade, threshold: passingScore, emailSent: false, isResolved: false });
+      }
+    } else if (gradeData.overallGrade >= passingScore) {
+      await NotificationModel.updateMany({ studentId, classId: classIdForEnrollment, type: "at_risk_grade", isResolved: false }, { isResolved: true, resolvedAt: new Date() });
+    }
+  }
 };

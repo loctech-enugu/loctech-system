@@ -24,6 +24,7 @@ export const userLinks = {
   dashboard: "/dashboard",
   exams: "/dashboard/exams",
   attendance: "/dashboard/attendance/sign-in",
+  walkInSignIn: "/dashboard/walk-in/sign-in",
   announcements: "/dashboard/announcements",
   classes: "/dashboard/classes",
 };
