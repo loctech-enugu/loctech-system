@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import QrScanner from "qr-scanner";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import SignatureLoader from "@/components/loaders/signature";
 import { CheckCircle2, QrCode } from "lucide-react";
 
 export default function WalkInBarcodeSignIn() {
+  const queryClient = useQueryClient();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const scannerRef = useRef<QrScanner | null>(null);
   const [success, setSuccess] = useState(false);
@@ -31,6 +32,7 @@ export default function WalkInBarcodeSignIn() {
     },
     onSuccess: () => {
       toast.success("Walk-in sign-in successful!");
+      queryClient.invalidateQueries({ queryKey: ["walk-in-status"] });
       setSuccess(true);
       setBarcode("");
     },

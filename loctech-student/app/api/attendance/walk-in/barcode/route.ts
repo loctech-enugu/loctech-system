@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authConfig } from "@/lib/auth";
-import { API_BASE_URL } from "@/lib/utils";
+import { signInWalkInWithBarcode } from "@/backend/controllers/walk-in-attendance.controller";
 
-/**
- * Proxy to team app's walk-in barcode sign-in.
- * Verifies student session and forwards to team app.
- */
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authConfig);
@@ -26,36 +22,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const res = await fetch(`${API_BASE_URL}/api/attendance/walk-in/barcode`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        studentId: session.user.id,
-        barcode: String(barcode).trim(),
-      }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      return NextResponse.json(
-        { success: false, error: data.error || "Failed to sign in" },
-        { status: res.status }
-      );
-    }
+    const result = await signInWalkInWithBarcode(session.user.id, String(barcode));
 
     return NextResponse.json({
       success: true,
-      data: data.data,
-      message: data.message || "Signed in successfully",
+      data: result,
+      message: result.message,
     });
   } catch (error: unknown) {
     console.error("Walk-in barcode sign-in error:", error);
+    const message = error instanceof Error ? error.message : "Failed to sign in";
     return NextResponse.json(
+      { success: false, error: message },
       {
-        success: false,
-        error: error instanceof Error ? error.message : "Failed to sign in",
-      },
-      { status: 500 }
+        status:
+          message.includes("Invalid") ||
+          message.includes("expired") ||
+          message.includes("Already signed out") ||
+          message.includes("not found")
+            ? 400
+            : 500,
+      }
     );
   }
 }

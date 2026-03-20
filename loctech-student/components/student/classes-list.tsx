@@ -90,7 +90,7 @@ export default function StudentClassesList() {
               return (
                 <div
                   key={enrollment.id}
-                  className="flex items-center justify-between p-4 border rounded-lg"
+                  className="flex items-center flex-col md:flex-row gap-4 md:gap-0 justify-between p-4 border rounded-lg"
                 >
                   <div className="flex-1">
                     <h3 className="font-semibold">{classItem?.name || "Unknown Class"}</h3>
@@ -112,7 +112,7 @@ export default function StudentClassesList() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 w-full md:w-auto">
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/dashboard/classes/${enrollment.classId}`}>
                         View Details
