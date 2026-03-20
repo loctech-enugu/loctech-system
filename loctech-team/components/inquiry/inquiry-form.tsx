@@ -1,68 +1,124 @@
 "use client";
 
 import { useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import CustomSelect from "../form-select.component";
+import InputError from "../input-error";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "../ui/select";
+
+const HEARD_ABOUT_OPTIONS = [
+  { value: "google", label: "Google" },
+  { value: "facebook", label: "Facebook" },
+  { value: "instagram", label: "Instagram" },
+  { value: "friend", label: "Friend / referral" },
+  { value: "walk_in", label: "Walk-in" },
+  { value: "website", label: "Website" },
+  { value: "youtube", label: "YouTube" },
+  { value: "radio", label: "Radio" },
+  { value: "billboard", label: "Billboard" },
+  { value: "flyers", label: "Flyers" },
+  { value: "other", label: "Other" },
+];
+
+const inquirySchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().min(1, "Email is required").email("Invalid email"),
+  phone: z.string().optional(),
+  courseOfInterest: z.string().optional(),
+  heardAboutUs: z.string().optional(),
+  message: z.string().min(1, "Message is required"),
+});
+
+type InquiryFormValues = z.infer<typeof inquirySchema>;
+
+const defaultValues: InquiryFormValues = {
+  name: "",
+  email: "",
+  phone: "",
+  courseOfInterest: "",
+  heardAboutUs: "",
+  message: "",
+};
 
 interface InquiryFormProps {
   courses: { id: string; title: string }[];
 }
 
+async function postInquiry(payload: InquiryFormValues) {
+  const res = await fetch("/api/inquiries", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: payload.name.trim(),
+      email: payload.email.trim(),
+      phone: payload.phone?.trim() || undefined,
+      courseOfInterest: payload.courseOfInterest?.trim() || undefined,
+      heardAboutUs: payload.heardAboutUs?.trim() || undefined,
+      message: payload.message.trim(),
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || data.message || "Failed to submit");
+  }
+  return data;
+}
+
 export default function InquiryForm({ courses }: InquiryFormProps) {
-  const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const formData = new FormData(form);
-    const name = formData.get("name") as string;
-    const email = formData.get("email") as string;
-    const phone = formData.get("phone") as string;
-    const courseOfInterest = formData.get("courseOfInterest") as string;
-    const message = formData.get("message") as string;
+  const form = useForm<InquiryFormValues>({
+    resolver: zodResolver(inquirySchema),
+    defaultValues,
+  });
 
-    if (!name?.trim() || !email?.trim() || !message?.trim()) {
-      toast.error("Please fill in name, email, and message.");
-      return;
-    }
+  const {
+    register,
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = form;
 
-    setLoading(true);
-    try {
-      const res = await fetch("/api/inquiries", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          email: email.trim(),
-          phone: phone?.trim() || undefined,
-          courseOfInterest: courseOfInterest || undefined,
-          message: message.trim(),
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || data.message || "Failed to submit");
-
+  const submitMutation = useMutation({
+    mutationFn: postInquiry,
+    onSuccess: () => {
+      toast.success(
+        "Thank you! We have received your inquiry and will get back to you soon."
+      );
+      reset(defaultValues);
       setSubmitted(true);
-      form.reset();
-      toast.success("Thank you! We've received your inquiry and will get back to you soon.");
-    } catch (err) {
+    },
+    onError: (err) => {
       toast.error(err instanceof Error ? err.message : "Failed to submit inquiry");
-    } finally {
-      setLoading(false);
-    }
-  }
+    },
+  });
+  console.log(form.getValues());
+
+
+  const onSubmit = (data: InquiryFormValues) => {
+    submitMutation.mutate(data);
+  };
+
+  const courseOptions = courses.map((c) => ({
+    value: c.id,
+    label: c.title,
+  }));
 
   if (submitted) {
     return (
       <div className="rounded-lg border bg-muted/50 p-6 text-center">
         <p className="text-lg font-medium text-green-600">Thank you for your inquiry!</p>
         <p className="mt-2 text-sm text-muted-foreground">
-          We've received your message and will get back to you within 1-2 business days.
+          We have received your message and will get back to you within 1–2 business days.
           You should have received an auto-reply email confirming your submission.
         </p>
         <Button
@@ -77,50 +133,94 @@ export default function InquiryForm({ courses }: InquiryFormProps) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="name">Name *</Label>
-          <Input id="name" name="name" required placeholder="Your name" />
+          <Input
+            id="name"
+            placeholder="Your name"
+            {...register("name")}
+            aria-invalid={!!errors.name}
+          />
+          <InputError message={errors.name?.message} />
         </div>
         <div className="space-y-2">
           <Label htmlFor="email">Email *</Label>
-          <Input id="email" name="email" type="email" required placeholder="you@example.com" />
+          <Input
+            id="email"
+            type="email"
+            placeholder="you@example.com"
+            {...register("email")}
+            aria-invalid={!!errors.email}
+          />
+          <InputError message={errors.email?.message} />
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor="phone">Phone</Label>
-        <Input id="phone" name="phone" type="tel" placeholder="Optional" />
+        <Label htmlFor="phone">Phone number</Label>
+        <Input id="phone" type="tel" placeholder="Optional" {...register("phone")} />
+        <InputError message={errors.phone?.message} />
       </div>
       {courses.length > 0 && (
         <div className="space-y-2">
-          <Label htmlFor="courseOfInterest">Course of interest</Label>
-          <select
-            id="courseOfInterest"
+          <Label>Course of interest</Label>
+          <Controller
             name="courseOfInterest"
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-          >
-            <option value="">Select a course (optional)</option>
-            {courses.map((c) => (
-              <option key={c.id} value={c.title}>
-                {c.title}
-              </option>
-            ))}
-          </select>
+            control={control}
+            render={({ field }) => (
+              <CustomSelect
+                options={courseOptions}
+                placeholder="Select a course (optional)"
+                isClearable
+                value={
+                  courseOptions.find((o) => o.value === field.value) ?? null
+                }
+                onChange={(opt) =>
+                  field.onChange(opt?.value)
+                }
+                onBlur={field.onBlur}
+                inputId="courseOfInterest"
+              />
+            )}
+          />
+          <InputError message={errors.courseOfInterest?.message} />
         </div>
       )}
+      <div className="space-y-2">
+        <Label htmlFor="heardAboutUs">How did you hear about us?</Label>
+
+        <Select
+          {...register("heardAboutUs")}>
+          <SelectTrigger className="w-full max-w-48">
+            <SelectValue placeholder="How did you hear about us?" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>How did you hear about us?</SelectLabel>
+              {HEARD_ABOUT_OPTIONS.map((o) => (
+                <SelectItem key={o.value || "empty"} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+        <InputError message={errors.heardAboutUs?.message} />
+      </div>
       <div className="space-y-2">
         <Label htmlFor="message">Message *</Label>
         <Textarea
           id="message"
-          name="message"
-          required
           rows={5}
           placeholder="Tell us how we can help..."
+          {...register("message")}
+          aria-invalid={!!errors.message}
         />
+        <InputError message={errors.message?.message} />
       </div>
-      <Button type="submit" disabled={loading}>
-        {loading ? "Submitting..." : "Submit Inquiry"}
+      <Button type="submit" disabled={submitMutation.isPending}>
+        {submitMutation.isPending ? "Submitting..." : "Submit Inquiry"}
       </Button>
     </form>
   );

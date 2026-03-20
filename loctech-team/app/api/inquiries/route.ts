@@ -5,7 +5,7 @@ import { successResponse, errorResponse } from "@/lib/server-helper";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, email, phone, courseOfInterest, message } = body;
+    const { name, email, phone, courseOfInterest, heardAboutUs, message } = body;
     if (!name || !email || !message) {
       return errorResponse("Name, email, and message are required", 400);
     }
@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
       email: String(email).trim(),
       phone: phone ? String(phone).trim() : undefined,
       courseOfInterest: courseOfInterest ? String(courseOfInterest).trim() : undefined,
+      heardAboutUs: heardAboutUs ? String(heardAboutUs).trim() : undefined,
       message: String(message).trim(),
     });
     return successResponse(result, "Inquiry submitted successfully");

@@ -9,7 +9,8 @@
     "lint": "eslint",
     "seed:admin": "tsx scripts/seed-admin.ts",
     "mail": "email dev",
-    "migrate:walk-in": "node scripts/migrate-walk-in-recordedAt.js"
+    "migrate:walk-in": "node scripts/migrate-walk-in-recordedAt.js",
+    "migrate:invalidate-inquiries": "tsx scripts/invalidate-inquiries-collection.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.1.0",
