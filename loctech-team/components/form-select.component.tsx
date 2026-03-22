@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import Select, { Props } from "react-select";
-import type {} from "react-select/base";
+import type { } from "react-select/base";
 
 // This import is necessary for module augmentation.
 // It allows us to extend the 'Props' interface in the 'react-select/base' module
@@ -47,16 +47,16 @@ function CustomSelect<
             return {
               ...styles,
               backgroundColor: isSelected
-                ? "#12005f"
+                ? "#da2721"
                 : isFocused
-                  ? "rgba(255, 168, 21, 0.5)"
+                  ? "#da2721"
                   : undefined,
               color: isSelected ? "#000" : isFocused ? "#000" : undefined,
               cursor: isDisabled ? "not-allowed" : "pointer",
 
               ":active": {
                 ...styles[":active"],
-                backgroundColor: isSelected ? "#12005f" : undefined,
+                backgroundColor: isSelected ? "#da2721" : undefined,
               },
             };
           },
@@ -67,9 +67,9 @@ function CustomSelect<
         }}
         classNames={{
           control: (state) =>
-            "dark:!bg-card dark:border-[#a6adbb]/20 dark:text-gray-200 h-full custom-select",
+            "dark:!bg-card dark:border-[#da2721]/20 dark:text-gray-200 h-full custom-select",
           container: (state) => "",
-          singleValue: (state) => "!text-primary-foreground !hover:bg-primary",
+          singleValue: (state) => "!text-foreground !hover:bg-primary",
           menuList: (state) => "dark:!bg-card dark:text-gray-200",
           multiValue: (state) => "!bg-primary !text-primary-foreground",
           multiValueRemove: (state) => "dark:text-red-500",

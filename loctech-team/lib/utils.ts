@@ -47,7 +47,11 @@ export const userLinks = {
   cbt: {
     exams: "/dashboard/cbt/exams",
     questions: "/dashboard/cbt/questions",
+    categories: "/dashboard/cbt/categories",
   },
+  inquiries: "/dashboard/inquiries",
+  walkIn: "/dashboard/attendance/walk-in",
+  auditLogs: "/dashboard/audit-logs",
   settings: "/dashboard/settings",
   notifications: "/dashboard/notifications",
   billing: "/dashboard/billing",

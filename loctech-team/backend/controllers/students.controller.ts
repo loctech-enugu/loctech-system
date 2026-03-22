@@ -365,11 +365,11 @@ export const generatePasswordForStudent = async (): Promise<boolean> => {
 
   // 🔹 Find all students missing passwordHash or empty
   const students = await StudentModel.find({
-    $or: [
-      { passwordHash: { $exists: false } },
-      { passwordHash: null },
-      { passwordHash: "" },
-    ],
+    // $or: [
+    //   { passwordHash: { $exists: false } },
+    //   { passwordHash: null },
+    //   { passwordHash: "" },
+    // ],
   });
 
   console.log(`🧩 Found ${students.length} students without passwords`);

@@ -46,6 +46,15 @@ export function registerModels() {
   if (!mongoose.models.EmailTemplate) import("@/backend/models/email-template.model");
   if (!mongoose.models.EmailLog) import("@/backend/models/email-log.model");
 
+  // Feature models
+  if (!mongoose.models.Inquiry) import("@/backend/models/inquiry.model");
+  if (!mongoose.models.Assignment) import("@/backend/models/assignment.model");
+  if (!mongoose.models.AssignmentGrade) import("@/backend/models/assignment-grade.model");
+  if (!mongoose.models.GradeConfig) import("@/backend/models/grade-config.model");
+  if (!mongoose.models.WalkInAttendance) import("@/backend/models/walk-in-attendance.model");
+  if (!mongoose.models.WalkInSession) import("@/backend/models/walk-in-session.model");
+  if (!mongoose.models.AuditLog) import("@/backend/models/audit-log.model");
+
   // Other models
   if (!mongoose.models.Announcement) import("@/backend/models/annoucement.model");
   if (!mongoose.models.DailyReport) import("@/backend/models/daily-report.model");

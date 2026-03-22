@@ -17,13 +17,23 @@ import { toast } from "sonner";
 import { useDisclosure } from "@/hooks/use-disclosure";
 import CreateQuestion from "./create-question";
 import EditQuestion from "./edit-question";
-import type { Question } from "@/types";
+import type { Question } from "@/types/questions";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 async function fetchQuestions() {
   const res = await fetch("/api/questions");
   if (!res.ok) throw new Error("Failed to fetch questions");
   const data = await res.json();
-  return data.data || [];
+  return data.data as Question[] || [];
 }
 
 async function deleteQuestion(questionId: string) {
@@ -46,6 +56,7 @@ export default function QuestionsManagement() {
     isOpen: isEditOpen,
   } = useDisclosure();
   const [selectedQuestion, setSelectedQuestion] = React.useState<Question | null>(null);
+  const [questionToDelete, setQuestionToDelete] = React.useState<Question | null>(null);
 
   const { data: questions = [], isLoading } = useQuery({
     queryKey: ["questions"],
@@ -81,7 +92,6 @@ export default function QuestionsManagement() {
       </Badge>
     );
   };
-
   if (isLoading) {
     return <div>Loading questions...</div>;
   }
@@ -114,14 +124,14 @@ export default function QuestionsManagement() {
                 <TableRow key={question.id}>
                   <TableCell className="max-w-md">
                     <p className="truncate">
-                      {question.questionText}
+                      {question.question}
                     </p>
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">{question.type}</Badge>
                   </TableCell>
                   <TableCell>
-                    {question.category || "-"}
+                    {question.category.name || "-"}
                   </TableCell>
                   <TableCell>
                     {getDifficultyBadge(question.difficulty)}
@@ -150,15 +160,7 @@ export default function QuestionsManagement() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => {
-                          if (
-                            confirm(
-                              "Are you sure you want to delete this question?"
-                            )
-                          ) {
-                            deleteMutation.mutate(question.id);
-                          }
-                        }}
+                        onClick={() => setQuestionToDelete(question)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -183,6 +185,34 @@ export default function QuestionsManagement() {
         open={isEditOpen}
         onOpenChange={onEditOpenChange}
       />
+      <AlertDialog
+        open={!!questionToDelete}
+        onOpenChange={(open) => {
+          if (!open) setQuestionToDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete question?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The question will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (questionToDelete) {
+                  deleteMutation.mutate(questionToDelete.id);
+                  setQuestionToDelete(null);
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

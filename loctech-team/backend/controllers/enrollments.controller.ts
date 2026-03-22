@@ -246,11 +246,7 @@ export const deleteEnrollment = async (id: string) => {
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
 
-  if (
-    session.user.role !== "admin" &&
-    session.user.role !== "super_admin" &&
-    session.user.role !== "staff"
-  ) {
+  if (session.user.role !== "admin" && session.user.role !== "super_admin") {
     throw new Error("Forbidden");
   }
 

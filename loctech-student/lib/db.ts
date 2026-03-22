@@ -36,6 +36,8 @@ export function registerModels() {
   // Attendance models
   if (!mongoose.models.StudentAttendance) import("@/backend/models/students-attendance.model");
   if (!mongoose.models.Attendance) import("@/backend/models/attendance.model");
+  if (!mongoose.models.WalkInAttendance) import("@/backend/models/walk-in-attendance.model");
+  if (!mongoose.models.WalkInSession) import("@/backend/models/walk-in-session.model");
 
   // CBT models
   if (!mongoose.models.Exam) import("@/backend/models/exam.model");

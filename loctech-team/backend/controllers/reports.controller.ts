@@ -3,6 +3,10 @@ import { DailyReport, DailyReportModel } from "../models/daily-report.model";
 import { DailyReport as DailyReportType } from "@/types";
 import { getServerSession } from "next-auth";
 import { authConfig } from "@/lib/auth";
+import { ClassAttendanceModel } from "../models/class-attendance.model";
+import { EnrollmentModel } from "../models/enrollment.model";
+import { ClassModel } from "../models/class.model";
+import { getStudentClassGrade } from "./grades.controller";
 
 /**
  * Create a new daily report
@@ -246,4 +250,125 @@ export const generateReportSummary = async (
     dates: allDates,
     data: summary,
   };
+};
+/**
+ * Export attendance records as CSV data
+ */
+export const exportAttendanceCSV = async (params: {
+  classId: string;
+  startDate?: Date;
+  endDate?: Date;
+}) => {
+  await connectToDatabase();
+  const session = await getServerSession(authConfig);
+  if (!session) throw new Error("Unauthorized");
+
+  const classDoc = await ClassModel.findById(params.classId).lean();
+  if (!classDoc) throw new Error("Class not found");
+
+  if (
+    session.user.role !== "admin" &&
+    session.user.role !== "super_admin" &&
+    (session.user.role !== "instructor" ||
+      String(classDoc.instructorId) !== session.user.id)
+  ) {
+    throw new Error("Forbidden");
+  }
+
+  const filter: Record<string, unknown> = { classId: params.classId };
+  if (params.startDate || params.endDate) {
+    filter.date = {};
+    if (params.startDate) (filter.date as Record<string, Date>).$gte = params.startDate;
+    if (params.endDate) (filter.date as Record<string, Date>).$lte = params.endDate;
+  }
+
+  const records = await ClassAttendanceModel.find(filter)
+    .populate("studentId", "name email")
+    .sort("date")
+    .lean();
+
+  const headers = "Date,Student Name,Student Email,Status,Method,Recorded At";
+  const rows = records.map(
+    (r) =>
+      `${(r.date as Date).toISOString().split("T")[0]},${(r.studentId as { name?: string; email?: string })?.name ?? ""},${(r.studentId as { name?: string; email?: string })?.email ?? ""},${r.status},${r.method},${(r.recordedAt as Date)?.toISOString?.() ?? ""}`
+  );
+
+  return headers + "\n" + rows.join("\n");
+};
+
+/**
+ * Export course roster as CSV
+ */
+export const exportCourseRosterCSV = async (classId: string) => {
+  await connectToDatabase();
+  const session = await getServerSession(authConfig);
+  if (!session) throw new Error("Unauthorized");
+
+  const classDoc = await ClassModel.findById(classId)
+    .populate("courseId", "title courseRefId")
+    .lean();
+  if (!classDoc) throw new Error("Class not found");
+
+  if (
+    session.user.role !== "admin" &&
+    session.user.role !== "super_admin" &&
+    (session.user.role !== "instructor" ||
+      String(classDoc.instructorId) !== session.user.id)
+  ) {
+    throw new Error("Forbidden");
+  }
+
+  const enrollments = await EnrollmentModel.find({ classId, status: "active" })
+    .populate("studentId", "name email")
+    .lean();
+
+  const course = classDoc.courseId as { title?: string; courseRefId?: string };
+  const headers = "Student ID,Name,Email,Status,Enrolled At";
+  const rows = enrollments.map(
+    (e) =>
+      `${String((e.studentId) ?? "")},${(e.studentId as { name?: string })?.name ?? ""},${(e.studentId as { email?: string })?.email ?? ""},${e.status},${(e.enrolledAt as Date)?.toISOString?.() ?? ""}`
+  );
+
+  return headers + "\n" + rows.join("\n");
+};
+
+/**
+ * Export student progress/grade summary as CSV
+ */
+export const exportGradeSummaryCSV = async (classId: string) => {
+  await connectToDatabase();
+  const session = await getServerSession(authConfig);
+  if (!session) throw new Error("Unauthorized");
+
+  const classDoc = await ClassModel.findById(classId)
+    .populate("courseId", "title")
+    .lean();
+  if (!classDoc) throw new Error("Class not found");
+
+  if (
+    session.user.role !== "admin" &&
+    session.user.role !== "super_admin" &&
+    (session.user.role !== "instructor" ||
+      String(classDoc.instructorId) !== session.user.id)
+  ) {
+    throw new Error("Forbidden");
+  }
+
+  const enrollments = await EnrollmentModel.find({ classId, status: "active" })
+    .populate("studentId", "name email")
+    .lean();
+
+  const headers =
+    "Student ID,Name,Email,Attendance %,Assignment Avg,Exam Avg,Overall Grade,Passing";
+  const rows: string[] = [];
+
+  for (const e of enrollments) {
+    const studentId = String((e.studentId) ?? e.studentId);
+    const grade = await getStudentClassGrade(studentId, classId);
+    rows.push(
+      `${studentId},${(e.studentId as { name?: string })?.name ?? ""},${(e.studentId as { email?: string })?.email ?? ""},${grade.attendancePercentage.toFixed(1)},${grade.assignmentAverage.toFixed(1)},${grade.examAverage.toFixed(1)},${grade.overallGrade.toFixed(1)},${grade.isPassing ? "Yes" : "No"}`
+    );
+  }
+
+  return headers + "\n" + rows.join("\n");
 };

@@ -16,10 +16,13 @@ const NotificationSchema = new Schema(
     },
     type: {
       type: String,
-      enum: ["absence_streak", "enrollment_paused", "exam_reminder"],
+      enum: ["absence_streak", "enrollment_paused", "exam_reminder", "at_risk_attendance", "at_risk_grade"],
       required: true,
     },
-    absenceStreak: { type: Number, default: 0 }, // consecutive absences (for absence_streak type)
+    absenceStreak: { type: Number, default: 0 },
+    attendancePercentage: { type: Number },
+    gradePercentage: { type: Number },
+    threshold: { type: Number },
     notifiedBy: {
       type: Schema.Types.ObjectId,
       ref: "User",

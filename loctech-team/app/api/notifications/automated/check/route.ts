@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   checkAndCreateAbsenceNotifications,
+  checkAndCreateAtRiskNotifications,
   sendAutomatedAbsenceNotifications,
+  sendAtRiskNotification,
 } from "@/backend/controllers/notifications.controller";
+import { connectToDatabase } from "@/lib/db";
+import { NotificationModel } from "@/backend/models/notification.model";
 import { authConfig } from "@/lib/auth";
 import { getServerSession } from "next-auth";
 
@@ -24,17 +28,41 @@ export async function POST(req: NextRequest) {
     const classId = body.classId; // optional
     const sendEmails = body.sendEmails ?? false;
 
-    // Check and create notifications
+    await connectToDatabase();
+
+    // Check and create absence notifications
     await checkAndCreateAbsenceNotifications(classId);
+    // Check and create at-risk notifications
+    await checkAndCreateAtRiskNotifications(classId);
 
     let emailResults = null;
     if (sendEmails) {
-      emailResults = await sendAutomatedAbsenceNotifications();
+      const absenceResults = await sendAutomatedAbsenceNotifications();
+      const atRiskNotifications = await NotificationModel.find({
+        type: { $in: ["at_risk_attendance", "at_risk_grade"] },
+        emailSent: false,
+        isResolved: false,
+      }).lean();
+      let atRiskSent = 0;
+      let atRiskFailed = 0;
+      for (const n of atRiskNotifications) {
+        try {
+          await sendAtRiskNotification(String(n._id));
+          atRiskSent++;
+        } catch {
+          atRiskFailed++;
+        }
+      }
+      emailResults = {
+        sent: absenceResults.sent + atRiskSent,
+        failed: absenceResults.failed + atRiskFailed,
+        errors: absenceResults.errors,
+      };
     }
 
     return NextResponse.json({
       success: true,
-      message: "Absence notifications checked",
+      message: "Notifications checked",
       data: {
         emailsSent: emailResults?.sent ?? 0,
         emailsFailed: emailResults?.failed ?? 0,

@@ -1,4 +1,5 @@
 "use client";
+
 import { NavFooter } from "@/components/nav-footer";
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
@@ -11,174 +12,118 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { type NavItem } from "@/types";
+import { type NavGroupItem } from "@/types";
 import {
-  BookA,
   CalendarCheck,
-  CalendarDays,
   Folder,
   Globe,
   LayoutGrid,
-  List,
   Mic,
   QrCode,
-  Users,
   GraduationCap,
-  FileQuestion,
   ClipboardList,
-  AlertTriangle,
+  MessageSquare,
+  FileText,
 } from "lucide-react";
 import AppLogo from "./app-logo";
 import Link from "next/link";
 import { userLinks } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 
-// Base navigation items (shown to all authenticated users)
-const getMainNavItems = (userRole?: string): NavItem[] => {
-  const baseItems: NavItem[] = [
+const getMainNavItems = (userRole?: string): NavGroupItem[] => {
+  const items: NavGroupItem[] = [
     {
       title: "Dashboard",
       href: userLinks.dashboard,
       icon: LayoutGrid,
     },
-  ];
-
-  // baseItems.push({
-  //   title: "Instructor Dashboard",
-  //   href: userLinks.instructor.dashboard,
-  //   icon: UserCog,
-  // });
-
-  // Common items
-  baseItems.push(
     {
-      title: "Sign In",
-      href: userLinks.signIn,
-      icon: CalendarCheck,
+      title: "Academy",
+      icon: GraduationCap,
+      isActive: false,
+      items: [
+        { title: "Courses", href: userLinks.courses },
+        { title: "Classes", href: userLinks.classes },
+        ...(userRole === "admin" || userRole === "super_admin"
+          ? [
+            { title: "Students", href: userLinks.students, isAdmin: true },
+            { title: "Staff", href: userLinks.users, isAdmin: true },
+          ]
+          : []),
+      ],
     },
+    {
+      title: "Attendance",
+      icon: CalendarCheck,
+      items: [
+        { title: "Sign In", href: userLinks.signIn },
+        ...(userRole === "admin" || userRole === "super_admin"
+          ? [
+            { title: "Staff Attendance", href: userLinks.attendance.staff, isAdmin: true },
+            { title: "Monitoring", href: userLinks.attendance.monitoring, isAdmin: true },
+            { title: "Walk-in Front Desk", href: userLinks.walkIn, isAdmin: true },
+          ]
+          : []),
+      ],
+    },
+    ...(userRole === "admin" || userRole === "super_admin"
+      ? [
+        {
+          title: "CBT",
+          icon: ClipboardList,
+          isAdmin: true,
+          items: [
+            { title: "Exams", href: userLinks.cbt.exams, isAdmin: true },
+            { title: "Question Bank", href: userLinks.cbt.questions, isAdmin: true },
+            { title: "Categories", href: userLinks.cbt.categories, isAdmin: true },
+          ],
+        } as NavGroupItem,
+      ]
+      : []),
     {
       title: "Reports",
       href: userLinks.reports,
       icon: Folder,
     },
     {
-      title: "Announcement",
+      title: "Announcements",
       href: userLinks.announcements,
       icon: Mic,
-    }
-  );
-
-  // Admin/Staff items
-  if (userRole === "admin" || userRole === "super_admin") {
-    baseItems.push(
-      {
-        title: "Staff",
-        href: userLinks.users,
-        icon: Users,
-        isAdmin: true,
-      },
-      {
-        title: "Students",
-        href: userLinks.students,
-        icon: List,
-        isAdmin: true,
-      },
-      {
-        title: "Courses",
-        href: userLinks.courses,
-        icon: BookA,
-      },
-      {
-        title: "Classes",
-        href: userLinks.classes,
-        icon: GraduationCap,
-        isAdmin: true,
-      }
-    );
-
-  } else {
-    baseItems.push({
-      title: "Classes",
-      href: userLinks.classes,
-      icon: BookA,
-    });
-  }
-
-  return baseItems;
-};
-
-const getMidNavItems = (userRole?: string): NavItem[] => {
-  const items: NavItem[] = [];
-
-  if (userRole === "admin" || userRole === "super_admin") {
-    items.push(
-      {
-        title: "Staff Attendance",
-        href: userLinks.attendance.staff,
-        icon: CalendarDays,
-        isAdmin: true,
-      },
-      {
-        title: "Attendance Monitoring",
-        href: userLinks.attendance.monitoring,
-        icon: AlertTriangle,
-        isAdmin: true,
-      }
-    );
-  }
+    },
+    ...(userRole === "admin" || userRole === "super_admin"
+      ? [
+        {
+          title: "Inquiries",
+          href: userLinks.inquiries,
+          icon: MessageSquare,
+          isAdmin: true,
+        } as NavGroupItem,
+      ]
+      : []),
+    ...(userRole === "super_admin"
+      ? [
+        {
+          title: "Audit Logs",
+          href: userLinks.auditLogs,
+          icon: FileText,
+          isAdmin: true,
+        } as NavGroupItem,
+      ]
+      : []),
+  ];
 
   return items;
 };
 
-const getCbtNavItems = (userRole?: string): NavItem[] => {
-  const items: NavItem[] = [];
-
-  if (userRole === "admin" || userRole === "super_admin") {
-    items.push(
-      {
-        title: "Exams",
-        href: userLinks.cbt.exams,
-        icon: ClipboardList,
-        isAdmin: true,
-      },
-      {
-        title: "Question Bank",
-        href: userLinks.cbt.questions,
-        icon: FileQuestion,
-        isAdmin: true,
-      }
-    );
-  }
-
-  return items;
-};
-
-// Student app is separate (loctech-student). No student role in staff app.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const getStudentNavItems = (userRole?: string): NavItem[] => [];
-
-const footerNavItems: NavItem[] = [
-  {
-    title: "Website",
-    href: "https://loctech.com",
-    icon: Globe,
-  },
-  {
-    title: "QR Code",
-    href: "/admin/qr",
-    icon: QrCode,
-    isAdmin: true,
-  },
+const footerNavItems = [
+  { title: "Website", href: "https://loctech.com", icon: Globe },
+  { title: "QR Code", href: "/admin/qr", icon: QrCode, isAdmin: true },
 ];
 
 export function AppSidebar() {
   const { data: session } = useSession();
   const userRole = session?.user?.role;
-
   const mainNavItems = getMainNavItems(userRole);
-  const midNavItems = getMidNavItems(userRole);
-  const cbtNavItems = getCbtNavItems(userRole);
-  const studentNavItems = getStudentNavItems(userRole);
 
   return (
     <Sidebar collapsible="icon" variant="inset">
@@ -195,20 +140,17 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <NavMain items={mainNavItems} />
-        {midNavItems.length > 0 && (
-          <NavMain items={midNavItems} title="Attendance" />
-        )}
-        {cbtNavItems.length > 0 && (
-          <NavMain items={cbtNavItems} title="CBT System" />
-        )}
-        {studentNavItems.length > 0 && (
-          <NavMain items={studentNavItems} title="Student Portal" />
-        )}
+        <NavMain items={mainNavItems} title="Platform" />
       </SidebarContent>
 
       <SidebarFooter>
-        <NavFooter items={footerNavItems} className="mt-auto" />
+        <NavFooter
+          items={footerNavItems.map((i) => ({
+            ...i,
+            isAdmin: "isAdmin" in i ? i.isAdmin : undefined,
+          }))}
+          className="mt-auto"
+        />
         <NavUser />
       </SidebarFooter>
     </Sidebar>
