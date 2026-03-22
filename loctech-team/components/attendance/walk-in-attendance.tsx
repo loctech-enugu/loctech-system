@@ -13,6 +13,7 @@ import type {
   WalkInSession,
   WalkInStudentSearchResult,
 } from "@/types/walkin-attendance";
+import Image from "next/image";
 
 async function searchStudents(query: string): Promise<WalkInStudentSearchResult[]> {
   if (!query || query.length < 2) return [];
@@ -162,7 +163,7 @@ export default function WalkInAttendance() {
           ) : session ? (
             <div className="flex flex-col items-center gap-3">
               {qrUrl && (
-                <img src={qrUrl} alt="Walk-in QR" className="rounded-lg border w-52 h-52 object-contain" />
+                <Image src={qrUrl} alt="Walk-in QR" className="rounded-lg border w-52 h-52 object-contain" fill />
               )}
               <p className="text-sm font-mono text-muted-foreground break-all max-w-xs text-center">
                 {session.barcode}
@@ -227,11 +228,11 @@ export default function WalkInAttendance() {
                   </div>
                   {!r.signOutTime ? (
                     <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => signOut(r.id)}
-                    disabled={signOutMutation.isPending && signOutMutation.variables === r.id}
-                  >
+                      size="sm"
+                      variant="outline"
+                      onClick={() => signOut(r.id)}
+                      disabled={signOutMutation.isPending && signOutMutation.variables === r.id}
+                    >
                       <LogOut className="h-4 w-4 mr-1" />
                       {signOutMutation.isPending && signOutMutation.variables === r.id ? "..." : "Sign Out"}
                     </Button>

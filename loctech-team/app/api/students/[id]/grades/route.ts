@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { getStudentClassGrade } from "@/backend/controllers/grades.controller";
 import { successResponse, errorResponse } from "@/lib/server-helper";
 import { authConfig } from "@/lib/auth";
@@ -27,12 +26,9 @@ export async function GET(
 
     const grades = await Promise.all(
       enrollments.map(async (e) => {
-        const classId = String((e.classId as { _id: string })?._id ?? e.classId);
+        const classId = String((e.classId as unknown as { _id: string })?._id ?? e.classId);
         const className = (e.classId as { name?: string })?.name ?? "";
 
-        if (session.user.role === "student" && session.user.id !== studentId) {
-          throw new Error("Forbidden");
-        }
 
         if (session.user.role === "instructor") {
           const classDoc = await ClassModel.findById(classId).lean();

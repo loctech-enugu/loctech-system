@@ -189,7 +189,7 @@ export const getClassGrades = async (classId: string) => {
 
   const grades = await Promise.all(
     enrollments.map(async (e) => {
-      const enrollment = e as { studentId: { _id: string; name?: string; email?: string } | string };
+      const enrollment = e as unknown as { studentId: { _id: string; name?: string; email?: string } | string };
       const studentRef = enrollment.studentId;
       const studentId = typeof studentRef === "string" ? studentRef : String(studentRef._id);
       const studentName = typeof studentRef === "object" ? studentRef.name : undefined;

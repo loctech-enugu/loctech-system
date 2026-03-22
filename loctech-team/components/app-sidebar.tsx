@@ -14,22 +14,15 @@ import {
 } from "@/components/ui/sidebar";
 import { type NavGroupItem } from "@/types";
 import {
-  BookA,
   CalendarCheck,
-  CalendarDays,
   Folder,
   Globe,
   LayoutGrid,
-  List,
   Mic,
   QrCode,
-  Users,
   GraduationCap,
-  FileQuestion,
   ClipboardList,
-  AlertTriangle,
   MessageSquare,
-  LogIn,
   FileText,
 } from "lucide-react";
 import AppLogo from "./app-logo";
@@ -53,9 +46,9 @@ const getMainNavItems = (userRole?: string): NavGroupItem[] => {
         { title: "Classes", href: userLinks.classes },
         ...(userRole === "admin" || userRole === "super_admin"
           ? [
-              { title: "Students", href: userLinks.students, isAdmin: true },
-              { title: "Staff", href: userLinks.users, isAdmin: true },
-            ]
+            { title: "Students", href: userLinks.students, isAdmin: true },
+            { title: "Staff", href: userLinks.users, isAdmin: true },
+          ]
           : []),
       ],
     },
@@ -66,26 +59,26 @@ const getMainNavItems = (userRole?: string): NavGroupItem[] => {
         { title: "Sign In", href: userLinks.signIn },
         ...(userRole === "admin" || userRole === "super_admin"
           ? [
-              { title: "Staff Attendance", href: userLinks.attendance.staff, isAdmin: true },
-              { title: "Monitoring", href: userLinks.attendance.monitoring, isAdmin: true },
-              { title: "Walk-in Front Desk", href: userLinks.walkIn, isAdmin: true },
-            ]
+            { title: "Staff Attendance", href: userLinks.attendance.staff, isAdmin: true },
+            { title: "Monitoring", href: userLinks.attendance.monitoring, isAdmin: true },
+            { title: "Walk-in Front Desk", href: userLinks.walkIn, isAdmin: true },
+          ]
           : []),
       ],
     },
     ...(userRole === "admin" || userRole === "super_admin"
       ? [
-          {
-            title: "CBT",
-            icon: ClipboardList,
-            isAdmin: true,
-            items: [
-              { title: "Exams", href: userLinks.cbt.exams, isAdmin: true },
-              { title: "Question Bank", href: userLinks.cbt.questions, isAdmin: true },
-              { title: "Categories", href: userLinks.cbt.categories, isAdmin: true },
-            ],
-          } as NavGroupItem,
-        ]
+        {
+          title: "CBT",
+          icon: ClipboardList,
+          isAdmin: true,
+          items: [
+            { title: "Exams", href: userLinks.cbt.exams, isAdmin: true },
+            { title: "Question Bank", href: userLinks.cbt.questions, isAdmin: true },
+            { title: "Categories", href: userLinks.cbt.categories, isAdmin: true },
+          ],
+        } as NavGroupItem,
+      ]
       : []),
     {
       title: "Reports",
@@ -99,23 +92,23 @@ const getMainNavItems = (userRole?: string): NavGroupItem[] => {
     },
     ...(userRole === "admin" || userRole === "super_admin"
       ? [
-          {
-            title: "Inquiries",
-            href: userLinks.inquiries,
-            icon: MessageSquare,
-            isAdmin: true,
-          } as NavGroupItem,
-        ]
+        {
+          title: "Inquiries",
+          href: userLinks.inquiries,
+          icon: MessageSquare,
+          isAdmin: true,
+        } as NavGroupItem,
+      ]
       : []),
     ...(userRole === "super_admin"
       ? [
-          {
-            title: "Audit Logs",
-            href: userLinks.auditLogs,
-            icon: FileText,
-            isAdmin: true,
-          } as NavGroupItem,
-        ]
+        {
+          title: "Audit Logs",
+          href: userLinks.auditLogs,
+          icon: FileText,
+          isAdmin: true,
+        } as NavGroupItem,
+      ]
       : []),
   ];
 

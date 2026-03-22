@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { signOutWalkIn } from "@/backend/controllers/walk-in-attendance.controller";
 import { successResponse, errorResponse } from "@/lib/server-helper";
 

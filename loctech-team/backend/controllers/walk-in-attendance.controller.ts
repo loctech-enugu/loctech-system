@@ -154,7 +154,7 @@ export const signInWalkIn = async (data: {
  * Sign out
  */
 export const signOutWalkIn = async (data: {
-  studentId: string;
+  studentId?: string;
   date?: Date;
   recordId?: string;
 }) => {
@@ -174,6 +174,9 @@ export const signOutWalkIn = async (data: {
   if (data.recordId) {
     record = await WalkInAttendanceModel.findById(data.recordId);
   } else {
+    if (!data.studentId) {
+      throw new Error("studentId is required when recordId is not provided");
+    }
     const date = data.date ? new Date(data.date) : new Date();
     date.setHours(0, 0, 0, 0);
     record = await WalkInAttendanceModel.findOne({

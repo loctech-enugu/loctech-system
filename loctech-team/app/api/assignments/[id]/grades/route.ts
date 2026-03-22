@@ -4,7 +4,6 @@ import { authConfig } from "@/lib/auth";
 import { getServerSession } from "next-auth";
 import { AssignmentGradeModel } from "@/backend/models/assignment-grade.model";
 import { AssignmentModel } from "@/backend/models/assignment.model";
-import { ClassModel } from "@/backend/models/class.model";
 import { successResponse, errorResponse } from "@/lib/server-helper";
 
 export async function GET(
@@ -22,7 +21,7 @@ export async function GET(
       .lean();
     if (!assignment) throw new Error("Assignment not found");
 
-    const classDoc = assignment.classId as { instructorId: string };
+    const classDoc = assignment.classId as unknown as { instructorId: string };
     if (
       session.user.role !== "admin" &&
       session.user.role !== "super_admin" &&
@@ -40,7 +39,7 @@ export async function GET(
     return successResponse(
       grades.map((g) => ({
         id: String(g._id),
-        studentId: String((g.studentId as { _id: string })?._id),
+        studentId: String((g.studentId)?._id),
         studentName: (g.studentId as { name?: string })?.name,
         studentEmail: (g.studentId as { email?: string })?.email,
         score: g.score,
@@ -73,7 +72,7 @@ export async function POST(
       .lean();
     if (!assignment) throw new Error("Assignment not found");
 
-    const classDoc = assignment.classId as { instructorId: string };
+    const classDoc = assignment.classId as unknown as { instructorId: string };
     if (
       session.user.role !== "admin" &&
       session.user.role !== "super_admin" &&
