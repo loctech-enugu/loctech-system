@@ -19,6 +19,7 @@ const ROUTE_CONFIG = {
     "/api/reminders",
     "/api/auth",
     "/api/reminder",
+    "/api/inquiries",
   ],
 };
 

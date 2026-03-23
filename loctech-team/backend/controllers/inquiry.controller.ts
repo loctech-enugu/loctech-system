@@ -5,8 +5,13 @@ import { getServerSession } from "next-auth";
 import { InquiryModel } from "../models/inquiry.model";
 import { StudentModel } from "../models/students.model";
 import { UserModel } from "../models/user.model";
-import { ResendService } from "../services/resend.service";
+import {
+  ResendService,
+  getTransactionalFrom,
+  getContactInboxAddress,
+} from "../services/resend.service";
 import InquiryReceivedEmail from "@/emails/inquiry-received";
+import { CourseModel } from "../models/courses.model";
 
 export type InquiryStatusUI = "pending" | "registered" | "not_interested";
 
@@ -87,6 +92,8 @@ export const createInquiry = async (data: {
   message: string;
 }) => {
   await connectToDatabase();
+  const course = await CourseModel.findById(data.courseOfInterest);
+  const courseTitle = course?.title || "our programs";
 
   const inquiry = await InquiryModel.create({
     name: data.name,
@@ -100,24 +107,21 @@ export const createInquiry = async (data: {
     autoReplySent: false,
   });
 
-  const fromDomain = process.env.RESEND_DOMAIN ?? "";
-  const from = fromDomain
-    ? `Loctech Training Institution <hello@${fromDomain}>`
-    : process.env.EMAIL_FROM || "Loctech <noreply@loctech.com>";
-  const contactEmail = process.env.EMAIL_FROM || "enquiries@loctechng.com";
+  const contactEmail = getContactInboxAddress();
 
   try {
     const html = await render(
       InquiryReceivedEmail({
         name: data.name,
-        courseOfInterest: data.courseOfInterest || "our programs",
+        courseOfInterest: courseTitle,
         contactEmail,
       })
     );
 
     await ResendService.sendEmail({
-      from,
+      from: getTransactionalFrom(),
       to: data.email,
+      replyTo: contactEmail,
       subject: "We Received Your Inquiry - Loctech Training Institute",
       html,
     });
