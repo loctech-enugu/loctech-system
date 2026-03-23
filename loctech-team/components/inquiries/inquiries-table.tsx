@@ -16,12 +16,39 @@ import { Check, Pencil } from "lucide-react";
 import { useState } from "react";
 import InquiryEditDialog, { type InquiryRow } from "./inquiry-edit-dialog";
 
-async function fetchInquiries(status?: string) {
-  const url = status ? `/api/inquiries?status=${status}` : "/api/inquiries";
-  const res = await fetch(url, { credentials: "include" });
+const PAGE_SIZE = 20;
+
+async function fetchInquiries(status: string | undefined, page: number) {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  params.set("page", String(page));
+  params.set("limit", String(PAGE_SIZE));
+  const res = await fetch(`/api/inquiries?${params.toString()}`, {
+    credentials: "include",
+  });
   if (!res.ok) throw new Error("Failed to fetch inquiries");
   const data = await res.json();
-  return data.data ?? [];
+  const payload = data.data as
+    | {
+        inquiries: InquiryRow[];
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+          totalPages: number;
+        };
+      }
+    | undefined;
+  return {
+    inquiries: payload?.inquiries ?? [],
+    pagination:
+      payload?.pagination ?? {
+        page: 1,
+        limit: PAGE_SIZE,
+        total: 0,
+        totalPages: 1,
+      },
+  };
 }
 
 const FOLLOW_LABELS: Record<string, string> = {
@@ -45,12 +72,16 @@ function statusBadgeVariant(status: string) {
 export default function InquiriesTable() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>("");
+  const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<InquiryRow | null>(null);
 
-  const { data: inquiries = [], isLoading } = useQuery({
-    queryKey: ["inquiries", statusFilter],
-    queryFn: () => fetchInquiries(statusFilter || undefined),
+  const { data, isLoading } = useQuery({
+    queryKey: ["inquiries", statusFilter, page],
+    queryFn: () => fetchInquiries(statusFilter || undefined, page),
   });
+
+  const inquiries = data?.inquiries ?? [];
+  const pagination = data?.pagination;
 
   const markResponded = async (id: string) => {
     const res = await fetch(`/api/inquiries/${id}/respond`, {
@@ -75,7 +106,10 @@ export default function InquiriesTable() {
             <button
               key={s || "all"}
               type="button"
-              onClick={() => setStatusFilter(s)}
+              onClick={() => {
+                setStatusFilter(s);
+                setPage(1);
+              }}
               className={`px-4 py-2 text-sm capitalize ${statusFilter === s ? "bg-muted font-medium" : ""}`}
             >
               {s === "" ? "All" : s.replace("_", " ")}
@@ -187,6 +221,40 @@ export default function InquiriesTable() {
           </TableBody>
         </Table>
       </div>
+
+      {pagination && (
+        <div className="flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
+          <span>
+            {pagination.total === 0
+              ? "No results"
+              : `Showing ${(pagination.page - 1) * pagination.limit + 1}–${Math.min(
+                  pagination.page * pagination.limit,
+                  pagination.total
+                )} of ${pagination.total}`}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={pagination.page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Previous
+            </Button>
+            <span className="text-foreground tabular-nums">
+              Page {pagination.page} of {pagination.totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={pagination.page >= pagination.totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       <InquiryEditDialog
         inquiry={editing}
