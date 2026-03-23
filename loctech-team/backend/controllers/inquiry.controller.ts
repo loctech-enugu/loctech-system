@@ -102,7 +102,7 @@ export const createInquiry = async (data: {
     name: data.name,
     email: data.email,
     phone: data.phone,
-    courseOfInterest: data.courseOfInterest,
+    courseOfInterest: courseTitle,
     heardAboutUs: data.heardAboutUs,
     message: data.message,
     status: "pending",
