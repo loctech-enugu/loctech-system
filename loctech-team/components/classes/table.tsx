@@ -19,6 +19,7 @@ import {
   ChevronDown,
   MoreHorizontal,
   Calendar,
+  Clock,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -61,7 +62,7 @@ export function ClassesTable() {
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
 
-  const { data: classes = [], isLoading } = useQuery({
+  const { data: classes = [] as unknown as Class[], isLoading } = useQuery({
     queryKey: ["classes"],
     queryFn: fetchClasses,
   });
@@ -367,6 +368,46 @@ export function ClassesTable() {
             )}
           </TableBody>
         </Table>
+      </div>
+      <div className="space-y-4 hidden md:block">
+        {classes.length > 0 ? (
+          <div className="text-center text-muted-foreground py-8">
+            No classes found.
+
+          </div>
+        ) : classes.map((classItem: Class) => (
+          <div
+            key={classItem.id}
+            className="flex items-center justify-between flex-col gap-4 md:flex-row p-4 border rounded-lg"
+          >
+            <div className="flex-1">
+              <h3 className="font-semibold">{classItem.name}</h3>
+              <p className="text-sm text-muted-foreground">
+                {classItem.course?.title || "No course"}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                <Clock className="inline h-3 w-3 mr-1" />
+                <span>
+                  {classItem?.schedule
+                    ? `${classItem.schedule.daysOfWeek?.join(", ") || "Days TBD"} ${formatTimeToAMPM(classItem.schedule.startTime)} - ${formatTimeToAMPM(classItem.schedule.endTime)}`
+                    : "Schedule TBD"}
+                </span>
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/dashboard/instructor/classes/${classItem.id}`}>
+                  View Class
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link href={`/dashboard/classes/${classItem.id}/attendance`}>
+                  Take Attendance
+                </Link>
+              </Button>
+            </div>
+          </div>
+        ))}
       </div>
       <DataTablePagination table={table} />
     </div>
