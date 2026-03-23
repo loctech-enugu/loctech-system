@@ -2,6 +2,9 @@ import { render } from "@react-email/render";
 import { authConfig } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
 import { getServerSession } from "next-auth";
+import { parse } from "csv-parse";
+import fs from "fs";
+import path from "path";
 import { InquiryModel } from "../models/inquiry.model";
 import { StudentModel } from "../models/students.model";
 import { UserModel } from "../models/user.model";
@@ -169,10 +172,33 @@ export const listAssignableStaffForInquiries = async () => {
   }));
 };
 
+export type GetAllInquiriesParams = {
+  status?: string;
+  /** 1-based page index */
+  page?: number;
+  /** Page size (capped at 100) */
+  limit?: number;
+};
+
+export type PaginatedInquiries = {
+  inquiries: ReturnType<typeof formatInquiryDoc>[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
+const DEFAULT_INQUIRY_PAGE_SIZE = 20;
+const MAX_INQUIRY_PAGE_SIZE = 100;
+
 /**
- * Get all inquiries (admin/staff only)
+ * Get inquiries with pagination (admin/staff only)
  */
-export const getAllInquiries = async (filters?: { status?: string }) => {
+export const getAllInquiries = async (
+  filters?: GetAllInquiriesParams
+): Promise<PaginatedInquiries> => {
   await connectToDatabase();
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
@@ -184,6 +210,7 @@ export const getAllInquiries = async (filters?: { status?: string }) => {
   ) {
     throw new Error("Forbidden");
   }
+  // loadInquiriesFromCsv();
 
   const filter: Record<string, unknown> = {};
   if (filters?.status && filters.status !== "") {
@@ -193,12 +220,36 @@ export const getAllInquiries = async (filters?: { status?: string }) => {
     }
   }
 
-  const inquiries = await InquiryModel.find(filter)
-    .populate("customerCareId", "name email")
-    .sort("-createdAt")
-    .lean();
+  const page = Math.max(1, filters?.page ?? 1);
+  const limit = Math.min(
+    MAX_INQUIRY_PAGE_SIZE,
+    Math.max(1, filters?.limit ?? DEFAULT_INQUIRY_PAGE_SIZE)
+  );
+  const skip = (page - 1) * limit;
 
-  return inquiries.map((i) => formatInquiryDoc(i as Record<string, unknown>));
+  const [total, inquiries] = await Promise.all([
+    InquiryModel.countDocuments(filter),
+    InquiryModel.find(filter)
+      .populate("customerCareId", "name email")
+      .sort("-createdAt")
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+
+  return {
+    inquiries: inquiries.map((i) =>
+      formatInquiryDoc(i as Record<string, unknown>)
+    ),
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages,
+    },
+  };
 };
 
 /**
@@ -327,3 +378,337 @@ export const markInquiryConverted = async (id: string, studentId: string) => {
 
   return { success: true };
 };
+
+/* ─── Seed inquiries from assets/inquiries.csv (same pattern as loadStudentsData) ─── */
+
+function escapeRegex(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Strip UTF-8 BOM so `010` header matches (Excel often saves as `\ufeff010`) */
+function stripBom(s: string) {
+  return s.replace(/^\ufeff/, "").trim();
+}
+
+/**
+ * First column in the sheet is mislabeled "010" — value is submitted date/time.
+ * Formats seen: `8/29/2025 9:42:54`, `9/1/2025 8:57:34`, `3/3/2026`, `13/3/2026`
+ */
+function getInquiryCsvDateRaw(row: Record<string, string>): string {
+  const entries = Object.entries(row);
+
+  for (const [k, v] of entries) {
+    const nk = stripBom(k);
+    if (nk === "010" || nk === "Date" || nk === "Timestamp") {
+      const s = String(v ?? "").trim();
+      if (s) return s;
+    }
+  }
+
+  for (const [k, v] of entries) {
+    const nk = stripBom(k);
+    if (/^\d+$/.test(nk)) {
+      const s = String(v ?? "").trim();
+      if (s) return s;
+    }
+  }
+
+  // First column cell (column order) — reliable when header is BOM-corrupted
+  const first = entries[0];
+  if (first) {
+    const s = String(first[1] ?? "").trim();
+    if (/^\d{1,2}\/\d{1,2}\/\d{2,4}/.test(s)) return s;
+  }
+
+  return "";
+}
+
+function getCell(row: Record<string, string>, ...want: string[]): string {
+  for (const w of want) {
+    const v = row[w];
+    if (v !== undefined && String(v).trim() !== "") return String(v).trim();
+  }
+  const lowerWants = want.map((w) => w.trim().toLowerCase());
+  for (const key of Object.keys(row)) {
+    const lk = key.trim().toLowerCase();
+    if (lowerWants.includes(lk)) return String(row[key] ?? "").trim();
+  }
+  for (const key of Object.keys(row)) {
+    const lk = key.trim().toLowerCase();
+    for (const w of want) {
+      if (lk.includes(w.trim().toLowerCase())) return String(row[key] ?? "").trim();
+    }
+  }
+  return "";
+}
+
+/**
+ * Parse dates like 8/29/2025 9:42:54 (US-style M/D/Y) or 13/3/2026 (D/M/Y when day > 12)
+ */
+function parseInquiryCsvDate(value: string | undefined): Date | null {
+  if (!value) return null;
+  const trimmed = value.trim().replace(/\s+/g, " ");
+  if (!trimmed) return null;
+
+  const dateTime = trimmed.split(" ").filter(Boolean);
+  const datePart = dateTime[0] ?? trimmed;
+  const timePart =
+    dateTime.length > 1 ? dateTime.slice(1).join(" ") : "";
+
+  const m = datePart.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (m) {
+    const a = Number(m[1]);
+    const b = Number(m[2]);
+    let y = Number(m[3]);
+    if (y < 100) y += 2000;
+
+    let month: number;
+    let day: number;
+    if (a > 12) {
+      day = a;
+      month = b - 1;
+    } else if (b > 12) {
+      month = a - 1;
+      day = b;
+    } else {
+      month = a - 1;
+      day = b;
+    }
+
+    const d = new Date(y, month, day);
+    if (isNaN(d.getTime())) return null;
+
+    if (timePart) {
+      const tm = timePart.match(/^(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
+      if (tm) {
+        d.setHours(Number(tm[1]), Number(tm[2]), tm[3] ? Number(tm[3]) : 0, 0);
+      }
+    }
+    return d;
+  }
+
+  // Last resort: let JS parse (works for many US-style strings in Node)
+  const fallback = new Date(trimmed);
+  if (!isNaN(fallback.getTime())) return fallback;
+
+  return null;
+}
+
+function normalizeCsvLead(raw: string | undefined): "hot" | "warm" | "cold" | undefined {
+  const v = raw?.trim().toLowerCase();
+  if (!v) return undefined;
+  if (v.includes("hot")) return "hot";
+  if (v.includes("warm")) return "warm";
+  if (v.includes("cold")) return "cold";
+  return undefined;
+}
+
+function normalizeCsvFollowUp(
+  raw: string | undefined
+): "called" | "text_whatsapp" | "call_back" | undefined {
+  const v = raw?.trim().toLowerCase();
+  if (!v) return undefined;
+  if (v.includes("call back") || v.replace(/\s/g, "") === "callback") return "call_back";
+  if (v.includes("text") || v.includes("whatsapp")) return "text_whatsapp";
+  if (v.includes("call")) return "called";
+  return undefined;
+}
+
+function normalizeCsvStatus(raw: string | undefined): string {
+  const v = raw?.trim().toLowerCase();
+  if (!v) return "pending";
+  if (v.includes("not interested")) return "not_interested";
+  if (v.includes("registered") || v.includes("secured")) return "registered";
+  if (v.includes("pending")) return "pending";
+  return "pending";
+}
+
+const inquiryCsvStaffCache = new Map<string, string | null>();
+
+async function resolveCustomerCareIdByName(name: string): Promise<string | undefined> {
+  const key = name.trim().toLowerCase();
+  if (!key) return undefined;
+  if (inquiryCsvStaffCache.has(key)) {
+    const id = inquiryCsvStaffCache.get(key);
+    return id ?? undefined;
+  }
+  const user = await UserModel.findOne({
+    name: { $regex: new RegExp(`^${escapeRegex(name.trim())}$`, "i") },
+    isActive: true,
+  })
+    .select("_id")
+    .lean();
+  const id = user?._id ? String(user._id) : null;
+  inquiryCsvStaffCache.set(key, id);
+  return id ?? undefined;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function formatInquiryCsvRecord(
+  raw: Record<string, any>,
+  rowIndex = 0
+): {
+  name: string;
+  email: string;
+  phone: string;
+  courseOfInterest: string;
+  heardAboutUs: string;
+  message: string;
+  customerCareName: string;
+  lead?: "hot" | "warm" | "cold";
+  feedback: string;
+  followUp?: "called" | "text_whatsapp" | "call_back";
+  status: string;
+  adminNote: string;
+  createdAt: Date;
+} | null {
+  const name = getCell(raw, "Name");
+  const email = getCell(raw, "Email").toLowerCase();
+  const phone = getCell(raw, "Phone Number", "Phone").replace(/\s+/g, " ").trim();
+  const courseOfInterest = getCell(raw, "Course of Interest ", "Course of Interest");
+  const heardAboutUs = getCell(raw, "How Did You Hear About Us:", "How Did You Hear About Us");
+  const customerCareName = getCell(raw, "Customer Care");
+  const lead = normalizeCsvLead(getCell(raw, "Lead"));
+  const feedback = getCell(raw, "Feedback");
+  const followUp = normalizeCsvFollowUp(getCell(raw, "Follow up", "Follow Up"));
+  const status = normalizeCsvStatus(getCell(raw, "Status"));
+  const col1 = getCell(raw, "Column 1");
+  const col2 = getCell(raw, "Column 2");
+  const col3 = getCell(raw, "Column 3");
+  const adminNote = [col1, col2, col3].filter(Boolean).join(" | ");
+
+  if (!name || !email || !email.includes("@")) return null;
+
+  const dateRaw = getInquiryCsvDateRaw(raw as Record<string, string>);
+  let createdAt = parseInquiryCsvDate(dateRaw) ?? null;
+  // Only use synthetic time when the sheet truly has no parseable date (not "now")
+  if (!createdAt) {
+    createdAt = new Date(Date.UTC(2025, 0, 1) + rowIndex * 1000);
+  }
+
+  const messageParts = [
+    "[Imported from inquiries CSV]",
+    courseOfInterest ? `Course interest: ${courseOfInterest}.` : "",
+    feedback ? `Feedback: ${feedback}.` : "",
+  ].filter(Boolean);
+  const message =
+    messageParts.join(" ").trim() || "[Imported from inquiries CSV]";
+
+  return {
+    name,
+    email,
+    phone,
+    courseOfInterest,
+    heardAboutUs,
+    message,
+    customerCareName,
+    lead,
+    feedback,
+    followUp,
+    status,
+    adminNote,
+    createdAt,
+  };
+}
+
+async function saveInquiryFromCsv(formatted: NonNullable<ReturnType<typeof formatInquiryCsvRecord>>) {
+  const customerCareId = formatted.customerCareName
+    ? await resolveCustomerCareIdByName(formatted.customerCareName)
+    : undefined;
+
+  const doc = {
+    name: formatted.name,
+    email: formatted.email,
+    phone: formatted.phone || undefined,
+    courseOfInterest: formatted.courseOfInterest || undefined,
+    heardAboutUs: formatted.heardAboutUs || undefined,
+    message: formatted.message,
+    customerCareId: customerCareId || undefined,
+    lead: formatted.lead ?? "warm",
+    feedback: formatted.feedback || undefined,
+    followUp: formatted.followUp,
+    status: formatted.status,
+    adminNote: formatted.adminNote || undefined,
+    autoReplySent: true,
+    createdAt: formatted.createdAt,
+    updatedAt: new Date(),
+  };
+
+  // timestamps: false — otherwise Mongoose can set createdAt to "now" on upsert insert
+  await InquiryModel.updateOne(
+    {
+      email: formatted.email,
+      name: formatted.name,
+      createdAt: {
+        $gte: new Date(formatted.createdAt.getTime() - 5000),
+        $lte: new Date(formatted.createdAt.getTime() + 5000),
+      },
+    },
+    { $set: doc },
+    { upsert: true, timestamps: false }
+  );
+}
+
+/**
+ * Load `assets/inquiries.csv` into the Inquiry collection (no Resend emails).
+ * Mirrors `loadStudentsData` in students.controller.ts.
+ */
+export async function loadInquiriesFromCsv() {
+  await connectToDatabase();
+  inquiryCsvStaffCache.clear();
+
+  const filePath = path.join(process.cwd(), "assets", "inquiries.csv");
+  console.log("Resolved inquiries CSV path:", filePath);
+
+  if (!fs.existsSync(filePath)) {
+    console.error("inquiries.csv not found at", filePath);
+    throw new Error(`File not found: ${filePath}`);
+  }
+
+  const rows: Record<string, string>[] = [];
+
+  await new Promise<void>((resolve, reject) => {
+    fs.createReadStream(filePath)
+      .pipe(
+        parse({
+          bom: true,
+          columns: (header: string[]) =>
+            header.map((h) => h.replace(/^\ufeff/, "").trim()),
+          comment: "#",
+          relax_column_count: true,
+          trim: true,
+          skip_empty_lines: true,
+        })
+      )
+      .on("data", (data: Record<string, string>) => {
+        rows.push(data);
+      })
+      .on("error", (err: Error) => {
+        console.error("Error reading inquiries CSV:", err);
+        reject(err);
+      })
+      .on("end", () => resolve());
+  });
+
+  let saved = 0;
+  let skipped = 0;
+
+  for (let i = 0; i < rows.length; i++) {
+    try {
+      const formatted = formatInquiryCsvRecord(rows[i], i);
+      if (!formatted) {
+        skipped++;
+        continue;
+      }
+      await saveInquiryFromCsv(formatted);
+      saved++;
+    } catch (error) {
+      console.error("Could not save inquiry row:", error);
+      skipped++;
+    }
+  }
+
+  const total = await InquiryModel.countDocuments({});
+  console.log("✅ Inquiries CSV load complete");
+  console.log(`${saved} rows upserted, ${skipped} skipped. Total inquiries in DB: ${total}.`);
+}

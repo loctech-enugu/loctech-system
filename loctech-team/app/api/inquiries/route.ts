@@ -24,12 +24,20 @@ export async function POST(req: NextRequest) {
   }
 }
 
+function parsePositiveInt(value: string | null, fallback: number) {
+  if (value === null || value === "") return fallback;
+  const n = Number.parseInt(value, 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status") ?? undefined;
-    const inquiries = await getAllInquiries({ status });
-    return successResponse(inquiries);
+    const page = parsePositiveInt(searchParams.get("page"), 1);
+    const limit = parsePositiveInt(searchParams.get("limit"), 20);
+    const result = await getAllInquiries({ status, page, limit });
+    return successResponse(result);
   } catch (error) {
     console.error("Get inquiries error:", error);
     return errorResponse(error instanceof Error ? error.message : "Failed to fetch inquiries", 500);
