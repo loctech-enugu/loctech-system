@@ -37,7 +37,8 @@ export const createWalkInSession = async () => {
   const barcodeToken = crypto.randomBytes(16).toString("hex");
   const secret = crypto.randomBytes(32).toString("hex");
   const barcode = `walkin-${barcodeToken}`;
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+  const expiresAt = new Date();
+  expiresAt.setMonth(expiresAt.getMonth() + 1); // one month from now
 
   await WalkInSessionModel.create({
     barcode,

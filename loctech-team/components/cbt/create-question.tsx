@@ -279,8 +279,8 @@ export default function CreateQuestion({
                   <SelectValue placeholder="Select AI model" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="openai">OpenAI (GPT-4o-mini)</SelectItem>
-                  <SelectItem value="gemini">Gemini (2.0 Flash)</SelectItem>
+                  <SelectItem value="openai">OpenAI</SelectItem>
+                  <SelectItem value="gemini">Gemini</SelectItem>
                 </SelectContent>
               </Select>
               <div
