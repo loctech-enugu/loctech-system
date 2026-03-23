@@ -369,7 +369,7 @@ export function ClassesTable() {
           </TableBody>
         </Table>
       </div>
-      <div className="space-y-4 hidden md:block">
+      <div className="space-y-4 md:hidden">
         {classes.length > 0 ? (
           <div className="text-center text-muted-foreground py-8">
             No classes found.

@@ -19,6 +19,23 @@ export type SendEmailProps = {
   bcc?: string | string[];
 };
 
+/**
+ * Default "from" for Loctech transactional mail (inquiry auto-replies, notifications, etc.)
+ */
+export function getTransactionalFrom(): string {
+  const fromDomain = process.env.RESEND_DOMAIN ?? "";
+  return fromDomain
+    ? `Loctech Training Institution <hello@${fromDomain}>`
+    : process.env.EMAIL_FROM || "Loctech <noreply@loctech.com>";
+}
+
+/**
+ * Public-facing enquiries / reply address shown in templates and used as Reply-To when appropriate
+ */
+export function getContactInboxAddress(): string {
+  return process.env.EMAIL_FROM || "enquiries@loctechng.com";
+}
+
 export class ResendService {
   /**
    * Send email via Resend
@@ -31,6 +48,7 @@ export class ResendService {
         subject: props.subject,
         html: props.html,
         text: props.text,
+        replyTo: props.replyTo,
         cc: props.cc,
         bcc: props.bcc,
       });
