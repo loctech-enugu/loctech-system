@@ -1,5 +1,5 @@
 import { render } from "@react-email/render";
-import { authConfig } from "@/lib/auth";
+import { authConfig, hashPassword } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { parse } from "csv-parse";
@@ -15,16 +15,29 @@ import {
 } from "../services/resend.service";
 import InquiryReceivedEmail from "@/emails/inquiry-received";
 import { CourseModel } from "../models/courses.model";
+import type { AnyBulkWriteOperation } from "mongoose";
+import { SlackService } from "../services/slack.service";
+import { buildStudentRegistrationBlock } from "@/lib/slack-blocks";
+import type { Student } from "@/types";
+import { auditLog } from "./audit-log.controller";
 
-export type InquiryStatusUI = "pending" | "registered" | "not_interested";
+export type InquiryStatusUI =
+  | "pending"
+  | "registered"
+  | "converted"
+  | "not_interested";
 
 /** Map legacy + current DB values to UI status */
 export function normalizeInquiryStatus(raw: string | undefined): InquiryStatusUI {
-  if (raw === "pending" || raw === "registered" || raw === "not_interested") {
+  if (
+    raw === "pending" ||
+    raw === "registered" ||
+    raw === "converted" ||
+    raw === "not_interested"
+  ) {
     return raw;
   }
   if (raw === "new" || raw === "contacted") return "pending";
-  if (raw === "converted") return "registered";
   if (raw === "closed") return "not_interested";
   return "pending";
 }
@@ -34,12 +47,29 @@ function statusFilterForQuery(uiStatus: InquiryStatusUI): { $in: string[] } {
     case "pending":
       return { $in: ["pending", "new", "contacted"] };
     case "registered":
-      return { $in: ["registered", "converted"] };
+      return { $in: ["registered"] };
+    case "converted":
+      return { $in: ["converted"] };
     case "not_interested":
       return { $in: ["not_interested", "closed"] };
     default:
       return { $in: ["pending", "new", "contacted"] };
   }
+}
+
+function heardFromFromInquiry(raw: string | undefined | null): Student["heardFrom"] {
+  const v = raw?.trim().toLowerCase() ?? "";
+  if (!v) return "Other";
+  if (v.includes("google")) return "Google";
+  if (v.includes("facebook")) return "Facebook";
+  if (v.includes("twitter")) return "Twitter";
+  if (v.includes("loctech")) return "Loctech Website";
+  if (v.includes("radio")) return "Radio";
+  if (v.includes("billboard")) return "Billboard";
+  if (v.includes("instagram")) return "Instagram";
+  if (v.includes("flyer")) return "Flyers";
+  if (v.includes("friend")) return "Friends";
+  return "Other";
 }
 
 function formatInquiryDoc(i: Record<string, unknown>) {
@@ -194,6 +224,96 @@ const DEFAULT_INQUIRY_PAGE_SIZE = 20;
 const MAX_INQUIRY_PAGE_SIZE = 100;
 
 /**
+ * For pending inquiries whose email matches a student record, set status to
+ * registered and link convertedToStudentId (matched by email, case-insensitive).
+ */
+export const markRegisteredInquiry = async (): Promise<{
+  examined: number;
+  updated: number;
+}> => {
+  await connectToDatabase();
+  const session = await getServerSession(authConfig);
+  if (!session) throw new Error("Unauthorized");
+
+  if (
+    session.user.role !== "admin" &&
+    session.user.role !== "super_admin" &&
+    session.user.role !== "staff"
+  ) {
+    throw new Error("Forbidden");
+  }
+
+  const pendingFilter = { status: statusFilterForQuery("pending") };
+
+  const inquiries = await InquiryModel.find(pendingFilter)
+    .select("_id email")
+    .lean();
+
+  if (inquiries.length === 0) {
+    return { examined: 0, updated: 0 };
+  }
+
+  const uniqueEmails = [
+    ...new Set(
+      inquiries
+        .map((i) => String(i.email ?? "").toLowerCase().trim())
+        .filter(Boolean)
+    ),
+  ];
+
+  const students = await StudentModel.find({
+    email: { $in: uniqueEmails },
+  })
+    .select("_id email")
+    .lean();
+
+  const emailToStudentId = new Map(
+    students.map((s) => [String(s.email).toLowerCase(), String(s._id)])
+  );
+
+  const now = new Date();
+  const respondedBy = session.user.id;
+
+  const bulkOps: AnyBulkWriteOperation<Record<string, unknown>>[] = [];
+
+  for (const inv of inquiries) {
+    const em = String(inv.email ?? "").toLowerCase().trim();
+    if (!em) continue;
+    const studentId = emailToStudentId.get(em);
+    if (!studentId) continue;
+
+    bulkOps.push({
+      updateOne: {
+        filter: { _id: inv._id },
+        update: {
+          $set: {
+            status: "registered",
+            convertedToStudentId: studentId,
+            respondedAt: now,
+            respondedBy,
+          },
+        },
+      },
+    });
+  }
+
+  if (bulkOps.length === 0) {
+    return { examined: inquiries.length, updated: 0 };
+  }
+
+  const result = await InquiryModel.bulkWrite(bulkOps, { ordered: false });
+  const updated = result.modifiedCount + result.upsertedCount;
+
+  await auditLog(session, {
+    action: "update",
+    resource: "inquiry_sync",
+    details: { examined: inquiries.length, updated },
+  });
+
+  return { examined: inquiries.length, updated };
+};
+
+/**
  * Get inquiries with pagination (admin/staff only)
  */
 export const getAllInquiries = async (
@@ -281,7 +401,12 @@ export const updateInquiry = async (
   const existing = await InquiryModel.findById(id);
   if (!existing) throw new Error("Inquiry not found");
 
-  const allowedStatus: InquiryStatusUI[] = ["pending", "registered", "not_interested"];
+  const allowedStatus: InquiryStatusUI[] = [
+    "pending",
+    "registered",
+    "converted",
+    "not_interested",
+  ];
   const $set: Record<string, unknown> = {};
   const $unset: Record<string, 1> = {};
 
@@ -322,6 +447,13 @@ export const updateInquiry = async (
     .populate("customerCareId", "name email")
     .lean();
 
+  await auditLog(session, {
+    action: "update",
+    resource: "inquiry",
+    resourceId: id,
+    details: { fields: Object.keys(data) },
+  });
+
   return formatInquiryDoc(updated as Record<string, unknown>);
 };
 
@@ -345,6 +477,13 @@ export const markInquiryResponded = async (id: string) => {
     followUp: "called",
     respondedAt: new Date(),
     respondedBy: session.user.id,
+  });
+
+  await auditLog(session, {
+    action: "update",
+    resource: "inquiry",
+    resourceId: id,
+    details: { action: "mark_responded" },
   });
 
   return { success: true };
@@ -376,7 +515,113 @@ export const markInquiryConverted = async (id: string, studentId: string) => {
     convertedToStudentId: studentId,
   });
 
+  await auditLog(session, {
+    action: "update",
+    resource: "inquiry",
+    resourceId: id,
+    details: { action: "link_student", studentId },
+  });
+
   return { success: true };
+};
+
+/**
+ * Create a student account from an inquiry (onboarding — no assessment).
+ */
+export const convertInquiryToStudent = async (
+  inquiryId: string,
+  data: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    dateOfBirth?: string;
+    highestQualification?: string;
+    stateOfOrigin?: string;
+    nationality?: string;
+    occupation?: string;
+  }
+) => {
+  await connectToDatabase();
+  const session = await getServerSession(authConfig);
+  if (!session) throw new Error("Unauthorized");
+
+  if (
+    session.user.role !== "admin" &&
+    session.user.role !== "super_admin" &&
+    session.user.role !== "staff"
+  ) {
+    throw new Error("Forbidden");
+  }
+
+  const inquiry = await InquiryModel.findById(inquiryId).lean();
+  if (!inquiry) throw new Error("Inquiry not found");
+  if (inquiry.convertedToStudentId) {
+    throw new Error("This inquiry has already been converted");
+  }
+
+  const name = (data.name ?? inquiry.name)?.trim();
+  const email = (data.email ?? inquiry.email)?.toLowerCase().replace(/\s+/g, "");
+  if (!name || !email) throw new Error("Name and email are required");
+
+  const existing = await StudentModel.findOne({ email });
+  if (existing) throw new Error("A student with this email already exists");
+
+  const phone = (data.phone ?? inquiry.phone ?? "").trim() || "—";
+  const normalizedName = name.toLowerCase().replace(/\s+/g, "");
+  const password = `${normalizedName}@loctech`;
+  const passwordHash = await hashPassword(password);
+
+  const newStudent = await StudentModel.create({
+    name,
+    email,
+    phone,
+    address: data.address?.trim() || "—",
+    dateOfBirth: data.dateOfBirth
+      ? new Date(data.dateOfBirth)
+      : new Date("2000-01-01T00:00:00.000Z"),
+    highestQualification: data.highestQualification?.trim() || "Not specified",
+    stateOfOrigin: data.stateOfOrigin?.trim() || "Not specified",
+    nationality: data.nationality?.trim() || "Not specified",
+    occupation: data.occupation?.trim() || "Not specified",
+    heardFrom: heardFromFromInquiry(inquiry.heardAboutUs),
+    nextOfKin: {
+      name: "—",
+      relationship: "—",
+      contact: phone !== "—" ? phone : "—",
+    },
+    passwordHash,
+    status: "pending",
+  });
+
+  await InquiryModel.findByIdAndUpdate(inquiryId, {
+    status: "converted",
+    convertedToStudentId: newStudent._id,
+    respondedAt: new Date(),
+    respondedBy: session.user.id,
+  });
+
+  await SlackService.sendChannelMessage(
+    "#student-mgt",
+    buildStudentRegistrationBlock(
+      newStudent.name,
+      newStudent.email,
+      newStudent.phone,
+      0
+    )
+  );
+
+  await auditLog(session, {
+    action: "create",
+    resource: "student_from_inquiry",
+    resourceId: String(newStudent._id),
+    details: { inquiryId, email: newStudent.email },
+  });
+
+  return {
+    studentId: String(newStudent._id),
+    email: newStudent.email,
+  };
 };
 
 /* ─── Seed inquiries from assets/inquiries.csv (same pattern as loadStudentsData) ─── */

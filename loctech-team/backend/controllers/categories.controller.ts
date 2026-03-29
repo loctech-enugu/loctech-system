@@ -2,6 +2,7 @@ import { authConfig } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { CategoryModel } from "../models/category.model";
+import { auditLog } from "./audit-log.controller";
 
 /* eslint-disable */
 
@@ -81,6 +82,13 @@ export const createCategory = async (data: {
     isActive: data.isActive ?? true,
   });
 
+  await auditLog(session, {
+    action: "create",
+    resource: "category",
+    resourceId: String(category._id),
+    details: { name: data.name },
+  });
+
   return formatCategory(category.toObject());
 };
 
@@ -116,6 +124,13 @@ export const updateCategory = async (
   Object.assign(category, data);
   await category.save();
 
+  await auditLog(session, {
+    action: "update",
+    resource: "category",
+    resourceId: id,
+    details: { fields: Object.keys(data) },
+  });
+
   return formatCategory(category.toObject());
 };
 
@@ -142,6 +157,12 @@ export const deleteCategory = async (id: string) => {
 
   const deleted = await CategoryModel.findByIdAndDelete(id);
   if (!deleted) throw new Error("Category not found");
+
+  await auditLog(session, {
+    action: "delete",
+    resource: "category",
+    resourceId: id,
+  });
 
   return { success: true };
 };

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Calendar, QrCode, } from "lucide-react";
+import { Users, Calendar, QrCode, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import Enrollments from "@/components/enrollments";
 import { format } from "date-fns";
@@ -141,6 +141,23 @@ export default function InstructorClassView({ classId }: InstructorClassViewProp
               </span>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Assignments & grading</CardTitle>
+          <CardDescription>
+            Create tasks for this class and enter scores for each student.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild className="w-full" variant="default">
+            <Link href={`/dashboard/instructor/classes/${classId}/assignments`}>
+              <ClipboardList className="mr-2 h-4 w-4" />
+              Open assignments
+            </Link>
+          </Button>
         </CardContent>
       </Card>
 

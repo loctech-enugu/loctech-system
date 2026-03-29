@@ -38,6 +38,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -79,6 +86,9 @@ export function StudentsTable({
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
+  const [enrollmentFilter, setEnrollmentFilter] = React.useState<
+    "all" | "none" | "project"
+  >("all");
   const [deleting, setDeleting] = React.useState<Student | null>(null);
   const { isOpen, onOpenChange, onOpen } = useDisclosure();
   const { data: session } = useSession();
@@ -198,14 +208,23 @@ export function StudentsTable({
         cell: ({ row }) => row.getValue("heardFrom") || "-",
       },
       {
-        accessorKey: "courses",
-        header: "Courses",
+        id: "classCount",
+        accessorFn: (row) => row.classCount ?? 0,
+        header: "Class count",
         cell: ({ row }) => {
-          const courses = row.original.courses || [];
+          const n = row.original.classCount ?? 0;
+          const onProject = row.original.hasProjectEnrollment;
           return (
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-muted-foreground" />
-              <span>{courses.length}</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-muted-foreground" />
+                <span>{n}</span>
+              </div>
+              {onProject && (
+                <Badge variant="secondary" className="text-xs">
+                  Project class
+                </Badge>
+              )}
             </div>
           );
         },
@@ -266,8 +285,19 @@ export function StudentsTable({
     [onStudentDeleted, onStudentEdited, session]
   );
 
+  const filteredStudents = React.useMemo(() => {
+    const list = students ?? [];
+    if (enrollmentFilter === "none") {
+      return list.filter((s) => (s.classCount ?? 0) === 0);
+    }
+    if (enrollmentFilter === "project") {
+      return list.filter((s) => s.hasProjectEnrollment);
+    }
+    return list;
+  }, [students, enrollmentFilter]);
+
   const table = useReactTable({
-    data: students ?? [],
+    data: filteredStudents,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -279,20 +309,37 @@ export function StudentsTable({
     getPaginationRowModel: getPaginationRowModel(),
     state: { sorting, columnFilters, columnVisibility, rowSelection },
   });
-  const hasNoPassword = true;
+  const hasNoPassword = students.some((student) => !student.hasPassword);
   // console.log(hasNoPassword, students);
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between py-4">
-        <Input
-          placeholder="Filter by student name..."
-          value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-          onChange={(e) =>
-            table.getColumn("name")?.setFilterValue(e.target.value)
-          }
-          className="max-w-sm"
-        />
+      <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+          <Input
+            placeholder="Filter by student name..."
+            value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
+            onChange={(e) =>
+              table.getColumn("name")?.setFilterValue(e.target.value)
+            }
+            className="max-w-sm"
+          />
+          <Select
+            value={enrollmentFilter}
+            onValueChange={(v) =>
+              setEnrollmentFilter(v as "all" | "none" | "project")
+            }
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Enrollment" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All students</SelectItem>
+              <SelectItem value="none">No class assigned</SelectItem>
+              <SelectItem value="project">In a project-phase class</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div className="flex gap-2">
           {hasNoPassword && <GeneratePassword />}
           <DropdownMenu>

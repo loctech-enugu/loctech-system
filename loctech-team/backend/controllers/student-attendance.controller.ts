@@ -7,6 +7,7 @@ import { StudentAttendanceModel } from "../models/students-attendance.model";
 import { ClassModel } from "../models/class.model";
 import { EnrollmentModel } from "../models/enrollment.model";
 import { Types } from "mongoose";
+import { auditLog } from "./audit-log.controller";
 
 /**
  * ✅ Format Attendance Record
@@ -18,24 +19,24 @@ export const formatAttendance = (
   id: String(record._id),
   student: record.student
     ? {
-        id: String(record.student._id),
-        name: record.student.name,
-        email: record.student.email || null,
-      }
+      id: String(record.student._id),
+      name: record.student.name,
+      email: record.student.email || null,
+    }
     : null,
   class: record.class
     ? {
-        id: String(record.class._id),
-        name: record.class.name,
-        courseId: String(record.class.courseId),
-      }
+      id: String(record.class._id),
+      name: record.class.name,
+      courseId: String(record.class.courseId),
+    }
     : null,
   staff: record.staff
     ? {
-        id: String(record.staff._id),
-        name: record.staff.name,
-        email: record.staff.email,
-      }
+      id: String(record.staff._id),
+      name: record.staff.name,
+      email: record.staff.email,
+    }
     : null,
   date: record.date?.toISOString(),
   status: record.status,
@@ -205,7 +206,10 @@ export const createAttendance = async (
       date,
     });
 
+    let upsertedAs: "create" | "update" = "create";
+
     if (record) {
+      upsertedAs = "update";
       // Already signed in — just update the existing record
       record.status = (status as typeof record.status) || record.status;
       record.signInTime =
@@ -221,11 +225,21 @@ export const createAttendance = async (
         class: classId,
         date,
         status: status || "present",
-        signInTime: signInTime || new Date(),
+        signInTime: signInTime ? new Date(signInTime as string) : new Date(),
         notes,
         staff: session.user.id,
       });
     }
+
+    await auditLog(session, {
+      action: upsertedAs === "create" ? "create" : "update",
+      resource: "student_attendance",
+      resourceId: String(record._id),
+      details: {
+        classId: String(classId),
+        studentId: String(studentId),
+      },
+    });
 
     const populated = await record.populate([
       { path: "student", select: "name email" },
@@ -248,6 +262,8 @@ export const updateAttendance = async (
 ): Promise<StudentAttendance | null> => {
   try {
     await connectToDatabase();
+    const session = await getServerSession(authConfig);
+    if (!session) throw new Error("Unauthorized");
 
     const { studentId, classId, date, status, signOutTime, notes } = data;
 
@@ -266,6 +282,16 @@ export const updateAttendance = async (
     if (notes) record.notes = notes as string;
 
     await record.save();
+
+    await auditLog(session, {
+      action: "update",
+      resource: "student_attendance",
+      resourceId: String(record._id),
+      details: {
+        classId: String(record.class),
+        studentId: String(record.student),
+      },
+    });
 
     const populated = await record.populate([
       { path: "student", select: "name email" },
@@ -317,6 +343,16 @@ export const updateAttendanceById = async (
 
     await record.save();
 
+    await auditLog(session, {
+      action: "update",
+      resource: "student_attendance",
+      resourceId: id,
+      details: {
+        classId: String(record.class),
+        studentId: String(record.student),
+      },
+    });
+
     const populated = await record.populate([
       { path: "student", select: "name email" },
       { path: "class", select: "name courseId" },
@@ -337,6 +373,8 @@ export const signOutAttendance = async (
   id: string
 ): Promise<StudentAttendance | null> => {
   await connectToDatabase();
+  const session = await getServerSession(authConfig);
+  if (!session) throw new Error("Unauthorized");
 
   const updated = await StudentAttendanceModel.findByIdAndUpdate(
     id,
@@ -348,6 +386,15 @@ export const signOutAttendance = async (
     .populate("staff", "name email")
     .lean();
 
+  if (updated) {
+    await auditLog(session, {
+      action: "update",
+      resource: "student_attendance",
+      resourceId: id,
+      details: { kind: "sign_out" },
+    });
+  }
+
   return updated ? formatAttendance(updated) : null;
 };
 
@@ -356,6 +403,23 @@ export const signOutAttendance = async (
  */
 export const deleteAttendance = async (id: string): Promise<boolean> => {
   await connectToDatabase();
+  const session = await getServerSession(authConfig);
+  if (!session) throw new Error("Unauthorized");
+
+  const existing = await StudentAttendanceModel.findById(id).lean();
   const deleted = await StudentAttendanceModel.findByIdAndDelete(id);
+  if (deleted) {
+    await auditLog(session, {
+      action: "delete",
+      resource: "student_attendance",
+      resourceId: id,
+      details: existing
+        ? {
+            classId: String((existing as { class?: unknown }).class),
+            studentId: String((existing as { student?: unknown }).student),
+          }
+        : undefined,
+    });
+  }
   return !!deleted;
 };

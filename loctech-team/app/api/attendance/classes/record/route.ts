@@ -27,6 +27,8 @@ export async function POST(req: NextRequest) {
       method: body.method,
       pin: body.pin,
       barcode: body.barcode,
+      signInTime: body.signInTime,
+      signOutTime: body.signOutTime,
     });
 
     return NextResponse.json({

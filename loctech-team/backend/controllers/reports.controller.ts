@@ -7,6 +7,7 @@ import { ClassAttendanceModel } from "../models/class-attendance.model";
 import { EnrollmentModel } from "../models/enrollment.model";
 import { ClassModel } from "../models/class.model";
 import { getStudentClassGrade } from "./grades.controller";
+import { auditLog } from "./audit-log.controller";
 
 /**
  * Create a new daily report
@@ -43,6 +44,7 @@ export const createReport = async (
 ): Promise<DailyReport | null> => {
   try {
     await connectToDatabase();
+    const session = await getServerSession(authConfig);
 
     // Normalize date to ensure uniqueness
     const reportDate = data.date ? new Date(data.date) : new Date();
@@ -51,6 +53,12 @@ export const createReport = async (
     const report = await DailyReportModel.create({
       ...data,
       date: reportDate,
+    });
+
+    await auditLog(session, {
+      action: "create",
+      resource: "daily_report",
+      resourceId: String(report._id),
     });
 
     return report.toObject();
@@ -131,9 +139,19 @@ export const updateReport = async (
   data: Partial<DailyReport>
 ): Promise<DailyReport | null> => {
   await connectToDatabase();
-  return DailyReportModel.findByIdAndUpdate(id, data, {
+  const session = await getServerSession(authConfig);
+  const updated = await DailyReportModel.findByIdAndUpdate(id, data, {
     new: true,
   }).lean();
+  if (updated) {
+    await auditLog(session, {
+      action: "update",
+      resource: "daily_report",
+      resourceId: id,
+      details: { fields: Object.keys(data) },
+    });
+  }
+  return updated;
 };
 
 /**
@@ -141,7 +159,15 @@ export const updateReport = async (
  */
 export const deleteReport = async (id: string): Promise<boolean> => {
   await connectToDatabase();
+  const session = await getServerSession(authConfig);
   const res = await DailyReportModel.findByIdAndDelete(id);
+  if (res) {
+    await auditLog(session, {
+      action: "delete",
+      resource: "daily_report",
+      resourceId: id,
+    });
+  }
   return !!res;
 };
 
@@ -293,6 +319,13 @@ export const exportAttendanceCSV = async (params: {
       `${(r.date as Date).toISOString().split("T")[0]},${(r.studentId as { name?: string; email?: string })?.name ?? ""},${(r.studentId as { name?: string; email?: string })?.email ?? ""},${r.status},${r.method},${(r.recordedAt as Date)?.toISOString?.() ?? ""}`
   );
 
+  await auditLog(session, {
+    action: "update",
+    resource: "export",
+    resourceId: params.classId,
+    details: { kind: "attendance_csv" },
+  });
+
   return headers + "\n" + rows.join("\n");
 };
 
@@ -328,6 +361,13 @@ export const exportCourseRosterCSV = async (classId: string) => {
     (e) =>
       `${String((e.studentId) ?? "")},${(e.studentId as { name?: string })?.name ?? ""},${(e.studentId as { email?: string })?.email ?? ""},${e.status},${(e.enrolledAt as Date)?.toISOString?.() ?? ""}`
   );
+
+  await auditLog(session, {
+    action: "update",
+    resource: "export",
+    resourceId: classId,
+    details: { kind: "roster_csv" },
+  });
 
   return headers + "\n" + rows.join("\n");
 };
@@ -369,6 +409,13 @@ export const exportGradeSummaryCSV = async (classId: string) => {
       `${studentId},${(e.studentId as { name?: string })?.name ?? ""},${(e.studentId as { email?: string })?.email ?? ""},${grade.attendancePercentage.toFixed(1)},${grade.assignmentAverage.toFixed(1)},${grade.examAverage.toFixed(1)},${grade.overallGrade.toFixed(1)},${grade.isPassing ? "Yes" : "No"}`
     );
   }
+
+  await auditLog(session, {
+    action: "update",
+    resource: "export",
+    resourceId: classId,
+    details: { kind: "grade_summary_csv" },
+  });
 
   return headers + "\n" + rows.join("\n");
 };

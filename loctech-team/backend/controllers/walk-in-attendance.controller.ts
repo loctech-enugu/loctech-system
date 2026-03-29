@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { authConfig } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
 import { getServerSession } from "next-auth";
+import type { Session } from "next-auth";
 import { WalkInAttendanceModel } from "../models/walk-in-attendance.model";
 import { WalkInSessionModel } from "../models/walk-in-session.model";
 import { StudentModel } from "../models/students.model";
@@ -11,6 +12,7 @@ import type {
   WalkInStudentSearchResult,
   WalkInSignInResult,
 } from "@/types/walkin-attendance";
+import { auditLog } from "./audit-log.controller";
 
 /**
  * Create new walk-in session (invalidates all previous sessions)
@@ -40,11 +42,18 @@ export const createWalkInSession = async () => {
   const expiresAt = new Date();
   expiresAt.setMonth(expiresAt.getMonth() + 1); // one month from now
 
-  await WalkInSessionModel.create({
+  const doc = await WalkInSessionModel.create({
     barcode,
     secret,
     expiresAt,
     createdBy: session.user.id,
+  });
+
+  await auditLog(session, {
+    action: "create",
+    resource: "walk_in_session",
+    resourceId: String(doc._id),
+    details: { barcode },
   });
 
   return { barcode, expiresAt } satisfies { barcode: string; expiresAt: Date };
@@ -94,6 +103,8 @@ export const signInWalkIn = async (data: {
   const student = await StudentModel.findById(data.studentId);
   if (!student) throw new Error("Student not found");
 
+  let actorSession: Session | null = null;
+
   if (data.method === "barcode") {
     if (!data.barcode) throw new Error("Barcode required");
     const walkInSession = await WalkInSessionModel.findOne({
@@ -112,6 +123,7 @@ export const signInWalkIn = async (data: {
     ) {
       throw new Error("Forbidden");
     }
+    actorSession = session;
   }
 
   const date = data.date ? new Date(data.date) : new Date();
@@ -129,13 +141,21 @@ export const signInWalkIn = async (data: {
     // Update signInTime to current time
     record.signInTime = new Date();
     await record.save();
+    if (actorSession) {
+      await auditLog(actorSession, {
+        action: "update",
+        resource: "walk_in_attendance",
+        resourceId: String(record._id),
+        details: { studentId: data.studentId, method: data.method },
+      });
+    }
     return {
       id: String(record._id),
       message: "Sign-in time updated",
     };
   }
 
-  const staffSession = data.method === "staff_assisted" ? await getServerSession(authConfig) : null;
+  const staffSession = data.method === "staff_assisted" ? actorSession : null;
   record = await WalkInAttendanceModel.create({
     studentId: data.studentId,
     date,
@@ -144,6 +164,15 @@ export const signInWalkIn = async (data: {
     recordedBy: staffSession ? staffSession.user.id : undefined,
     notes: data.notes,
   });
+
+  if (actorSession) {
+    await auditLog(actorSession, {
+      action: "create",
+      resource: "walk_in_attendance",
+      resourceId: String(record._id),
+      details: { studentId: data.studentId, method: data.method },
+    });
+  }
 
   return {
     id: String(record._id),
@@ -191,6 +220,13 @@ export const signOutWalkIn = async (data: {
 
   record.signOutTime = new Date();
   await record.save();
+
+  await auditLog(session, {
+    action: "update",
+    resource: "walk_in_attendance",
+    resourceId: String(record._id),
+    details: { kind: "sign_out", studentId: String(record.studentId) },
+  });
 
   return { message: "Signed out successfully" };
 };

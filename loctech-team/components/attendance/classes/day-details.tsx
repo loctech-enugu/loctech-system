@@ -59,7 +59,7 @@ async function recordClassAttendance(data: {
   status: "present" | "absent";
   method: "manual" | "pin" | "barcode";
   signInTime?: string;
-  notes?: string;
+  signOutTime?: string;
 }) {
   const res = await fetch("/api/attendance/classes/record", {
     method: "POST",
@@ -78,7 +78,7 @@ async function updateClassAttendance(
   data: {
     status?: string;
     signInTime?: string;
-    signOutTime?: string;
+    signOutTime?: string | null;
     notes?: string;
   },
 ) {
@@ -188,9 +188,10 @@ export const AttendanceDetails = ({
       if (signInTime) {
         payload.signInTime = new Date(`${date}T${signInTime}`).toISOString();
       }
-      if (signOutTime) {
-        payload.signOutTime = new Date(`${date}T${signOutTime}`).toISOString();
-      }
+      // Always send so backend can clear sign-out when field is empty
+      payload.signOutTime = signOutTime
+        ? new Date(`${date}T${signOutTime}`).toISOString()
+        : null;
 
       try {
         await updateMutation.mutateAsync({
@@ -210,6 +211,11 @@ export const AttendanceDetails = ({
       date,
       status: selectedAction,
       method: "manual" as const,
+      ...(selectedAction === "present" && signInTime
+        ? {
+            signInTime: new Date(`${date}T${signInTime}`).toISOString(),
+          }
+        : {}),
     };
 
     try {
@@ -239,9 +245,18 @@ export const AttendanceDetails = ({
       const hours = String(recordedDate.getHours()).padStart(2, "0");
       const minutes = String(recordedDate.getMinutes()).padStart(2, "0");
       setSignInTime(`${hours}:${minutes}`);
+    } else {
+      setSignInTime("");
+    }
+    if (attendance.signOutTime) {
+      const out = new Date(attendance.signOutTime);
+      setSignOutTime(
+        `${String(out.getHours()).padStart(2, "0")}:${String(out.getMinutes()).padStart(2, "0")}`,
+      );
+    } else {
+      setSignOutTime("");
     }
     setNoteText("");
-    setSignOutTime("");
 
     setIsNoteModalOpen(true);
   };
@@ -299,10 +314,21 @@ export const AttendanceDetails = ({
                           <>
                             {attendance.recordedAt && (
                               <p className="text-xs mt-1 text-gray-600 flex items-center gap-1">
-                                <Clock size={14} />{" "}
+                                <Clock size={14} />
+                                In:{" "}
                                 {format(
                                   new Date(attendance.recordedAt),
                                   "hh:mm a",
+                                )}
+                                {attendance.signOutTime && (
+                                  <>
+                                    {" "}
+                                    · Out:{" "}
+                                    {format(
+                                      new Date(attendance.signOutTime),
+                                      "hh:mm a",
+                                    )}
+                                  </>
                                 )}
                               </p>
                             )}

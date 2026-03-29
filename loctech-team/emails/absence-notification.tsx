@@ -15,6 +15,7 @@ import {
 
 interface AbsenceNotificationEmailProps {
   studentName?: string;
+  /** Kept for API compatibility; body copy uses the Slack-approved template. */
   className?: string;
   absenceStreak?: number;
   contactEmail?: string;
@@ -22,11 +23,9 @@ interface AbsenceNotificationEmailProps {
 
 export const AbsenceNotificationEmail = ({
   studentName = "Student",
-  className = "your class",
-  absenceStreak = 2,
-  contactEmail = "enquiries@loctechng.com",
+  contactEmail = "loctechenugu@gmail.com",
 }: AbsenceNotificationEmailProps) => {
-  const previewText = `Attendance Alert - ${studentName}`;
+  const previewText = `Attendance notice — ${studentName}`;
 
   return (
     <Html>
@@ -45,52 +44,28 @@ export const AbsenceNotificationEmail = ({
           </Section>
 
           <Section style={content}>
-            <Heading style={heading}>Attendance Alert</Heading>
+            <Heading style={heading}>Attendance</Heading>
 
-            <Text style={paragraph}>Dear {studentName},</Text>
-
-            <Text style={paragraph}>
-              This is to inform you that you have missed{" "}
-              <strong>{absenceStreak} consecutive class sessions</strong> for{" "}
-              <strong>{className}</strong>.
-            </Text>
+            <Text style={paragraph}>Hello {studentName},</Text>
 
             <Text style={paragraph}>
-              Please contact your instructor or the administration if you have
-              any concerns or need to discuss your attendance.
+              You have missed your classes for several consecutive weeks. Kindly send an email to{" "}
+              <Link href={`mailto:${contactEmail}`} style={link}>
+                {contactEmail}
+              </Link>{" "}
+              requesting that your classes be placed on hold. This will enable us to properly manage
+              your schedule until you are ready to resume. Thank you for your cooperation.
             </Text>
 
             <Hr style={hr} />
 
-            <Section style={noticeSection}>
-              <Text style={noticeHeading}>📋 What you can do</Text>
-              <Text style={paragraph}>
-                • Reach out to your instructor to discuss any challenges
-              </Text>
-              <Text style={paragraph}>
-                • Check your class schedule and plan to attend upcoming sessions
-              </Text>
-              <Text style={paragraph}>
-                • Contact us at{" "}
-                <Link href={`mailto:${contactEmail}`} style={link}>
-                  {contactEmail}
-                </Link>{" "}
-                if you need support
-              </Text>
-            </Section>
-
-            <Text style={paragraph}>
-              Best regards,
-              <br />
-              Loctech Training Institution
-            </Text>
+            <Text style={paragraph}>— Loctech Team</Text>
           </Section>
 
           <Section style={footer}>
             <Hr style={hr} />
             <Text style={footerText}>
-              © {new Date().getFullYear()} Loctech IT Training Institute. All
-              rights reserved.
+              © {new Date().getFullYear()} Loctech IT Training Institute. All rights reserved.
             </Text>
           </Section>
         </Container>
@@ -148,21 +123,6 @@ const paragraph = {
 const hr = {
   borderColor: "#e6e6e6",
   margin: "24px 0",
-};
-
-const noticeSection = {
-  backgroundColor: "#fff9e6",
-  border: "1px solid #ffd666",
-  borderRadius: "6px",
-  padding: "16px",
-  marginTop: "24px",
-};
-
-const noticeHeading = {
-  fontSize: "16px",
-  fontWeight: "bold",
-  color: "#1a1a1a",
-  margin: "0 0 12px 0",
 };
 
 const link = {

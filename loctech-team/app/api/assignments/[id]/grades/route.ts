@@ -22,12 +22,13 @@ export async function GET(
     if (!assignment) throw new Error("Assignment not found");
 
     const classDoc = assignment.classId as unknown as { instructorId: string };
-    if (
-      session.user.role !== "admin" &&
-      session.user.role !== "super_admin" &&
-      (session.user.role !== "instructor" ||
-        String(classDoc?.instructorId) !== session.user.id)
-    ) {
+    const canManage =
+      session.user.role === "admin" ||
+      session.user.role === "super_admin" ||
+      session.user.role === "staff" ||
+      (session.user.role === "instructor" &&
+        String(classDoc?.instructorId) === session.user.id);
+    if (!canManage) {
       throw new Error("Forbidden");
     }
 
@@ -73,12 +74,13 @@ export async function POST(
     if (!assignment) throw new Error("Assignment not found");
 
     const classDoc = assignment.classId as unknown as { instructorId: string };
-    if (
-      session.user.role !== "admin" &&
-      session.user.role !== "super_admin" &&
-      (session.user.role !== "instructor" ||
-        String(classDoc?.instructorId) !== session.user.id)
-    ) {
+    const canManage =
+      session.user.role === "admin" ||
+      session.user.role === "super_admin" ||
+      session.user.role === "staff" ||
+      (session.user.role === "instructor" &&
+        String(classDoc?.instructorId) === session.user.id);
+    if (!canManage) {
       throw new Error("Forbidden");
     }
 

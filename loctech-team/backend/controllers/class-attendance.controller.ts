@@ -8,6 +8,7 @@ import { NotificationModel } from "../models/notification.model";
 import { StudentModel } from "../models/students.model";
 import { ClassSessionModel } from "../models/class-session.model";
 import { checkAndCreateAbsenceNotifications } from "./notifications.controller";
+import { auditLog } from "./audit-log.controller";
 import { createOtp } from "@/lib/otp";
 import { createQrSessionToken, getDailySecret } from "@/lib/qr";
 import crypto from "crypto";
@@ -30,6 +31,9 @@ export const formatClassAttendance = (attendance: Record<string, any>) => {
     status: attendance.status ?? "present",
     recordedAt: attendance.recordedAt
       ? (attendance.recordedAt as Date)?.toISOString?.()
+      : null,
+    signOutTime: attendance.signOutTime
+      ? (attendance.signOutTime as Date)?.toISOString?.()
       : null,
     method: attendance.method ?? "manual",
     pin: attendance.pin ?? null,
@@ -118,6 +122,13 @@ export const getTodayClassSession = async (classId: string) => {
     { upsert: true, new: true },
   ).lean();
 
+  await auditLog(session, {
+    action: "update",
+    resource: "class_session",
+    resourceId: String(classSession!._id),
+    details: { classId, dateKey, kind: "today_session_upsert" },
+  });
+
   return {
     classId,
     className: classItem.name,
@@ -174,6 +185,9 @@ export const recordClassAttendance = async (data: {
   method: "barcode" | "pin" | "manual";
   pin?: string;
   barcode?: string;
+  /** ISO string — sign-in time for manual entry (defaults to now) */
+  signInTime?: string;
+  signOutTime?: string;
 }) => {
   await connectToDatabase();
   const session = await getServerSession(authConfig);
@@ -262,13 +276,21 @@ export const recordClassAttendance = async (data: {
     },
   });
 
+  const resolvedSignIn = data.signInTime
+    ? new Date(data.signInTime)
+    : new Date();
+  const resolvedSignOut = data.signOutTime
+    ? new Date(data.signOutTime)
+    : undefined;
+
   if (existing) {
     // Update existing record
     existing.status = data.status;
     existing.method = data.method;
     existing.pin = data.pin;
     existing.recordedBy = session.user.id as any;
-    existing.recordedAt = new Date();
+    existing.recordedAt = resolvedSignIn;
+    if (resolvedSignOut) existing.signOutTime = resolvedSignOut;
     await existing.save();
 
     const populated = await ClassAttendanceModel.findById(existing._id)
@@ -279,6 +301,18 @@ export const recordClassAttendance = async (data: {
 
     // Update consecutive absence tracking
     await updateConsecutiveAbsences(data.studentId, data.classId);
+
+    await auditLog(session, {
+      action: "update",
+      resource: "class_attendance",
+      resourceId: String(existing._id),
+      details: {
+        classId: data.classId,
+        studentId: data.studentId,
+        status: data.status,
+        method: data.method,
+      },
+    });
 
     return formatClassAttendance(populated!);
   }
@@ -296,7 +330,8 @@ export const recordClassAttendance = async (data: {
     method: data.method,
     pin: data.pin,
     recordedBy: session.user.id,
-    recordedAt: new Date(),
+    recordedAt: resolvedSignIn,
+    ...(resolvedSignOut ? { signOutTime: resolvedSignOut } : {}),
   });
 
   const populated = await ClassAttendanceModel.findById(attendance._id)
@@ -311,6 +346,18 @@ export const recordClassAttendance = async (data: {
   // Check and create absence notifications (async, don't wait)
   checkAndCreateAbsenceNotifications(data.classId).catch((err) => {
     console.error("Error checking absence notifications:", err);
+  });
+
+  await auditLog(session, {
+    action: "create",
+    resource: "class_attendance",
+    resourceId: String(attendance._id),
+    details: {
+      classId: data.classId,
+      studentId: data.studentId,
+      status: data.status,
+      method: data.method,
+    },
   });
 
   return formatClassAttendance(populated!);
@@ -558,13 +605,11 @@ export const getClassAttendanceByDate = async (
     .populate("classId", "name courseId")
     .populate("recordedBy", "name email")
     .lean();
-  console.log("attendanceRecords: ", attendanceRecords);
 
   // 🔄 Format all attendance records
   const formattedRecords = attendanceRecords.map((a) =>
     formatClassAttendance(a),
   );
-  console.log("formattedRecords: ", formattedRecords);
 
   // 🧩 Combine students and their attendance record (if exists)
   const result = students.map((student: any) => {
@@ -665,8 +710,17 @@ export const updateAttendanceById = async (
       ? new Date(data.recordedAt as string)
       : new Date();
   }
-  if (data.signInTime !== undefined && data.signInTime) {
-    record.recordedAt = new Date(data.signInTime as string);
+  if (data.signInTime !== undefined) {
+    if (data.signInTime) {
+      record.recordedAt = new Date(data.signInTime as string);
+    }
+  }
+  if (data.signOutTime !== undefined) {
+    if (data.signOutTime === null || data.signOutTime === "") {
+      record.set("signOutTime", undefined);
+    } else {
+      record.signOutTime = new Date(data.signOutTime as string);
+    }
   }
   if (data.method !== undefined) {
     record.method = data.method as typeof record.method;
@@ -688,6 +742,16 @@ export const updateAttendanceById = async (
     .populate("classId", "name courseId")
     .populate("recordedBy", "name email")
     .lean();
+
+  await auditLog(session, {
+    action: "update",
+    resource: "class_attendance",
+    resourceId: id,
+    details: {
+      classId: String(record.classId),
+      studentId: String(record.studentId),
+    },
+  });
 
   return formatClassAttendance(populated!);
 };

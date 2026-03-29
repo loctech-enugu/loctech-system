@@ -24,6 +24,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ScheduleInput } from "./schedule-input";
 import { fetchInstructors } from "./create-class";
+import { Switch } from "@/components/ui/switch";
 
 
 const editClassSchema = z.object({
@@ -37,6 +38,7 @@ const editClassSchema = z.object({
   }),
   capacity: z.number().optional(),
   status: z.enum(["active", "inactive", "completed"]),
+  isProjectPhase: z.boolean().optional(),
 });
 
 type EditClassForm = z.infer<typeof editClassSchema>;
@@ -80,6 +82,7 @@ export default function EditClass({ classId, classItem }: EditClassProps) {
         },
       capacity: classItem.capacity,
       status: classItem.status ?? "active",
+      isProjectPhase: classItem.isProjectPhase ?? false,
     },
   });
 
@@ -104,6 +107,7 @@ export default function EditClass({ classId, classItem }: EditClassProps) {
         },
       capacity: classItem.capacity,
       status: classItem.status ?? "active",
+      isProjectPhase: classItem.isProjectPhase ?? false,
     });
   }, [classItem, form]);
 
@@ -215,6 +219,27 @@ export default function EditClass({ classId, classItem }: EditClassProps) {
               )}
             />
             <InputError message={form.formState.errors.status?.message} />
+          </div>
+
+          <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <Label htmlFor="isProjectPhase">Project phase</Label>
+              <p className="text-sm text-muted-foreground">
+                When on, this class is treated as being in a project / capstone period (shown on
+                rosters and student views).
+              </p>
+            </div>
+            <Controller
+              control={form.control}
+              name="isProjectPhase"
+              render={({ field }) => (
+                <Switch
+                  id="isProjectPhase"
+                  checked={!!field.value}
+                  onCheckedChange={field.onChange}
+                />
+              )}
+            />
           </div>
         </div>
 

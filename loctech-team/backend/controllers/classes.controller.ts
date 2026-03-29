@@ -5,6 +5,7 @@ import { ClassModel } from "../models/class.model";
 import { CourseModel } from "../models/courses.model";
 import { UserModel } from "../models/user.model";
 import { EnrollmentModel } from "../models/enrollment.model";
+import { auditLog } from "./audit-log.controller";
 
 /* eslint-disable */
 
@@ -20,6 +21,7 @@ interface ClassData {
   };
   capacity?: number;
   status?: "active" | "inactive" | "completed";
+  isProjectPhase?: boolean;
 }
 
 /**
@@ -51,6 +53,7 @@ export const formatClass = (classDoc: Record<string, any>) => {
         email: instructor.email ?? "",
       }
       : null,
+    isProjectPhase: Boolean(classDoc.isProjectPhase),
     createdAt: (classDoc.createdAt as Date)?.toISOString?.() ?? "",
     updatedAt: (classDoc.updatedAt as Date)?.toISOString?.() ?? "",
   };
@@ -155,6 +158,13 @@ export const createClass = async (data: ClassData) => {
     .populate("instructorId", "name email")
     .lean();
 
+  await auditLog(session, {
+    action: "create",
+    resource: "class",
+    resourceId: String(newClass._id),
+    details: { name: newClass.name, courseId: String(newClass.courseId) },
+  });
+
   return formatClass(populated!);
 };
 
@@ -169,15 +179,23 @@ export const updateClass = async (id: string, data: Partial<ClassData>) => {
   const classDoc = await ClassModel.findById(id);
   if (!classDoc) throw new Error("Class not found");
 
-  // Check access
-  if (String(classDoc.instructorId) !== session.user.id) {
-    throw new Error("Forbidden: You can only update your assigned classes");
+  const isAdmin =
+    session.user.role === "admin" || session.user.role === "super_admin";
+  const isAssignedInstructor =
+    session.user.role === "instructor" &&
+    String(classDoc.instructorId) === session.user.id;
 
-  } else if (
-    session.user.role !== "admin" &&
-    session.user.role !== "super_admin"
-  ) {
-    throw new Error("Forbidden");
+  const dataKeys = Object.keys(data).filter(
+    (k) => (data as Record<string, unknown>)[k] !== undefined
+  );
+  const onlyProjectPhaseToggle =
+    dataKeys.length > 0 &&
+    dataKeys.every((k) => k === "isProjectPhase");
+
+  if (onlyProjectPhaseToggle) {
+    if (!isAdmin && !isAssignedInstructor) throw new Error("Forbidden");
+  } else {
+    if (!isAdmin) throw new Error("Forbidden");
   }
 
   // Validate instructor if being changed
@@ -199,6 +217,13 @@ export const updateClass = async (id: string, data: Partial<ClassData>) => {
     .populate("courseId", "title courseRefId")
     .populate("instructorId", "name email")
     .lean();
+
+  await auditLog(session, {
+    action: "update",
+    resource: "class",
+    resourceId: id,
+    details: { fields: Object.keys(data), onlyProjectPhase: onlyProjectPhaseToggle },
+  });
 
   return formatClass(updated!);
 };
@@ -225,6 +250,12 @@ export const deleteClass = async (id: string) => {
 
   const deleted = await ClassModel.findByIdAndDelete(id);
   if (!deleted) throw new Error("Class not found");
+
+  await auditLog(session, {
+    action: "delete",
+    resource: "class",
+    resourceId: id,
+  });
 
   return { success: true };
 };

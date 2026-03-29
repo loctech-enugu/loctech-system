@@ -1,6 +1,7 @@
 import { authConfig } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
 import { getServerSession } from "next-auth";
+import type { Session } from "next-auth";
 import { AuditLogModel } from "../models/audit-log.model";
 
 /**
@@ -20,6 +21,31 @@ export const createAuditLog = async (data: {
   await connectToDatabase();
   await AuditLogModel.create(data);
 };
+
+/**
+ * Best-effort audit from a NextAuth session. Skips when no user id (e.g. public routes).
+ * Never throws — failures are logged only.
+ */
+export async function auditLog(
+  session: Session | null,
+  entry: Omit<
+    Parameters<typeof createAuditLog>[0],
+    "userId" | "userEmail" | "userName"
+  >
+): Promise<void> {
+  const uid = session?.user?.id;
+  if (!uid) return;
+  try {
+    await createAuditLog({
+      userId: uid,
+      userEmail: session.user.email ?? undefined,
+      userName: session.user.name ?? undefined,
+      ...entry,
+    });
+  } catch (e) {
+    console.error("auditLog failed:", e);
+  }
+}
 
 /**
  * Get audit logs (super_admin only)

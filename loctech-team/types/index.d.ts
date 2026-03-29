@@ -163,8 +163,12 @@ export interface Student {
   | "Flyers"
   | "Friends"
   | "Other";
-  status: "active" | "graduated" | "suspended";
+  status: "active" | "graduated" | "suspended" | "pending";
   hasPassword: boolean;
+  /** Active + paused enrollments (not completed/dropped) */
+  classCount?: number;
+  /** True if enrolled in at least one class with isProjectPhase */
+  hasProjectEnrollment?: boolean;
   nextOfKin: {
     name: string;
     relationship: string;
@@ -232,6 +236,8 @@ export interface Class {
   };
   createdAt: string;
   updatedAt: string;
+  /** Class is in project / capstone phase (roster indicator) */
+  isProjectPhase?: boolean;
 }
 
 export interface Enrollment {
@@ -251,6 +257,7 @@ export interface Enrollment {
     id: string;
     name: string;
     courseId: string;
+    isProjectPhase?: boolean;
   };
   createdAt: string;
   updatedAt: string;
@@ -291,6 +298,8 @@ export interface ClassAttendance {
   method: "manual" | "pin" | "barcode";
   pin?: string | null;
   recordedAt?: string | null;
+  /** Sign-out time when recorded (e.g. staff edit); mirrors backend */
+  signOutTime?: string | null;
   recordedBy?: {
     id: string;
     name: string;

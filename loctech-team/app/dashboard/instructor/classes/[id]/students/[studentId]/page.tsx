@@ -118,10 +118,17 @@ export default function InstructorStudentDetailPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Student in Class</CardTitle>
-            <CardDescription>
-              {student.name} in {classItem.name}
-            </CardDescription>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <CardTitle>Student in Class</CardTitle>
+                <CardDescription>
+                  {student.name} in {classItem.name}
+                </CardDescription>
+              </div>
+              {classItem.isProjectPhase && (
+                <Badge className="bg-violet-100 text-violet-900">Project phase</Badge>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-2">
             <p>
