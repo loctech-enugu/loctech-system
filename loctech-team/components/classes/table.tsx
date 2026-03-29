@@ -45,9 +45,11 @@ import {
 } from "@/components/ui/table";
 import { Class } from "@/types";
 import { DataTablePagination } from "../data-table-pagination";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SpinnerLoader } from "../spinner";
 import { formatTimeToAMPM } from "@/lib/utils";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 
 async function fetchClasses() {
   const res = await fetch("/api/classes");
@@ -57,6 +59,8 @@ async function fetchClasses() {
 }
 
 export function ClassesTable() {
+  const queryClient = useQueryClient();
+  const { data: session } = useSession();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
@@ -65,6 +69,28 @@ export function ClassesTable() {
   const { data: classes = [] as unknown as Class[], isLoading } = useQuery({
     queryKey: ["classes"],
     queryFn: fetchClasses,
+  });
+
+  const isAdmin =
+    session?.user?.role === "admin" || session?.user?.role === "super_admin";
+
+  const toggleProjectMutation = useMutation({
+    mutationFn: async ({ id, next }: { id: string; next: boolean }) => {
+      const res = await fetch(`/api/classes/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isProjectPhase: next }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || "Failed to update class");
+      return j;
+    },
+    onSuccess: () => {
+      toast.success("Project phase updated");
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
+    },
+    onError: (e) =>
+      toast.error(e instanceof Error ? e.message : "Could not update class"),
   });
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -214,10 +240,25 @@ export function ClassesTable() {
         },
       },
       {
+        id: "project",
+        header: "Project",
+        cell: ({ row }) =>
+          row.original.isProjectPhase ? (
+            <Badge className="bg-violet-100 text-violet-900">On project</Badge>
+          ) : (
+            <span className="text-sm text-muted-foreground">—</span>
+          ),
+      },
+      {
         id: "actions",
         enableHiding: false,
         cell: ({ row }) => {
           const classItem = row.original;
+          const canEditFull = isAdmin;
+          const canToggleProject =
+            isAdmin ||
+            (session?.user?.role === "instructor" &&
+              String(classItem.instructorId) === session?.user?.id);
           return (
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
@@ -225,13 +266,34 @@ export function ClassesTable() {
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[160px]">
+              <DropdownMenuContent align="end" className="w-[200px]">
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                {canEditFull && (
+                  <DropdownMenuItem asChild>
+                    <Link href={`/dashboard/classes/${classItem.id}/edit`}>
+                      Edit class
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem asChild>
-                  <Link href={`/dashboard/classes/${classItem.id}/edit`}>
-                    Edit class
+                  <Link href={`/dashboard/classes/${classItem.id}/assignments`}>
+                    Assignments & grading
                   </Link>
                 </DropdownMenuItem>
+                {canToggleProject && (
+                  <DropdownMenuItem
+                    onClick={() =>
+                      toggleProjectMutation.mutate({
+                        id: classItem.id,
+                        next: !classItem.isProjectPhase,
+                      })
+                    }
+                  >
+                    {classItem.isProjectPhase
+                      ? "Clear project phase"
+                      : "Mark project phase"}
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <a href={`/dashboard/classes/${classItem.id}/enrollments`}>
@@ -254,7 +316,7 @@ export function ClassesTable() {
         },
       },
     ],
-    []
+    [isAdmin, session?.user?.id, session?.user?.role, toggleProjectMutation]
   );
 
   const table = useReactTable({
@@ -284,6 +346,70 @@ export function ClassesTable() {
         message="Please wait while we load the classes."
       />
     );
+
+  const getDropdownMenuItems = (classItem: Class) => {
+    {
+      const canEditFull = isAdmin;
+      const canToggleProject =
+        isAdmin ||
+        (session?.user?.role === "instructor" &&
+          String(classItem.instructorId) === session?.user?.id);
+      return (
+        <DropdownMenu modal={false}>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-[200px]">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            {canEditFull && (
+              <DropdownMenuItem asChild>
+                <Link href={`/dashboard/classes/${classItem.id}/edit`}>
+                  Edit class
+                </Link>
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem asChild>
+              <Link href={`/dashboard/classes/${classItem.id}/assignments`}>
+                Assignments & grading
+              </Link>
+            </DropdownMenuItem>
+            {canToggleProject && (
+              <DropdownMenuItem
+                onClick={() =>
+                  toggleProjectMutation.mutate({
+                    id: classItem.id,
+                    next: !classItem.isProjectPhase,
+                  })
+                }
+              >
+                {classItem.isProjectPhase
+                  ? "Clear project phase"
+                  : "Mark project phase"}
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <a href={`/dashboard/classes/${classItem.id}/enrollments`}>
+                View Enrollments
+              </a>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <a href={`/dashboard/classes/${classItem.id}/attendance`}>
+                View Attendance
+              </a>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href={`/dashboard/classes/${classItem.id}/grades`}>
+                View Grades
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+    }
+  }
 
 
   return (
@@ -368,17 +494,18 @@ export function ClassesTable() {
             )}
           </TableBody>
         </Table>
+
       </div>
       <div className="space-y-4 md:hidden">
-        {classes.length > 0 ? (
+        {table.getRowModel().rows.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
             No classes found.
 
           </div>
-        ) : classes.map((classItem: Class) => (
+        ) : table.getRowModel().rows.map(({ original: classItem }) => (
           <div
             key={classItem.id}
-            className="flex items-center justify-between flex-col gap-4 md:flex-row p-4 border rounded-lg"
+            className="flex justify-between gap-4 md:flex-row p-4 border rounded-lg"
           >
             <div className="flex-1">
               <h3 className="font-semibold">{classItem.name}</h3>
@@ -395,16 +522,8 @@ export function ClassesTable() {
               </p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" asChild>
-                <Link href={`/dashboard/instructor/classes/${classItem.id}`}>
-                  View Class
-                </Link>
-              </Button>
-              <Button variant="outline" size="sm" asChild>
-                <Link href={`/dashboard/classes/${classItem.id}/attendance`}>
-                  Take Attendance
-                </Link>
-              </Button>
+
+              {getDropdownMenuItems(classItem)}
             </div>
           </div>
         ))}

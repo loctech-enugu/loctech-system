@@ -17,6 +17,7 @@ import fs from "fs";
 import path from "path";
 import { extractFirstName } from "@/lib/utils";
 import mongoose from "mongoose";
+import { auditLog } from "./audit-log.controller";
 
 const safeFormatDate = (value: string | null): string => {
   if (!value) return ""; // default or blank
@@ -183,6 +184,12 @@ export const formatStudent = (student: Record<string, any>): Student => ({
   },
 
   courses: [], // Deprecated - students enroll via classes
+  classCount:
+    typeof student.classCount === "number" ? student.classCount : undefined,
+  hasProjectEnrollment:
+    typeof student.hasProjectEnrollment === "boolean"
+      ? student.hasProjectEnrollment
+      : undefined,
 
   createdAt: student.createdAt
     ? new Date(student.createdAt).toISOString()
@@ -204,8 +211,53 @@ export const getAllStudents = async (): Promise<Student[]> => {
   // syncCoursesStudents()
 
   const students = await StudentModel.find({}).lean();
+  if (students.length === 0) return [];
 
-  return students.map(formatStudent);
+  const studentIds = students.map((s) => s._id);
+
+  const [countAgg, projectAgg] = await Promise.all([
+    EnrollmentModel.aggregate<{ _id: mongoose.Types.ObjectId; n: number }>([
+      {
+        $match: {
+          studentId: { $in: studentIds },
+          status: { $in: ["active", "paused"] },
+        },
+      },
+      { $group: { _id: "$studentId", n: { $sum: 1 } } },
+    ]),
+    EnrollmentModel.aggregate<{ _id: mongoose.Types.ObjectId }>([
+      {
+        $match: {
+          studentId: { $in: studentIds },
+          status: { $in: ["active", "paused"] },
+        },
+      },
+      {
+        $lookup: {
+          from: "classes",
+          localField: "classId",
+          foreignField: "_id",
+          as: "c",
+        },
+      },
+      { $unwind: "$c" },
+      { $match: { "c.isProjectPhase": true } },
+      { $group: { _id: "$studentId" } },
+    ]),
+  ]);
+
+  const countByStudent = new Map<string, number>(
+    countAgg.map((row) => [String(row._id), row.n])
+  );
+  const projectIds = new Set(projectAgg.map((row) => String(row._id)));
+
+  return students.map((doc) => {
+    const id = String(doc._id);
+    const raw = doc as Record<string, unknown>;
+    raw.classCount = countByStudent.get(id) ?? 0;
+    raw.hasProjectEnrollment = projectIds.has(id);
+    return formatStudent(raw);
+  });
 };
 
 /**
@@ -228,7 +280,7 @@ export const getStudentEnrollments = async (studentId: string) => {
   if (!session) throw new Error("Unauthorized");
 
   const enrollments = await EnrollmentModel.find({ studentId })
-    .populate("classId", "name courseId schedule status")
+    .populate("classId", "name courseId schedule status isProjectPhase")
     .populate({
       path: "classId",
       populate: {
@@ -255,6 +307,7 @@ export const getStudentEnrollments = async (studentId: string) => {
         id: String((enrollment.classId as any)._id),
         name: (enrollment.classId as any).name,
         courseId: String((enrollment.classId as any).courseId?._id || (enrollment.classId as any).courseId),
+        isProjectPhase: Boolean((enrollment.classId as any).isProjectPhase),
         course: (enrollment.classId as any).courseId
           ? {
             id: String((enrollment.classId as any).courseId._id),
@@ -311,6 +364,14 @@ export const createStudent = async (
     )
   );
 
+  const sess = await getServerSession(authConfig);
+  await auditLog(sess, {
+    action: "create",
+    resource: "student",
+    resourceId: String(newStudent._id),
+    details: { email: newStudent.email },
+  });
+
   return formatStudent(newStudent.toObject());
 };
 
@@ -328,6 +389,14 @@ export const updateStudent = async (
   }).lean();
 
   if (!updated) return null;
+
+  const sess = await getServerSession(authConfig);
+  await auditLog(sess, {
+    action: "update",
+    resource: "student",
+    resourceId: id,
+    details: { fields: Object.keys(data) },
+  });
 
   return formatStudent(updated);
 };
@@ -351,6 +420,11 @@ export const deleteStudent = async (id: string): Promise<boolean> => {
   await EnrollmentModel.deleteMany({ studentId: id });
 
   await StudentModel.findByIdAndDelete(id);
+  await auditLog(session, {
+    action: "delete",
+    resource: "student",
+    resourceId: id,
+  });
   return true;
 };
 function generatePassword(name: string): string {

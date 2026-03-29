@@ -8,6 +8,7 @@ import { UserExamModel } from "../models/user-exam.model";
 import { CourseModel } from "../models/courses.model";
 import { ClassModel } from "../models/class.model";
 import type { Types } from "mongoose";
+import { auditLog } from "./audit-log.controller";
 
 /** Populated course from mongoose (lean) */
 interface PopulatedCourse {
@@ -352,6 +353,14 @@ export const updateExam = async (id: string, data: Partial<UpdateExamInput>) => 
     .lean();
 
   if (!updated) throw new Error("Exam not found");
+
+  await auditLog(session, {
+    action: "update",
+    resource: "exam",
+    resourceId: id,
+    details: { fields: Object.keys(data) },
+  });
+
   return formatExam(updated as ExamLeanDoc);
 };
 
@@ -377,6 +386,12 @@ export const deleteExam = async (id: string) => {
 
   const deleted = await ExamModel.findByIdAndDelete(id);
   if (!deleted) throw new Error("Exam not found");
+
+  await auditLog(session, {
+    action: "delete",
+    resource: "exam",
+    resourceId: id,
+  });
 
   return { success: true };
 };
@@ -410,6 +425,13 @@ export const publishExam = async (id: string, publish: boolean) => {
   }
 
   await exam.save();
+
+  await auditLog(session, {
+    action: "update",
+    resource: "exam",
+    resourceId: id,
+    details: { publish, status: exam.status },
+  });
 
   return formatExam(exam.toObject() as ExamLeanDoc);
 };
@@ -549,6 +571,13 @@ export const publishExamResults = async (
 
   // If specific users provided, we can mark their results as published
   // For now, we just enable showing answers for all results
+
+  await auditLog(session, {
+    action: "update",
+    resource: "exam_results",
+    resourceId: examId,
+    details: { userIdsFilter: userIds?.length ?? 0 },
+  });
 
   return { success: true, message: "Exam results published" };
 };

@@ -42,6 +42,8 @@ const ClassSchema = new Schema(
       default: "active",
       index: true,
     },
+    /** When true, class is in a project phase (shown on class roster / student views) */
+    isProjectPhase: { type: Boolean, default: false, index: true },
   },
   { timestamps: true }
 );

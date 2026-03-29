@@ -9,6 +9,7 @@ import { StudentModel } from "../models/students.model";
 import { EnrollmentModel } from "../models/enrollment.model";
 import { ClassAttendanceModel } from "../models/class-attendance.model";
 import { formatExam } from "./exams.controller";
+import { auditLog } from "./audit-log.controller";
 
 /* eslint-disable */
 
@@ -338,6 +339,13 @@ export const startExam = async (examId: string, userId: string) => {
     violationCount: 0,
   });
 
+  await auditLog(session, {
+    action: "create",
+    resource: "user_exam",
+    resourceId: String(userExam._id),
+    details: { examId, userId, attemptNumber },
+  });
+
   // Get questions for the exam
   const questions = await QuestionModel.find({
     _id: { $in: questionIds },
@@ -434,6 +442,18 @@ export const submitExam = async (userExamId: string) => {
     .populate("examId", "title duration totalQuestions")
     .lean();
 
+  await auditLog(session, {
+    action: "update",
+    resource: "user_exam",
+    resourceId: userExamId,
+    details: {
+      submitted: true,
+      score: totalScore,
+      percentage,
+      examId: String(userExam.examId),
+    },
+  });
+
   return formatUserExam(updated!);
 };
 
@@ -474,6 +494,17 @@ export const recordViolation = async (
   }
 
   await userExam.save();
+
+  await auditLog(session, {
+    action: "update",
+    resource: "user_exam",
+    resourceId: userExamId,
+    details: {
+      violationType,
+      violationCount: userExam.violationCount,
+      autoFailed: userExam.status === "CANCELLED",
+    },
+  });
 
   return {
     violationCount: userExam.violationCount,

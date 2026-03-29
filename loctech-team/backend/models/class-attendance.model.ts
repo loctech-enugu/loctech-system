@@ -20,7 +20,8 @@ const ClassAttendanceSchema = new Schema(
       enum: ["present", "absent"],
       required: true,
     },
-    recordedAt: { type: Date, default: Date.now },
+    recordedAt: { type: Date, default: Date.now }, // sign-in time (manual / barcode / pin)
+    signOutTime: { type: Date }, // optional sign-out when staff records it
     recordedBy: {
       type: Schema.Types.ObjectId,
       ref: "User",

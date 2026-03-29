@@ -48,6 +48,9 @@ const StudentSchema = new Schema(
       enum: ["active", "graduated", "suspended", "pending"],
       default: "pending",
     },
+
+    /** Instructor/admin: student is currently on a capstone / project track */
+    onProject: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

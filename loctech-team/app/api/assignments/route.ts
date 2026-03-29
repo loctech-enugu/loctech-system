@@ -18,12 +18,13 @@ export async function GET(req: NextRequest) {
 
     const classDoc = await ClassModel.findById(classId).lean();
     if (!classDoc) throw new Error("Class not found");
-    if (
-      session.user.role !== "admin" &&
-      session.user.role !== "super_admin" &&
-      (session.user.role !== "instructor" ||
-        String(classDoc.instructorId) !== session.user.id)
-    ) {
+    const canManage =
+      session.user.role === "admin" ||
+      session.user.role === "super_admin" ||
+      session.user.role === "staff" ||
+      (session.user.role === "instructor" &&
+        String(classDoc.instructorId) === session.user.id);
+    if (!canManage) {
       throw new Error("Forbidden");
     }
 
@@ -60,12 +61,13 @@ export async function POST(req: NextRequest) {
 
     const classDoc = await ClassModel.findById(classId).lean();
     if (!classDoc) throw new Error("Class not found");
-    if (
-      session.user.role !== "admin" &&
-      session.user.role !== "super_admin" &&
-      (session.user.role !== "instructor" ||
-        String(classDoc.instructorId) !== session.user.id)
-    ) {
+    const canManage =
+      session.user.role === "admin" ||
+      session.user.role === "super_admin" ||
+      session.user.role === "staff" ||
+      (session.user.role === "instructor" &&
+        String(classDoc.instructorId) === session.user.id);
+    if (!canManage) {
       throw new Error("Forbidden");
     }
 

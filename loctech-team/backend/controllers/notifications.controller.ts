@@ -13,6 +13,7 @@ import AbsenceNotificationEmail from "@/emails/absence-notification";
 import AtRiskNotificationEmail from "@/emails/at-risk-notification";
 import { GradeConfigModel } from "../models/grade-config.model";
 import { getAttendancePercentage } from "./grades.controller";
+import { auditLog } from "./audit-log.controller";
 
 /* eslint-disable */
 
@@ -181,6 +182,17 @@ export const createNotification = async (data: {
     .populate("notifiedBy", "name email")
     .lean();
 
+  await auditLog(session, {
+    action: "create",
+    resource: "notification",
+    resourceId: String(notification._id),
+    details: {
+      type: notification.type,
+      studentId: data.studentId,
+      classId: data.classId,
+    },
+  });
+
   return formatNotification(populated!);
 };
 
@@ -225,7 +237,8 @@ export const sendAbsenceNotification = async (notificationId: string) => {
       studentName,
       className,
       absenceStreak,
-      contactEmail: process.env.EMAIL_FROM || "enquiries@loctechng.com",
+      contactEmail:
+        process.env.ABSENCE_HOLD_EMAIL || "loctechenugu@gmail.com",
     })
   );
 
@@ -260,6 +273,13 @@ export const sendAbsenceNotification = async (notificationId: string) => {
       emailSent: true,
       sentAt: new Date(),
       notifiedBy: session.user.id,
+    });
+
+    await auditLog(session, {
+      action: "update",
+      resource: "notification",
+      resourceId: notificationId,
+      details: { kind: "absence_email_sent", studentId: String(student._id) },
     });
 
     return { success: true, message: "Notification email sent" };
@@ -467,6 +487,16 @@ export const sendAtRiskNotification = async (notificationId: string) => {
     await ResendService.sendEmail({ from, to: student.email as string, subject, html });
     await EmailLogModel.create({ recipientEmail: student.email as string, subject, body: html, status: "sent", sentAt: new Date() });
     await NotificationModel.findByIdAndUpdate(notificationId, { emailSent: true, sentAt: new Date(), notifiedBy: session.user.id });
+    await auditLog(session, {
+      action: "update",
+      resource: "notification",
+      resourceId: notificationId,
+      details: {
+        kind: "at_risk_email_sent",
+        type: notification.type,
+        studentId: String(student._id),
+      },
+    });
     return { success: true, message: "At-risk notification email sent" };
   } catch (error: unknown) {
     await EmailLogModel.create({

@@ -37,6 +37,7 @@ export type InquiryRow = {
   status: string;
   adminNote?: string | null;
   autoReplySent?: boolean;
+  convertedToStudentId?: string | null;
   createdAt: string;
 };
 
@@ -184,6 +185,7 @@ export default function InquiryEditDialog({
                 <SelectContent>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="registered">Registered</SelectItem>
+                  <SelectItem value="converted">Converted</SelectItem>
                   <SelectItem value="not_interested">Not interested</SelectItem>
                 </SelectContent>
               </Select>

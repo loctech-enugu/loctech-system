@@ -1,7 +1,9 @@
 import { connectToDatabase } from "@/lib/db";
 import { UserModel } from "../models/user.model";
 import { User } from "@/types";
-import { hashPassword } from "@/lib/auth";
+import { authConfig, hashPassword } from "@/lib/auth";
+import { getServerSession } from "next-auth";
+import { auditLog } from "./audit-log.controller";
 import { render } from "@react-email/components";
 import WelcomeEmail from "@/emails/welcome";
 import EmailService from "../services/email.service";
@@ -174,6 +176,14 @@ export const createUser = async (data: Partial<User>): Promise<User | null> => {
     // 6. Commit transaction only if all succeeded
     await session.commitTransaction();
 
+    const authSession = await getServerSession(authConfig);
+    await auditLog(authSession, {
+      action: "create",
+      resource: "user",
+      resourceId: String(createdUser._id),
+      details: { email: normalizedEmail, role: createdUser.role },
+    });
+
     return {
       id: String(createdUser._id),
       email: createdUser.email,
@@ -220,6 +230,14 @@ export const updateUser = async (
     });
     if (!user) return null;
 
+    const authSession = await getServerSession(authConfig);
+    await auditLog(authSession, {
+      action: "update",
+      resource: "user",
+      resourceId: id,
+      details: { fields: Object.keys(data) },
+    });
+
     return {
       id: String(user._id),
       email: user.email,
@@ -250,6 +268,15 @@ export const deleteUser = async (id: string): Promise<boolean> => {
         runValidators: true,
       }
     );
+    if (result) {
+      const authSession = await getServerSession(authConfig);
+      await auditLog(authSession, {
+        action: "delete",
+        resource: "user",
+        resourceId: id,
+        details: { soft: true },
+      });
+    }
     return !!result;
   } catch (error) {
     console.error(`Error deleting user ${id}:`, error);

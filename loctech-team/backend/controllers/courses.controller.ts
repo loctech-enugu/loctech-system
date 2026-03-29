@@ -5,6 +5,7 @@ import { CourseModel } from "../models/courses.model";
 import { UserModel } from "../models/user.model";
 import { StudentModel } from "../models/students.model";
 import { Course } from "@/types";
+import { auditLog } from "./audit-log.controller";
 
 /* eslint-disable */
 
@@ -208,6 +209,13 @@ export const updateCourse = async (
     .populate("instructors", "name email")
     .lean();
 
+  await auditLog(session, {
+    action: "update",
+    resource: "course",
+    resourceId: id,
+    details: { fields: Object.keys(data) },
+  });
+
   return updated ? formatCourse(updated) : null;
 };
 
@@ -227,6 +235,12 @@ export const deleteCourse = async (
 
   const deleted = await CourseModel.findByIdAndDelete(id);
   if (!deleted) throw new Error("Course not found");
+
+  await auditLog(session, {
+    action: "delete",
+    resource: "course",
+    resourceId: id,
+  });
 
   return { success: true };
 };

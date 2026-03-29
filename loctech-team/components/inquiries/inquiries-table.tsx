@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   Table,
   TableBody,
@@ -12,9 +12,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SpinnerLoader } from "@/components/spinner";
-import { Check, Pencil } from "lucide-react";
+import { Check, Pencil, RefreshCw, UserPlus } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import InquiryEditDialog, { type InquiryRow } from "./inquiry-edit-dialog";
+import InquiryConvertDialog from "./inquiry-convert-dialog";
 
 const PAGE_SIZE = 20;
 
@@ -51,6 +53,21 @@ async function fetchInquiries(status: string | undefined, page: number) {
   };
 }
 
+async function syncInquiriesWithStudents(): Promise<{
+  examined: number;
+  updated: number;
+}> {
+  const res = await fetch("/api/inquiries/mark-registered", {
+    method: "POST",
+    credentials: "include",
+  });
+  const json = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.message || json.error || "Sync failed");
+  }
+  return json.data as { examined: number; updated: number };
+}
+
 const FOLLOW_LABELS: Record<string, string> = {
   called: "Called",
   text_whatsapp: "Text / WhatsApp",
@@ -65,6 +82,7 @@ function leadBadgeClass(lead: string) {
 
 function statusBadgeVariant(status: string) {
   if (status === "registered") return "default";
+  if (status === "converted") return "default";
   if (status === "not_interested") return "secondary";
   return "outline";
 }
@@ -74,6 +92,7 @@ export default function InquiriesTable() {
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<InquiryRow | null>(null);
+  const [converting, setConverting] = useState<InquiryRow | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["inquiries", statusFilter, page],
@@ -82,6 +101,18 @@ export default function InquiriesTable() {
 
   const inquiries = data?.inquiries ?? [];
   const pagination = data?.pagination;
+
+  const syncMutation = useMutation({
+    mutationFn: syncInquiriesWithStudents,
+    onSuccess: (result) => {
+      toast.success(
+        `Matched ${result.updated} inquiry(ies) to students (${result.examined} pending reviewed).`
+      );
+      queryClient.invalidateQueries({ queryKey: ["inquiries"] });
+    },
+    onError: (e) =>
+      toast.error(e instanceof Error ? e.message : "Sync failed"),
+  });
 
   const markResponded = async (id: string) => {
     const res = await fetch(`/api/inquiries/${id}/respond`, {
@@ -100,9 +131,9 @@ export default function InquiriesTable() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <div className="flex flex-wrap rounded-md border">
-          {["", "pending", "registered", "not_interested"].map((s) => (
+          {["", "pending", "registered", "converted", "not_interested"].map((s) => (
             <button
               key={s || "all"}
               type="button"
@@ -116,6 +147,20 @@ export default function InquiriesTable() {
             </button>
           ))}
         </div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="shrink-0 w-fit"
+          disabled={syncMutation.isPending}
+          onClick={() => syncMutation.mutate()}
+          title="Mark pending inquiries as registered when their email matches a student"
+        >
+          <RefreshCw
+            className={`h-4 w-4 mr-2 ${syncMutation.isPending ? "animate-spin" : ""}`}
+          />
+          {syncMutation.isPending ? "Syncing…" : "Sync with students"}
+        </Button>
       </div>
       <div className="rounded-md border overflow-x-auto">
         <Table>
@@ -181,7 +226,9 @@ export default function InquiriesTable() {
                     <Badge variant={statusBadgeVariant(inquiry.status)}>
                       {inquiry.status === "not_interested"
                         ? "Not interested"
-                        : inquiry.status}
+                        : inquiry.status === "converted"
+                          ? "Converted"
+                          : inquiry.status}
                     </Badge>
                     {inquiry.autoReplySent && (
                       <span className="ml-1 text-xs text-muted-foreground">(auto-reply)</span>
@@ -213,6 +260,17 @@ export default function InquiriesTable() {
                           Called
                         </Button>
                       )}
+                      {!inquiry.convertedToStudentId &&
+                        inquiry.status !== "not_interested" && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setConverting(inquiry)}
+                          >
+                            <UserPlus className="h-4 w-4 mr-1" />
+                            Convert
+                          </Button>
+                        )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -260,6 +318,12 @@ export default function InquiriesTable() {
         inquiry={editing}
         open={!!editing}
         onOpenChange={(open) => !open && setEditing(null)}
+      />
+
+      <InquiryConvertDialog
+        inquiry={converting}
+        open={!!converting}
+        onOpenChange={(open) => !open && setConverting(null)}
       />
     </div>
   );

@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const enrollments = await EnrollmentModel.find({
       studentId: session.user.id,
     })
-      .populate("classId", "name schedule courseId")
+      .populate("classId", "name schedule courseId isProjectPhase")
       .populate("studentId", "name email")
       .sort({ createdAt: -1 })
       .lean();
@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
           name: enrollment.classId.name,
           schedule: enrollment.classId.schedule,
           courseId: String(enrollment.classId.courseId || ""),
+          isProjectPhase: Boolean(enrollment.classId.isProjectPhase),
         }
         : null,
       createdAt: (enrollment.createdAt as Date)?.toISOString?.() ?? "",

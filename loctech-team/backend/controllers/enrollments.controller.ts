@@ -1,9 +1,15 @@
+import { render } from "@react-email/render";
 import { authConfig } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { EnrollmentModel } from "../models/enrollment.model";
 import { ClassModel } from "../models/class.model";
 import { StudentModel } from "../models/students.model";
+import { ResendService, getTransactionalFrom } from "../services/resend.service";
+import EnrollmentScheduleConfirmationEmail from "@/emails/enrollment-schedule-confirmation";
+import ClassUpcomingReminderEmail from "@/emails/class-upcoming-reminder";
+import { formatClassScheduleLines } from "@/lib/format-class-schedule";
+import { auditLog } from "./audit-log.controller";
 
 /* eslint-disable */
 
@@ -47,6 +53,7 @@ export const formatEnrollment = (enrollment: Record<string, any>) => {
           id: String(classDoc._id),
           name: classDoc.name ?? "",
           courseId: String(classDoc.courseId),
+          isProjectPhase: Boolean(classDoc.isProjectPhase),
         }
       : null,
     createdAt: (enrollment.createdAt as Date)?.toISOString?.() ?? "",
@@ -172,6 +179,66 @@ export const createEnrollment = async (data: EnrollmentData) => {
     })
     .lean();
 
+  const pop = populated as Record<string, unknown>;
+  const st = pop.studentId as { email?: string; name?: string } | undefined;
+  const cls = pop.classId as
+    | {
+        name?: string;
+        schedule?: Record<string, unknown>;
+        courseId?: { title?: string } | null;
+      }
+    | undefined;
+  if (st?.email && cls?.name) {
+    const courseTitle =
+      cls.courseId && typeof cls.courseId === "object" && "title" in cls.courseId
+        ? String((cls.courseId as { title?: string }).title ?? "")
+        : "";
+    const { daysLine, timeLine, timezone } = formatClassScheduleLines(
+      (cls.schedule as {
+        daysOfWeek?: number[];
+        startTime?: string;
+        endTime?: string;
+        timezone?: string;
+      }) ?? null
+    );
+    const from = getTransactionalFrom();
+    const emailProps = {
+      studentName: st.name ?? "Student",
+      className: cls.name,
+      courseTitle,
+      daysLine,
+      timeLine,
+      timezone,
+    };
+    try {
+      const htmlConfirm = await render(
+        EnrollmentScheduleConfirmationEmail(emailProps)
+      );
+      await ResendService.sendEmail({
+        from,
+        to: st.email,
+        subject: `Your class schedule — ${cls.name}`,
+        html: htmlConfirm,
+      });
+      const htmlReminder = await render(ClassUpcomingReminderEmail(emailProps));
+      await ResendService.sendEmail({
+        from,
+        to: st.email,
+        subject: `Reminder: your upcoming class — ${cls.name}`,
+        html: htmlReminder,
+      });
+    } catch (err) {
+      console.error("Enrollment notification emails failed:", err);
+    }
+  }
+
+  await auditLog(session, {
+    action: "create",
+    resource: "enrollment",
+    resourceId: String(enrollment._id),
+    details: { studentId: data.studentId, classId: data.classId },
+  });
+
   return formatEnrollment(populated!);
 };
 
@@ -235,6 +302,13 @@ export const updateEnrollment = async (
     })
     .lean();
 
+  await auditLog(session, {
+    action: "update",
+    resource: "enrollment",
+    resourceId: id,
+    details: { fields: Object.keys(data) },
+  });
+
   return formatEnrollment(updated!);
 };
 
@@ -252,6 +326,12 @@ export const deleteEnrollment = async (id: string) => {
 
   const deleted = await EnrollmentModel.findByIdAndDelete(id);
   if (!deleted) throw new Error("Enrollment not found");
+
+  await auditLog(session, {
+    action: "delete",
+    resource: "enrollment",
+    resourceId: id,
+  });
 
   return { success: true };
 };
@@ -357,6 +437,18 @@ export const bulkCreateEnrollments = async (
       errors.push({ studentId, error: error.message });
     }
   }
+
+  await auditLog(session, {
+    action: "create",
+    resource: "enrollment_bulk",
+    resourceId: classId,
+    details: {
+      created: enrollments.length,
+      classId,
+      studentCount: studentIds.length,
+      errorCount: errors.length,
+    },
+  });
 
   return {
     success: true,

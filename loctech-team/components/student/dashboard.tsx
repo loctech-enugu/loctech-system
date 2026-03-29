@@ -8,6 +8,14 @@ import { BookOpen, Calendar, CheckCircle, XCircle } from "lucide-react";
 import Link from "next/link";
 import { format, parse } from "date-fns";
 import { SpinnerLoader } from "../spinner";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 function formatTimeToAMPM(time: string): string {
   if (!time) return "";
@@ -33,6 +41,13 @@ async function fetchStudentAttendance() {
   return data.data || [];
 }
 
+async function fetchStudentAssignments() {
+  const res = await fetch("/api/student/assignments", { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to fetch assignments");
+  const data = await res.json();
+  return data.data || [];
+}
+
 export default function StudentDashboard() {
   const { data: enrollments = [], isLoading: loadingEnrollments } = useQuery({
     queryKey: ["student-enrollments"],
@@ -44,6 +59,11 @@ export default function StudentDashboard() {
     queryFn: fetchStudentAttendance,
   });
 
+  const { data: assignments = [], isLoading: loadingAssignments } = useQuery({
+    queryKey: ["student-assignments"],
+    queryFn: fetchStudentAssignments,
+  });
+
   // Calculate attendance stats
   const activeEnrollments = enrollments.filter((e: { status: string }) => e.status === "active");
   const totalSessions = attendanceRecords.length;
@@ -52,7 +72,7 @@ export default function StudentDashboard() {
   ).length;
   const attendancePercentage = totalSessions > 0 ? (presentSessions / totalSessions) * 100 : 0;
 
-  if (loadingEnrollments || loadingAttendance) {
+  if (loadingEnrollments || loadingAttendance || loadingAssignments) {
     return (
       <SpinnerLoader
         title="Loading"
@@ -123,6 +143,7 @@ export default function StudentDashboard() {
                   class?: {
                     name?: string;
                     courseId?: string;
+                    isProjectPhase?: boolean;
                     schedule?: {
                       daysOfWeek?: string[];
                       startTime?: string;
@@ -147,7 +168,14 @@ export default function StudentDashboard() {
                       className="flex items-center justify-between p-4 border rounded-lg"
                     >
                       <div className="flex-1">
-                        <h3 className="font-semibold">{classItem?.name || "Unknown Class"}</h3>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-semibold">{classItem?.name || "Unknown Class"}</h3>
+                          {classItem?.isProjectPhase && (
+                            <Badge variant="secondary" className="text-xs">
+                              Project phase
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-sm text-muted-foreground">
                           {enrollment.class?.courseId || "No course"}
                         </p>
@@ -186,6 +214,74 @@ export default function StudentDashboard() {
           ) : (
             <p className="text-center text-muted-foreground py-8">
               You are not enrolled in any classes
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Assignments & grades</CardTitle>
+          <CardDescription>
+            Tasks from your classes and scores entered by your instructor
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {assignments.length > 0 ? (
+            <div className="rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Assignment</TableHead>
+                    <TableHead>Class</TableHead>
+                    <TableHead>Due</TableHead>
+                    <TableHead className="text-right">Score</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {assignments.map(
+                    (a: {
+                      id: string;
+                      title: string;
+                      className: string;
+                      dueDate: string;
+                      maxScore: number;
+                      score: number | null;
+                      description?: string;
+                    }) => (
+                      <TableRow key={a.id}>
+                        <TableCell>
+                          <div className="font-medium">{a.title}</div>
+                          {a.description ? (
+                            <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                              {a.description}
+                            </p>
+                          ) : null}
+                        </TableCell>
+                        <TableCell className="text-sm">{a.className}</TableCell>
+                        <TableCell className="text-sm whitespace-nowrap">
+                          {a.dueDate
+                            ? new Date(a.dueDate).toLocaleDateString()
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="text-right text-sm">
+                          {a.score != null ? (
+                            <span>
+                              {a.score} / {a.maxScore}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground py-6 text-sm">
+              No assignments yet, or your instructor has not published grades.
             </p>
           )}
         </CardContent>

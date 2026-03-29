@@ -3,6 +3,7 @@ import { connectToDatabase } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { QuestionModel } from "../models/question.model";
 import { CategoryModel } from "../models/category.model";
+import { auditLog } from "./audit-log.controller";
 
 /* eslint-disable */
 
@@ -128,6 +129,13 @@ export const createQuestion = async (data: {
     .populate("categoryId", "name")
     .lean();
 
+  await auditLog(session, {
+    action: "create",
+    resource: "question",
+    resourceId: String(question._id),
+    details: { categoryId: data.categoryId },
+  });
+
   return formatQuestion(populated!);
 };
 
@@ -173,6 +181,13 @@ export const updateQuestion = async (
     .populate("categoryId", "name")
     .lean();
 
+  await auditLog(session, {
+    action: "update",
+    resource: "question",
+    resourceId: id,
+    details: { fields: Object.keys(data) },
+  });
+
   return formatQuestion(updated!);
 };
 
@@ -199,6 +214,12 @@ export const deleteQuestion = async (id: string) => {
 
   const deleted = await QuestionModel.findByIdAndDelete(id);
   if (!deleted) throw new Error("Question not found");
+
+  await auditLog(session, {
+    action: "delete",
+    resource: "question",
+    resourceId: id,
+  });
 
   return { success: true };
 };
@@ -248,6 +269,12 @@ export const bulkCreateQuestions = async (
       errors.push({ question: qData.question, error: error.message });
     }
   }
+
+  await auditLog(session, {
+    action: "create",
+    resource: "question_bulk",
+    details: { created: created.length, errorCount: errors.length },
+  });
 
   return {
     success: true,

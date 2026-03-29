@@ -58,9 +58,14 @@ export default function StudentClassView({ classId }: StudentClassViewProps) {
       {/* Class Header */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <div>
-              <CardTitle className="text-2xl">{classItem.name}</CardTitle>
+              <div className="flex flex-wrap items-center gap-2">
+                <CardTitle className="text-2xl">{classItem.name}</CardTitle>
+                {classItem.isProjectPhase && (
+                  <Badge variant="secondary">Project phase</Badge>
+                )}
+              </div>
               <CardDescription>
                 {classItem.course?.title || "No course assigned"}
               </CardDescription>

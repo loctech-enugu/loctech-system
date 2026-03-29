@@ -2,6 +2,7 @@ import { authConfig } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { EmailTemplateModel } from "../models/email-template.model";
+import { auditLog } from "./audit-log.controller";
 
 /* eslint-disable */
 
@@ -100,6 +101,13 @@ export const createEmailTemplate = async (data: {
     isActive: data.isActive ?? true,
   });
 
+  await auditLog(session, {
+    action: "create",
+    resource: "email_template",
+    resourceId: String(template._id),
+    details: { name: data.name, type: data.type },
+  });
+
   return formatEmailTemplate(template.toObject());
 };
 
@@ -142,6 +150,13 @@ export const updateEmailTemplate = async (
   Object.assign(template, data);
   await template.save();
 
+  await auditLog(session, {
+    action: "update",
+    resource: "email_template",
+    resourceId: id,
+    details: { fields: Object.keys(data) },
+  });
+
   return formatEmailTemplate(template.toObject());
 };
 
@@ -159,6 +174,12 @@ export const deleteEmailTemplate = async (id: string) => {
 
   const deleted = await EmailTemplateModel.findByIdAndDelete(id);
   if (!deleted) throw new Error("Template not found");
+
+  await auditLog(session, {
+    action: "delete",
+    resource: "email_template",
+    resourceId: id,
+  });
 
   return { success: true };
 };
