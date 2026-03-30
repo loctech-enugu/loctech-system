@@ -25,9 +25,9 @@ export const formatQuestion = (question: Record<string, any>) => {
     categoryId: String(question.categoryId),
     category: category
       ? {
-          id: String(category._id),
-          name: category.name ?? "",
-        }
+        id: String(category._id),
+        name: category.name ?? "",
+      }
       : null,
     tags: question.tags ?? [],
     isActive: question.isActive ?? true,
@@ -111,10 +111,6 @@ export const createQuestion = async (data: {
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
 
-  // Only admin and super_admin can create questions
-  if (session.user.role !== "admin" && session.user.role !== "super_admin") {
-    throw new Error("Forbidden");
-  }
 
   // Validate category exists
   const category = await CategoryModel.findById(data.categoryId);
@@ -161,9 +157,6 @@ export const updateQuestion = async (
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
 
-  if (session.user.role !== "admin" && session.user.role !== "super_admin") {
-    throw new Error("Forbidden");
-  }
 
   const question = await QuestionModel.findById(id);
   if (!question) throw new Error("Question not found");
@@ -244,9 +237,6 @@ export const bulkCreateQuestions = async (
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
 
-  if (session.user.role !== "admin" && session.user.role !== "super_admin") {
-    throw new Error("Forbidden");
-  }
 
   const created = [];
   const errors = [];

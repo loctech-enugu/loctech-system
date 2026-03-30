@@ -219,10 +219,6 @@ export const createExam = async (data: CreateExamInput) => {
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
 
-  // Only admin and super_admin can create exams
-  if (session.user.role !== "admin" && session.user.role !== "super_admin") {
-    throw new Error("Forbidden");
-  }
 
   // Validate questions exist
   if (data.questions.length === 0) {
@@ -306,9 +302,6 @@ export const updateExam = async (id: string, data: Partial<UpdateExamInput>) => 
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
 
-  if (session.user.role !== "admin" && session.user.role !== "super_admin") {
-    throw new Error("Forbidden");
-  }
 
   const exam = await ExamModel.findById(id);
   if (!exam) throw new Error("Exam not found");
@@ -404,9 +397,7 @@ export const publishExam = async (id: string, publish: boolean) => {
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
 
-  if (session.user.role !== "admin" && session.user.role !== "super_admin") {
-    throw new Error("Forbidden");
-  }
+
 
   const exam = await ExamModel.findById(id);
   if (!exam) throw new Error("Exam not found");
@@ -444,9 +435,6 @@ export const getExamResults = async (examId: string) => {
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
 
-  if (session.user.role !== "admin" && session.user.role !== "super_admin") {
-    throw new Error("Forbidden");
-  }
 
   const exam = await ExamModel.findById(examId).lean();
   if (!exam) throw new Error("Exam not found");
@@ -558,9 +546,6 @@ export const publishExamResults = async (
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
 
-  if (session.user.role !== "admin" && session.user.role !== "super_admin") {
-    throw new Error("Forbidden");
-  }
 
   const exam = await ExamModel.findById(examId);
   if (!exam) throw new Error("Exam not found");
