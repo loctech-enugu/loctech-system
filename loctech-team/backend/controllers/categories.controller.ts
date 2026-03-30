@@ -64,10 +64,6 @@ export const createCategory = async (data: {
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
 
-  // Only admin and super_admin can create categories
-  if (session.user.role !== "admin" && session.user.role !== "super_admin") {
-    throw new Error("Forbidden");
-  }
 
   // Check if category with same name exists
   const existing = await CategoryModel.findOne({
@@ -103,9 +99,6 @@ export const updateCategory = async (
   const session = await getServerSession(authConfig);
   if (!session) throw new Error("Unauthorized");
 
-  if (session.user.role !== "admin" && session.user.role !== "super_admin") {
-    throw new Error("Forbidden");
-  }
 
   const category = await CategoryModel.findById(id);
   if (!category) throw new Error("Category not found");

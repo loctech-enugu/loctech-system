@@ -66,20 +66,15 @@ const getMainNavItems = (userRole?: string): NavGroupItem[] => {
           : []),
       ],
     },
-    ...(userRole === "admin" || userRole === "super_admin"
-      ? [
-        {
-          title: "CBT",
-          icon: ClipboardList,
-          isAdmin: true,
-          items: [
-            { title: "Exams", href: userLinks.cbt.exams, isAdmin: true },
-            { title: "Question Bank", href: userLinks.cbt.questions, isAdmin: true },
-            { title: "Categories", href: userLinks.cbt.categories, isAdmin: true },
-          ],
-        } as NavGroupItem,
-      ]
-      : []),
+    {
+      title: "CBT",
+      icon: ClipboardList,
+      items: [
+        { title: "Exams", href: userLinks.cbt.exams },
+        { title: "Question Bank", href: userLinks.cbt.questions },
+        { title: "Categories", href: userLinks.cbt.categories },
+      ],
+    },
     {
       title: "Reports",
       href: userLinks.reports,
@@ -114,7 +109,7 @@ const getMainNavItems = (userRole?: string): NavGroupItem[] => {
 
   return items;
 };
-
+console.log(getMainNavItems());
 const footerNavItems = [
   { title: "Website", href: "https://loctech.com", icon: Globe },
   { title: "QR Code", href: "/admin/qr", icon: QrCode, isAdmin: true },
