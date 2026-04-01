@@ -33,8 +33,9 @@ const PasswordResetTokenSchema = new Schema(
   { timestamps: true }
 );
 
-// Index for automatic deletion of expired tokens
-PasswordResetTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+// Do not use a TTL index on expiresAt: MongoDB TTL uses the mongod clock, which can
+// differ from the app server clock and delete valid tokens early (e.g. ~1 hour skew).
+// Expiry is enforced in PasswordResetService; cleanupExpiredTokens can run on a schedule.
 
 export type PasswordResetToken = InferSchemaType<
   typeof PasswordResetTokenSchema

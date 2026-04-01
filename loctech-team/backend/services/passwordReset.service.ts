@@ -66,21 +66,21 @@ export class PasswordResetService {
         };
       }
 
-      // Generate reset token
+      // Generate reset token — explicit UTC ISO string (same idea as lib/otp.ts)
       const token = this.generateToken();
-      const expiresAt = new Date(
+      const expiresAtIso = new Date(
         Date.now() + this.TOKEN_EXPIRY_HOURS * 60 * 60 * 1000
-      );
+      ).toISOString();
 
       // Delete any existing tokens for this email
       await PasswordResetTokenModel.deleteMany({ email, userType });
 
-      // Create new token
+      // Create new token (Mongoose casts ISO string to Date for storage)
       await PasswordResetTokenModel.create({
         email,
         token,
         userType,
-        expiresAt,
+        expiresAt: expiresAtIso,
         used: false,
       });
 
