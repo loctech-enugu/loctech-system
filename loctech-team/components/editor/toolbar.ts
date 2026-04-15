@@ -1,4 +1,4 @@
-export var fonts = [
+export const fonts = [
   "Lato",
   "Arial",
   "Courier",
@@ -11,7 +11,7 @@ export var fonts = [
 export function getFontName(font: string) {
   return font.toLowerCase().replace(/\s/g, "-");
 }
-export var fontNames = fonts.map((font) => getFontName(font));
+export const fontNames = fonts.map((font) => getFontName(font));
 
 export const toolbarOptions = [
   ["bold", "italic", "underline", "strike"], // toggled buttons
