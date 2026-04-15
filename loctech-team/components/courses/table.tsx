@@ -231,6 +231,9 @@ export function CoursesTable({ courses, onCourseEdited }: CoursesTableProps) {
                       View Schedule
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href={userLinks.learning(course.id)}>Manage Learning</Link>
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -389,6 +392,9 @@ export function CoursesTable({ courses, onCourseEdited }: CoursesTableProps) {
                         <Link href={userLinks.schedule(c.id)}>
                           <Calendar className="mr-2 h-4 w-4" /> View Schedule
                         </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href={userLinks.learning(c.id)}>Manage Learning</Link>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

@@ -203,6 +203,83 @@
   .centered {
     @apply flex justify-center items-center;
   }
+  #learn-page img {
+    @apply w-full;
+  }
+  #learn-page p {
+    @apply text-base font-medium dark:text-foreground whitespace-pre-wrap wrap-break-word;
+  }
+  #learn-page h1 {
+    @apply text-xl lg:text-3xl font-bold;
+  }
+
+  #learn-page h2 {
+    @apply text-lg lg:text-2xl font-bold;
+  }
+
+  #learn-page h3 {
+    @apply text-lg lg:text-xl font-bold;
+  }
+
+  #learn-page h4 {
+    @apply text-base lg:text-lg font-bold;
+  }
+
+  #learn-page h5 {
+    @apply text-base lg:text-base font-bold;
+  }
+
+  #learn-page h6 {
+    @apply text-sm lg:text-base font-bold;
+  }
+  #learn-page ol {
+    @apply list-disc pl-6;
+  }
+  #learn-page ol li.ql-indent-1,
+  #learn-page ul li.ql-indent-1 {
+    @apply pl-6;
+  }
+
+  #learn-page ul {
+    @apply list-disc pl-6;
+  }
+
+  #learn-page a {
+    @apply text-primary-800 dark:text-primary-500 hover:text-secondary dark:hover:text-secondary;
+  }
+  #learn-page thead {
+    @apply bg-muted/70;
+  }
+  #learn-page th {
+    @apply border-b border-border px-4 py-3 text-left font-semibold text-foreground;
+  }
+  #learn-page td {
+    @apply border-b border-border/70 px-4 py-3 align-top text-foreground/90 wrap-break-word;
+  }
+  #learn-page tbody tr:last-child td {
+    @apply border-b-0;
+  }
+  #learn-page tbody tr:nth-child(even) {
+    @apply bg-muted/30;
+  }
+  #learn-page pre {
+    @apply max-w-full overflow-x-auto whitespace-pre rounded-lg border border-border bg-slate-950 p-4 text-sm text-slate-100;
+  }
+  #learn-page code {
+    @apply rounded bg-muted px-1.5 py-0.5 font-mono text-sm wrap-break-word;
+  }
+  #learn-page pre code {
+    @apply bg-transparent p-0 text-slate-100;
+  }
+  #learn-page blockquote {
+    @apply border-l-4 border-primary/40 bg-primary/5 px-4 py-3 italic text-foreground/90 wrap-break-word;
+  }
+  #learn-page hr {
+    @apply my-6 border-border;
+  }
+  #learn-page table {
+    @apply w-full border-collapse overflow-hidden rounded-xl border border-border bg-card text-sm;
+  }
 }
 
 .animate-spin {

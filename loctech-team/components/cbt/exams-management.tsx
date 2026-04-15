@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Eye, Edit, Play, Pause } from "lucide-react";
+import { Plus, Eye, Edit, Play, Pause, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useDisclosure } from "@/hooks/use-disclosure";
@@ -20,6 +20,16 @@ import CreateExam from "./create-exam";
 import EditExam from "./edit-exam";
 import { SpinnerLoader } from "../spinner";
 import { Exam } from "@/types";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 async function fetchExams() {
   const res = await fetch("/api/exams");
@@ -51,6 +61,7 @@ export default function ExamsManagement() {
   } = useDisclosure();
 
   const [selectedExam, setSelectedExam] = React.useState<Exam | null>(null);
+  const [examToDelete, setExamToDelete] = React.useState<Exam | null>(null);
 
   const { data: exams = [], isLoading } = useQuery<Exam[]>({
     queryKey: ["exams"],
@@ -67,6 +78,26 @@ export default function ExamsManagement() {
     onError: (error: unknown) => {
       const errorMessage = error instanceof Error ? error.message : "Failed to update exam";
       toast.error(errorMessage);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (examId: string) => {
+      const res = await fetch(`/api/exams/${examId}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to delete exam");
+      }
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Exam deleted");
+      setExamToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ["exams"] });
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : "Failed to delete exam";
+      toast.error(message);
     },
   });
 
@@ -164,6 +195,9 @@ export default function ExamsManagement() {
                           <Eye className="h-4 w-4" />
                         </Link>
                       </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setExamToDelete(exam)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -185,6 +219,26 @@ export default function ExamsManagement() {
         open={isEditOpen}
         onOpenChange={onEditOpenChange}
       />
+      <AlertDialog open={!!examToDelete} onOpenChange={(open) => !open && setExamToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete exam?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. Exams with student attempts cannot be deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (examToDelete) deleteMutation.mutate(examToDelete.id);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

@@ -3,8 +3,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, CheckCircle } from "lucide-react";
+import { BookOpen, Calendar, CheckCircle } from "lucide-react";
 import Link from "next/link";
+import { userLinks } from "@/lib/utils";
 import { format, parse } from "date-fns";
 import { SpinnerLoader } from "../spinner";
 
@@ -112,10 +113,16 @@ export default function StudentClassesList() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2 w-full md:w-auto">
+                  <div className="flex flex-wrap gap-2 w-full md:w-auto">
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/dashboard/classes/${enrollment.classId}`}>
                         View Details
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={userLinks.classLearning(enrollment.classId)}>
+                        <BookOpen className="mr-2 h-4 w-4" />
+                        Learning
                       </Link>
                     </Button>
                     <Button variant="outline" size="sm" asChild>

@@ -27,6 +27,7 @@ export const userLinks = {
   walkInSignIn: "/dashboard/walk-in/sign-in",
   announcements: "/dashboard/announcements",
   classes: "/dashboard/classes",
+  classLearning: (classId: string) => `/dashboard/classes/${classId}/learning`,
 };
 
 export const getGreeting = (name: string) => {

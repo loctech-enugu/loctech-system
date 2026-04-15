@@ -1,0 +1,555 @@
+<!doctype html>
+
+<html class="light" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Learn Topics - The Curated Scholar</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Work+Sans:wght@300;400;500;600&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              error: "#ba1a1a",
+              "surface-container-lowest": "#ffffff",
+              "on-tertiary": "#ffffff",
+              background: "#f7f9fb",
+              "on-error": "#ffffff",
+              "surface-container-high": "#e6e8ea",
+              "surface-dim": "#d8dadc",
+              "surface-container-highest": "#e0e3e5",
+              "on-surface-variant": "#43474e",
+              "primary-fixed": "#d6e3ff",
+              "inverse-surface": "#2d3133",
+              "on-primary-container": "#86a0cd",
+              "on-secondary-container": "#003c70",
+              outline: "#74777f",
+              "on-primary-fixed-variant": "#2d476f",
+              "on-error-container": "#93000a",
+              "surface-variant": "#e0e3e5",
+              "on-primary-fixed": "#001b3c",
+              "primary-container": "#1a365d",
+              secondary: "#0060ac",
+              primary: "#002045",
+              "surface-bright": "#f7f9fb",
+              "on-secondary-fixed": "#001c39",
+              "error-container": "#ffdad6",
+              "on-tertiary-fixed-variant": "#633f0f",
+              "surface-tint": "#455f88",
+              "on-tertiary-container": "#c6955e",
+              surface: "#f7f9fb",
+              "surface-container": "#eceef0",
+              "tertiary-container": "#4f2e00",
+              "outline-variant": "#c4c6cf",
+              "inverse-on-surface": "#eff1f3",
+              "primary-fixed-dim": "#adc7f7",
+              "on-secondary": "#ffffff",
+              "tertiary-fixed": "#ffddba",
+              "secondary-container": "#64a8fe",
+              "tertiary-fixed-dim": "#f2bc82",
+              "on-background": "#191c1e",
+              "on-primary": "#ffffff",
+              "on-surface": "#191c1e",
+              "inverse-primary": "#adc7f7",
+              tertiary: "#321b00",
+              "secondary-fixed-dim": "#a4c9ff",
+              "secondary-fixed": "#d4e3ff",
+              "on-secondary-fixed-variant": "#004883",
+              "surface-container-low": "#f2f4f6",
+              "on-tertiary-fixed": "#2b1700",
+            },
+            borderRadius: {
+              DEFAULT: "0.25rem",
+              lg: "0.5rem",
+              xl: "0.75rem",
+              full: "9999px",
+            },
+            fontFamily: {
+              headline: ["Manrope"],
+              body: ["Work Sans"],
+              label: ["Work Sans"],
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      .material-symbols-outlined {
+        font-variation-settings:
+          "FILL" 0,
+          "wght" 400,
+          "GRAD" 0,
+          "opsz" 24;
+      }
+      body {
+        background-color: #f7f9fb;
+        font-family: "Work Sans", sans-serif;
+        color: #191c1e;
+      }
+    </style>
+  </head>
+  <body class="bg-background text-on-background">
+    <nav
+      class="fixed top-0 w-full z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl shadow-sm dark:shadow-none tonal-shift bg-slate-50 dark:bg-slate-900/50"
+    >
+      <div
+        class="flex justify-between items-center w-full px-8 h-20 max-w-screen-2xl mx-auto"
+      >
+        <div
+          class="text-2xl font-black tracking-tighter text-blue-900 dark:text-blue-50 font-['Manrope']"
+        >
+          The Curated Scholar
+        </div>
+        <div
+          class="hidden md:flex items-center gap-8 font-['Manrope'] font-semibold tracking-tight"
+        >
+          <a
+            class="text-slate-500 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors"
+            href="#"
+            >Dashboard</a
+          >
+          <a
+            class="text-blue-700 dark:text-blue-400 border-b-2 border-blue-700 dark:border-blue-400 pb-1"
+            href="#"
+            >Courses</a
+          >
+          <a
+            class="text-slate-500 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors"
+            href="#"
+            >Library</a
+          >
+          <a
+            class="text-slate-500 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors"
+            href="#"
+            >Schedule</a
+          >
+        </div>
+        <div class="flex items-center gap-4">
+          <button
+            class="p-2 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 rounded-lg transition-all duration-300 ease-in-out active:scale-95"
+          >
+            <span
+              class="material-symbols-outlined text-blue-900 dark:text-blue-200"
+              >notifications</span
+            >
+          </button>
+          <button
+            class="p-2 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 rounded-lg transition-all duration-300 ease-in-out active:scale-95"
+          >
+            <span
+              class="material-symbols-outlined text-blue-900 dark:text-blue-200"
+              >settings</span
+            >
+          </button>
+          <img
+            alt="Student Profile"
+            class="w-10 h-10 rounded-full border-2 border-white dark:border-slate-800 shadow-sm"
+            data-alt="portrait of a professional student in a library setting, soft natural lighting, bokeh bookshelf background"
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBQ0JRWlPNJyrBv7RQnULGzcrzQE6lpT1LyT-cVXdthXn7ZdA2tleSHtXmAcUTR5d6efdmnkg0nh07rkGGujg2T_H7fLm46E6Wat4aZwwjtJJVZVc8n2QlaCGNhJZ0ItSvI1tOUe7bYC6UPENjSvg6yCHkgWREWWMPRPTAMlg4jkLXluLzHyHgaLdPw6EtPV8pR2Mv7v_bRmb8rVkJyZD3jjaX_KeIzxgQL4DvdT5bLSaK7ZcAdkhkeerNuK69ld51-8dTlLTVu210x"
+          />
+        </div>
+      </div>
+    </nav>
+    <aside
+      class="h-screen w-72 fixed left-0 top-0 pt-24 pb-8 bg-slate-50 dark:bg-slate-900 border-r border-slate-200/50 dark:border-slate-800/50 hidden lg:flex flex-col gap-2 pr-4 font-['Work_Sans'] text-sm font-medium"
+    >
+      <div class="px-8 mb-6">
+        <div
+          class="text-lg font-bold text-blue-900 dark:text-blue-50 font-['Manrope']"
+        >
+          Learning Paths
+        </div>
+        <div class="text-xs text-slate-500 uppercase tracking-widest mt-1">
+          Academic Year 2024
+        </div>
+      </div>
+      <nav class="flex flex-col gap-1">
+        <a
+          class="flex items-center gap-4 py-3 px-8 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-r-full hover:translate-x-1 transition-transform duration-200"
+          href="#"
+        >
+          <span class="material-symbols-outlined">menu_book</span>
+          <span>Humanities</span>
+        </a>
+        <a
+          class="flex items-center gap-4 py-3 px-8 bg-white dark:bg-slate-800 text-blue-900 dark:text-blue-50 font-bold rounded-l-none rounded-r-full shadow-sm hover:translate-x-1 transition-transform duration-200"
+          href="#"
+        >
+          <span class="material-symbols-outlined">science</span>
+          <span>Sciences</span>
+        </a>
+        <a
+          class="flex items-center gap-4 py-3 px-8 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-r-full hover:translate-x-1 transition-transform duration-200"
+          href="#"
+        >
+          <span class="material-symbols-outlined">memory</span>
+          <span>Technology</span>
+        </a>
+        <a
+          class="flex items-center gap-4 py-3 px-8 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-r-full hover:translate-x-1 transition-transform duration-200"
+          href="#"
+        >
+          <span class="material-symbols-outlined">palette</span>
+          <span>Arts</span>
+        </a>
+        <a
+          class="flex items-center gap-4 py-3 px-8 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-r-full hover:translate-x-1 transition-transform duration-200"
+          href="#"
+        >
+          <span class="material-symbols-outlined">biotech</span>
+          <span>Research</span>
+        </a>
+      </nav>
+      <div class="mt-auto px-8 flex flex-col gap-4">
+        <button
+          class="w-full bg-primary text-on-primary py-3 px-4 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all active:scale-95"
+        >
+          <span class="material-symbols-outlined text-sm">add</span>
+          Start New Course
+        </button>
+        <div
+          class="flex flex-col gap-2 pt-4 border-t border-slate-200 dark:border-slate-800"
+        >
+          <a
+            class="flex items-center gap-3 text-slate-500 hover:text-primary transition-colors"
+            href="#"
+          >
+            <span class="material-symbols-outlined text-lg">help_outline</span>
+            <span>Help Center</span>
+          </a>
+          <a
+            class="flex items-center gap-3 text-slate-500 hover:text-error transition-colors"
+            href="#"
+          >
+            <span class="material-symbols-outlined text-lg">logout</span>
+            <span>Log Out</span>
+          </a>
+        </div>
+      </div>
+    </aside>
+    <main class="pt-24 lg:pl-72 min-h-screen">
+      <div class="max-w-screen-xl mx-auto px-8 py-12">
+        <header
+          class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12"
+        >
+          <div>
+            <span
+              class="text-sm font-semibold uppercase tracking-[0.2em] text-secondary mb-2 block font-['Work_Sans']"
+              >Academics</span
+            >
+            <h1
+              class="text-5xl font-extrabold tracking-tight text-primary font-['Manrope']"
+            >
+              Learn
+            </h1>
+            <p
+              class="text-on-surface-variant mt-4 max-w-xl text-lg leading-relaxed"
+            >
+              Navigate through your curated academic curriculum. Select a topic
+              to delve deeper into specialized research and interactive modules.
+            </p>
+          </div>
+          <div class="relative w-full md:w-96 group">
+            <span
+              class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors"
+              >search</span
+            >
+            <input
+              class="w-full pl-12 pr-4 py-4 bg-surface-container-high border-none rounded-lg focus:ring-2 focus:ring-primary/20 transition-all font-['Work_Sans'] text-on-surface placeholder:text-slate-500"
+              placeholder="Search specialized topics..."
+              type="text"
+            />
+          </div>
+        </header>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div
+            class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-500 group relative"
+          >
+            <div class="h-1.5 w-full bg-surface-container-high overflow-hidden">
+              <div
+                class="h-full bg-secondary w-[85%] transition-all duration-1000"
+              ></div>
+            </div>
+            <div class="p-8">
+              <div class="flex justify-between items-start mb-6">
+                <span
+                  class="text-[10px] font-bold uppercase tracking-widest text-primary-container px-3 py-1 bg-primary-fixed rounded-full"
+                  >Web Technology</span
+                >
+                <span class="text-sm font-semibold text-secondary"
+                  >85% Complete</span
+                >
+              </div>
+              <h3 class="text-2xl font-bold text-primary mb-3 font-['Manrope']">
+                HTML Fundamentals
+              </h3>
+              <p
+                class="text-on-surface-variant text-sm mb-8 leading-relaxed font-['Work_Sans']"
+              >
+                Mastering semantic architecture, accessibility patterns, and
+                structural integrity of modern web documents.
+              </p>
+              <div class="flex items-center justify-between">
+                <div class="flex -space-x-2">
+                  <img
+                    alt="Student"
+                    class="w-8 h-8 rounded-full border-2 border-white"
+                    data-alt="close up of a student avatar with blurred background"
+                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQvYzcAZ0D1-VXpeqNrKKI4IglAtYwS1ZSbCaSONxf-h3oIFk_I2zsL4cmS7QuOnzIeRBkFX2GNrFc68b5a_TndTqiJh_8w58eOrEocklknhx9URqyntfNZtHH-Eb84WDkTC7pOkZqGb1dzWnu61aO8TNLn08nFqlf9-a1DYMgGGEFNg9Ad605vB7v9s4JIpr8a77QcTzm-hkUzZC7wPZ3eRD9a1QHspsO0DHqecAAoVDcui1z1uz6iRGpQa-43oWDd0o6WIJcGLD2"
+                  />
+                  <img
+                    alt="Student"
+                    class="w-8 h-8 rounded-full border-2 border-white"
+                    data-alt="young professional student profile image"
+                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpmWMf-F57StDP9Ind6FiGili-clJL17ssNLrkfKNKa15i5Vidz9ChYC_HsRdXU9QGBssi9CKUlw3bxTf-KSDMbNiPSjcqb0KyyRFZNiFK62wS4qare4HWRQVShc51Ad1MecdSN6DPnvm0-OJwCUymMngAaORd2iUOb7Wg4jMNBNYlDDSqHFf0BWy3ZMMJUvY5k9IaGZHqKSRIXFCA7giLGxqWEPxdNE3nBmxO_Av3HIEC7pfS92NJVP2iiQupXCRFeVJbyCrdAG1e"
+                  />
+                  <div
+                    class="w-8 h-8 rounded-full bg-surface-container-high border-2 border-white flex items-center justify-center text-[10px] font-bold"
+                  >
+                    +12
+                  </div>
+                </div>
+                <button
+                  class="bg-primary hover:bg-primary/90 text-on-primary px-6 py-2.5 rounded-lg font-medium text-sm transition-all active:scale-95 flex items-center gap-2"
+                >
+                  Explore
+                  <span class="material-symbols-outlined text-xs"
+                    >arrow_forward</span
+                  >
+                </button>
+              </div>
+            </div>
+            <div
+              class="absolute top-0 left-0 h-full w-[3px] bg-gradient-to-b from-primary to-secondary"
+            ></div>
+          </div>
+          <div
+            class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-500 group relative"
+          >
+            <div class="h-1.5 w-full bg-surface-container-high overflow-hidden">
+              <div
+                class="h-full bg-secondary w-[42%] transition-all duration-1000"
+              ></div>
+            </div>
+            <div class="p-8">
+              <div class="flex justify-between items-start mb-6">
+                <span
+                  class="text-[10px] font-bold uppercase tracking-widest text-primary-container px-3 py-1 bg-primary-fixed rounded-full"
+                  >Visual Arts</span
+                >
+                <span class="text-sm font-semibold text-secondary"
+                  >42% Complete</span
+                >
+              </div>
+              <h3 class="text-2xl font-bold text-primary mb-3 font-['Manrope']">
+                CSS Basics
+              </h3>
+              <p
+                class="text-on-surface-variant text-sm mb-8 leading-relaxed font-['Work_Sans']"
+              >
+                Exploring the visual language of the web through layouts,
+                sophisticated typography, and motion design.
+              </p>
+              <div class="flex items-center justify-between">
+                <div class="flex -space-x-2">
+                  <img
+                    alt="Student"
+                    class="w-8 h-8 rounded-full border-2 border-white"
+                    data-alt="profile photo of a smiling man in an academic setting"
+                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuBhChq9YiHg9L59FXcMBRjH3tUGStllXORNTN0sCLgXnq8J4QQkRfrfI_070wn3CYqpeowBL6LDYLvzBoy7Ojwl20kimi318XxthYa-SdVX3MqqSHBEZwxJg0jIN_rPYA3FQukdH48p2DW8RrimST5rXt8feIC3s1-K24z7_5VW_fyyILorcNcpSJcGSy9p_ssWRvpvgz2WaNz-U4RYdrH1goq0KdlEmDhHU72YOrLu1MYXGGlupxpBSCY0zr2FgacNej83VC1P8Mkf"
+                  />
+                  <div
+                    class="w-8 h-8 rounded-full bg-surface-container-high border-2 border-white flex items-center justify-center text-[10px] font-bold"
+                  >
+                    +5
+                  </div>
+                </div>
+                <button
+                  class="bg-primary hover:bg-primary/90 text-on-primary px-6 py-2.5 rounded-lg font-medium text-sm transition-all active:scale-95 flex items-center gap-2"
+                >
+                  Explore
+                  <span class="material-symbols-outlined text-xs"
+                    >arrow_forward</span
+                  >
+                </button>
+              </div>
+            </div>
+            <div
+              class="absolute top-0 left-0 h-full w-[3px] bg-gradient-to-b from-primary to-secondary opacity-0 group-hover:opacity-100 transition-opacity"
+            ></div>
+          </div>
+          <div
+            class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-shadow duration-500 group relative"
+          >
+            <div class="h-1.5 w-full bg-surface-container-high overflow-hidden">
+              <div
+                class="h-full bg-secondary w-[12%] transition-all duration-1000"
+              ></div>
+            </div>
+            <div class="p-8">
+              <div class="flex justify-between items-start mb-6">
+                <span
+                  class="text-[10px] font-bold uppercase tracking-widest text-primary-container px-3 py-1 bg-primary-fixed rounded-full"
+                  >Engineering</span
+                >
+                <span class="text-sm font-semibold text-secondary"
+                  >12% Complete</span
+                >
+              </div>
+              <h3 class="text-2xl font-bold text-primary mb-3 font-['Manrope']">
+                JavaScript Intro
+              </h3>
+              <p
+                class="text-on-surface-variant text-sm mb-8 leading-relaxed font-['Work_Sans']"
+              >
+                Introduction to computational logic, dynamic interactions, and
+                the foundational algorithms of the modern web.
+              </p>
+              <div class="flex items-center justify-between">
+                <div class="flex -space-x-2">
+                  <img
+                    alt="Student"
+                    class="w-8 h-8 rounded-full border-2 border-white"
+                    data-alt="professional woman profile photo in focus"
+                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIaGEmBVtD9humdwsM6KYqVmh7Fko6JNWWqNMItNDW8uqeZCts6NIQZcOAg_8_0RwSytozgw0yRhHBDa7PWlkyNzFOLIxbgV-R891hhcQigqXNxbrKSH9mX-EIuJ37eYecs9Wn8HRDyLehuGemPVIt2yWQY8N3vNmSOUXvEQFbEKGHf88z27pRn0rYLOlglxxLvP7vb7UghtS3bnFYx2fbA1LYA-s6q24snwKD3HBKk4aMoWzXqP4ebp7dctqn1XJ3bp__7T-LEWCa"
+                  />
+                  <img
+                    alt="Student"
+                    class="w-8 h-8 rounded-full border-2 border-white"
+                    data-alt="close up of a student with soft natural lighting"
+                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuCG6i9x1S7sAKp70hBzBXhOobzf4pAT31vfWVq6L9fTdvK4CgDW5D804ocGZwoTJwpmPFcyrFNQR-24QhIa7cFRGHaZnWgyyyiU4GZH8dY0UAJIZ0Wfe3Qc1h_3iZQfZ2DbSeF9bLQr2zN2ampmR006dKQOuqqtAt5LsvL-f9T21-Zla6DGpvvJ5ebAA7nlum1wU5vvas-9FQ16lHSJM_pHoVOmOKsOGBb97mfRs3Arv-xxuJKq2RT6oORiEmMw37NkeBTT6iR9mDL7"
+                  />
+                  <div
+                    class="w-8 h-8 rounded-full bg-surface-container-high border-2 border-white flex items-center justify-center text-[10px] font-bold"
+                  >
+                    +28
+                  </div>
+                </div>
+                <button
+                  class="bg-primary hover:bg-primary/90 text-on-primary px-6 py-2.5 rounded-lg font-medium text-sm transition-all active:scale-95 flex items-center gap-2"
+                >
+                  Explore
+                  <span class="material-symbols-outlined text-xs"
+                    >arrow_forward</span
+                  >
+                </button>
+              </div>
+            </div>
+            <div
+              class="absolute top-0 left-0 h-full w-[3px] bg-gradient-to-b from-primary to-secondary opacity-0 group-hover:opacity-100 transition-opacity"
+            ></div>
+          </div>
+          <div
+            class="bg-surface-container-low rounded-xl border border-dashed border-outline-variant flex flex-col items-center justify-center p-8 min-h-[360px] text-center group cursor-pointer hover:bg-surface-container-high transition-colors"
+          >
+            <div
+              class="w-16 h-16 rounded-full bg-white flex items-center justify-center mb-6 group-hover:scale-110 transition-transform"
+            >
+              <span class="material-symbols-outlined text-3xl text-primary"
+                >add</span
+              >
+            </div>
+            <h4 class="text-xl font-bold text-primary mb-2 font-['Manrope']">
+              Propose New Topic
+            </h4>
+            <p
+              class="text-on-surface-variant text-sm max-w-[200px] font-['Work_Sans']"
+            >
+              Contribute to the curriculum by suggesting a specialized path.
+            </p>
+          </div>
+        </div>
+        <section
+          class="mt-24 bg-primary-container rounded-2xl p-12 overflow-hidden relative"
+        >
+          <div class="relative z-10 grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2
+                class="text-4xl font-extrabold text-on-primary-container mb-6 font-['Manrope']"
+              >
+                Accelerate Your Learning Path
+              </h2>
+              <p
+                class="text-on-primary-container/80 text-lg mb-8 font-['Work_Sans'] leading-relaxed"
+              >
+                Join over 2,400 students in our high-intensity research labs
+                starting next semester. Secure your spot in the collaborative
+                workspace.
+              </p>
+              <button
+                class="bg-surface-container-lowest text-primary px-10 py-4 rounded-lg font-bold hover:bg-blue-50 transition-colors shadow-lg active:scale-95"
+              >
+                Join Research Lab
+              </button>
+            </div>
+            <div class="relative hidden md:block">
+              <div
+                class="aspect-square bg-linear-to-tr from-secondary to-blue-400 rounded-3xl transform rotate-3 shadow-2xl relative overflow-hidden"
+              >
+                <img
+                  alt="Students Collaborating"
+                  class="w-full h-full object-cover mix-blend-overlay opacity-60"
+                  data-alt="diverse group of students collaborating in a high-end modern workspace with laptops and glass walls"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-J-etqF7rBP6hRvMaG5CDv54-JFHE6UaZUpyTWscLr41T1hs-dQOscB98PlMwQmDO_api9T46q5WALJOu9uMBYQ5b81SzZBURwaaDnwu24AYyi9Zh46oMx25LhDrImFMWdOdVMIi4tUwgNn9HQp3Ww8tcbQmSD4-xL0_72V0KqRt6lpMxrvNwpTVPbTVrKGbMLYc3ykKgFY8B_eblxUfkuWNM009zqpK_0aVhKi_vyHz5Ce-95klzieraRB0_fAqpvgEqjloulfjZ"
+                />
+              </div>
+            </div>
+          </div>
+          <div
+            class="absolute -bottom-24 -right-24 w-96 h-96 bg-secondary/10 rounded-full blur-3xl"
+          ></div>
+          <div
+            class="absolute -top-24 -left-24 w-64 h-64 bg-primary/20 rounded-full blur-3xl"
+          ></div>
+        </section>
+      </div>
+    </main>
+    <footer
+      class="w-full py-12 mt-auto border-t border-slate-100 dark:border-slate-900 bg-white dark:bg-slate-950"
+    >
+      <div
+        class="flex flex-col md:flex-row justify-between items-center px-12 max-w-screen-2xl mx-auto font-['Work_Sans'] text-xs uppercase tracking-widest text-blue-900 dark:text-blue-200"
+      >
+        <div class="text-slate-400 dark:text-slate-600 mb-6 md:mb-0">
+          © 2024 The Curated Scholar. All rights reserved.
+        </div>
+        <div class="flex gap-8">
+          <a
+            class="text-slate-400 dark:text-slate-600 hover:text-blue-900 dark:hover:text-blue-200 transition-colors"
+            href="#"
+            >Privacy Policy</a
+          >
+          <a
+            class="text-slate-400 dark:text-slate-600 hover:text-blue-900 dark:hover:text-blue-200 transition-colors"
+            href="#"
+            >Terms of Service</a
+          >
+          <a
+            class="text-slate-400 dark:text-slate-600 hover:text-blue-900 dark:hover:text-blue-200 transition-colors"
+            href="#"
+            >Accessibility</a
+          >
+          <a
+            class="text-slate-400 dark:text-slate-600 hover:text-blue-900 dark:hover:text-blue-200 transition-colors"
+            href="#"
+            >Contact Support</a
+          >
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
