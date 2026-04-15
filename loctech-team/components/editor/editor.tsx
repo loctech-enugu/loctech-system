@@ -5,6 +5,7 @@ import 'react-quill-new/dist/quill.snow.css';
 import { fontNames, toolbarOptions } from './toolbar';
 import "./font.css";
 
+
 const Font = ReactQuill.Quill.import("attributors/class/font") as { whitelist: string[] };
 Font.whitelist = fontNames;
 ReactQuill.Quill.register("attributors/class/font", Font, true);
