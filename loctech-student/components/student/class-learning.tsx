@@ -185,7 +185,7 @@ export default function ClassLearning({ classId, showBackLink }: ClassLearningPr
   }
 
   return (
-    <div className="min-h-[70vh] rounded-xl border bg-slate-50/50">
+    <div className="min-h-[70vh] rounded-xl border bg-card">
       {showBackLink ? (
         <div className="border-b bg-background px-4 py-3">
           <Button variant="ghost" size="sm" asChild className="-ml-2">
@@ -197,7 +197,7 @@ export default function ClassLearning({ classId, showBackLink }: ClassLearningPr
         </div>
       ) : null}
       <div className="grid grid-cols-1 lg:grid-cols-12">
-        <aside className="border-r bg-slate-100/40 p-4 lg:col-span-3">
+        <aside className="border-r bg-card p-4 lg:col-span-3">
           <div className="mb-4 flex items-center gap-2">
             <div className="rounded-md bg-primary/10 p-2">
               <BookOpen className="h-4 w-4 text-primary" />

@@ -20,7 +20,7 @@ export const authLinks = {
 };
 
 export const userLinks = {
-  profile: "/dashboard/profile",
+  profile: "/dashboard/settings/profile",
   dashboard: "/dashboard",
   exams: "/dashboard/exams",
   attendance: "/dashboard/attendance/sign-in",
