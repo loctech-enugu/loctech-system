@@ -70,7 +70,7 @@ export default function EditExam({
   const { mutate: updateExam, isPending } = useMutation({
     mutationFn: async (data: EditExamForm) => {
       const res = await fetch(`/api/exams/${exam?.id}`, {
-        method: "PUT",
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });

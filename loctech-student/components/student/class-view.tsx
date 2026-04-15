@@ -4,8 +4,11 @@ import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, User, CheckCircle, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar, User, CheckCircle, XCircle, BookOpen } from "lucide-react";
 import { SpinnerLoader } from "../spinner";
+import Link from "next/link";
+import { userLinks } from "@/lib/utils";
 
 async function fetchClass(classId: string) {
   const res = await fetch(`/api/classes/${classId}`);
@@ -24,6 +27,24 @@ async function fetchClassAttendance(classId: string) {
 interface StudentClassViewProps {
   classId: string;
 }
+
+type AttendanceRecord = {
+  id: string;
+  date: string;
+  recordedAt: string;
+  method?: string;
+  status: "present" | "absent";
+};
+
+type ClassSchedule =
+  | string
+  | {
+      daysOfWeek?: string[];
+      startTime?: string;
+      endTime?: string;
+    }
+  | null
+  | undefined;
 
 export default function StudentClassView({ classId }: StudentClassViewProps) {
   const { data: classItem, isLoading } = useQuery({
@@ -58,13 +79,13 @@ export default function StudentClassView({ classId }: StudentClassViewProps) {
 
   const totalSessions = attendanceRecords.length;
   const presentSessions = attendanceRecords.filter(
-    (r: any) => r.status === "present"
+    (r: AttendanceRecord) => r.status === "present"
   ).length;
   const attendancePercentage =
     totalSessions > 0 ? (presentSessions / totalSessions) * 100 : 0;
 
   // Format schedule
-  const formatSchedule = (schedule: any) => {
+  const formatSchedule = (schedule: ClassSchedule) => {
     if (!schedule) return "TBD";
     if (typeof schedule === "string") return schedule;
     if (schedule.daysOfWeek && schedule.startTime && schedule.endTime) {
@@ -78,22 +99,30 @@ export default function StudentClassView({ classId }: StudentClassViewProps) {
       {/* Class Header */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <CardTitle className="text-2xl">{classItem.name}</CardTitle>
               <CardDescription>
                 {classItem.course?.title || "No course assigned"}
               </CardDescription>
             </div>
-            <Badge
-              className={
-                classItem.status === "active"
-                  ? "bg-green-100 text-green-800"
-                  : "bg-gray-200 text-gray-800"
-              }
-            >
-              {classItem.status}
-            </Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" asChild>
+                <Link href={userLinks.classLearning(classId)}>
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  Learning
+                </Link>
+              </Button>
+              <Badge
+                className={
+                  classItem.status === "active"
+                    ? "bg-green-100 text-green-800"
+                    : "bg-gray-200 text-gray-800"
+                }
+              >
+                {classItem.status}
+              </Badge>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -152,7 +181,7 @@ export default function StudentClassView({ classId }: StudentClassViewProps) {
         <CardContent>
           {attendanceRecords.length > 0 ? (
             <div className="space-y-2">
-              {attendanceRecords.map((record: any) => (
+              {attendanceRecords.map((record: AttendanceRecord) => (
                 <div
                   key={record.id}
                   className="flex items-center justify-between p-3 border rounded-lg"

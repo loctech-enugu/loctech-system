@@ -1,0 +1,63 @@
+/* Lato */
+
+.ql-font-lato,
+.ql-font .ql-picker-item[data-value="lato"] {
+  font-family: "Lato", sans-serif !important;
+}
+.ql-font .ql-picker-item[data-value="lato"]::before,
+.ql-picker-label.ql-active[data-value="lato"]::before {
+  content: "Lato" !important;
+}
+.ql-font-arial,
+.ql-font .ql-picker-item[data-value="arial"] {
+  font-family: "Arial", sans-serif !important;
+}
+.ql-font .ql-picker-item[data-value="arial"]::before,
+.ql-picker-label.ql-active[data-value="arial"]::before {
+  content: "Arial" !important;
+}
+
+.ql-font-courier,
+.ql-font .ql-picker-item[data-value="courier"] {
+  font-family: "Courier", sans-serif !important;
+}
+.ql-font .ql-picker-item[data-value="courier"]::before,
+.ql-picker-label.ql-active[data-value="courier"]::before {
+  content: "Courier" !important;
+}
+
+.ql-font-garamond,
+.ql-font .ql-picker-item[data-value="garamond"] {
+  font-family: "Garamond", sans-serif !important;
+}
+.ql-font .ql-picker-item[data-value="garamond"]::before,
+.ql-picker-label.ql-active[data-value="garamond"]::before {
+  content: "Garamond" !important;
+}
+
+.ql-font-tahoma,
+.ql-font .ql-picker-item[data-value="tahoma"] {
+  font-family: "Tahoma", sans-serif !important;
+}
+.ql-font .ql-picker-item[data-value="tahoma"]::before,
+.ql-picker-label.ql-active[data-value="tahoma"]::before {
+  content: "Tahoma" !important;
+}
+
+.ql-font-times-new-roman,
+.ql-font .ql-picker-item[data-value="times-new-roman"] {
+  font-family: "Times New Roman", sans-serif !important;
+}
+.ql-font .ql-picker-item[data-value="times-new-roman"]::before,
+.ql-picker-label.ql-active[data-value="times-new-roman"]::before {
+  content: "Times New Roman" !important;
+}
+
+.ql-font-verdana,
+.ql-font .ql-picker-item[data-value="verdana"] {
+  font-family: "Verdana", sans-serif !important;
+}
+.ql-font .ql-picker-item[data-value="verdana"]::before,
+.ql-picker-label.ql-active[data-value="verdana"]::before {
+  content: "Verdana" !important;
+}

@@ -20,13 +20,14 @@ export const authLinks = {
 };
 
 export const userLinks = {
-  profile: "/dashboard/profile",
+  profile: "/dashboard/settings/profile",
   dashboard: "/dashboard",
   exams: "/dashboard/exams",
   attendance: "/dashboard/attendance/sign-in",
   walkInSignIn: "/dashboard/walk-in/sign-in",
   announcements: "/dashboard/announcements",
   classes: "/dashboard/classes",
+  classLearning: (classId: string) => `/dashboard/classes/${classId}/learning`,
 };
 
 export const getGreeting = (name: string) => {

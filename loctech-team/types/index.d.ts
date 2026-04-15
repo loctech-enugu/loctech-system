@@ -140,6 +140,20 @@ export interface Course {
   updatedAt: string;
 }
 
+export interface CourseLearningLesson {
+  id: string;
+  courseId: string;
+  title: string;
+  slug?: string;
+  order: number;
+  contentHtml: string;
+  starterHtml: string;
+  starterCss: string;
+  starterJs: string;
+  estimatedMinutes: number;
+  isPublished: boolean;
+}
+
 export interface Student {
   id: string;
   name: string;

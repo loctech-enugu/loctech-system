@@ -1,0 +1,465 @@
+<!doctype html>
+
+<html class="light" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Work+Sans:wght@300;400;500;600&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              error: "#ba1a1a",
+              "surface-container-lowest": "#ffffff",
+              "on-tertiary": "#ffffff",
+              background: "#f7f9fb",
+              "on-error": "#ffffff",
+              "surface-container-high": "#e6e8ea",
+              "surface-dim": "#d8dadc",
+              "surface-container-highest": "#e0e3e5",
+              "on-surface-variant": "#43474e",
+              "primary-fixed": "#d6e3ff",
+              "inverse-surface": "#2d3133",
+              "on-primary-container": "#86a0cd",
+              "on-secondary-container": "#003c70",
+              outline: "#74777f",
+              "on-primary-fixed-variant": "#2d476f",
+              "on-error-container": "#93000a",
+              "surface-variant": "#e0e3e5",
+              "on-primary-fixed": "#001b3c",
+              "primary-container": "#1a365d",
+              secondary: "#0060ac",
+              primary: "#002045",
+              "surface-bright": "#f7f9fb",
+              "on-secondary-fixed": "#001c39",
+              "error-container": "#ffdad6",
+              "on-tertiary-fixed-variant": "#633f0f",
+              "surface-tint": "#455f88",
+              "on-tertiary-container": "#c6955e",
+              surface: "#f7f9fb",
+              "surface-container": "#eceef0",
+              "tertiary-container": "#4f2e00",
+              "outline-variant": "#c4c6cf",
+              "inverse-on-surface": "#eff1f3",
+              "primary-fixed-dim": "#adc7f7",
+              "on-secondary": "#ffffff",
+              "tertiary-fixed": "#ffddba",
+              "secondary-container": "#64a8fe",
+              "tertiary-fixed-dim": "#f2bc82",
+              "on-background": "#191c1e",
+              "on-primary": "#ffffff",
+              "on-surface": "#191c1e",
+              "inverse-primary": "#adc7f7",
+              tertiary: "#321b00",
+              "secondary-fixed-dim": "#a4c9ff",
+              "secondary-fixed": "#d4e3ff",
+              "on-secondary-fixed-variant": "#004883",
+              "surface-container-low": "#f2f4f6",
+              "on-tertiary-fixed": "#2b1700",
+            },
+            borderRadius: {
+              DEFAULT: "0.25rem",
+              lg: "0.5rem",
+              xl: "0.75rem",
+              full: "9999px",
+            },
+            fontFamily: {
+              headline: ["Manrope"],
+              body: ["Work Sans"],
+              label: ["Work Sans"],
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      .material-symbols-outlined {
+        font-variation-settings:
+          "FILL" 0,
+          "wght" 400,
+          "GRAD" 0,
+          "opsz" 24;
+      }
+      .backdrop-blur-xl {
+        backdrop-filter: blur(24px);
+      }
+    </style>
+  </head>
+  <body
+    class="bg-background text-on-background font-body selection:bg-primary-fixed selection:text-on-primary-fixed"
+  >
+    <!-- TopNavBar -->
+    <nav
+      class="fixed top-0 w-full z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl shadow-sm dark:shadow-none tonal-shift bg-slate-50 dark:bg-slate-900/50"
+    >
+      <div
+        class="flex justify-between items-center w-full px-8 h-20 max-w-screen-2xl mx-auto"
+      >
+        <div class="flex items-center gap-8">
+          <span
+            class="text-2xl font-black tracking-tighter text-blue-900 dark:text-blue-50 font-headline"
+            >The Curated Scholar</span
+          >
+          <div class="hidden md:flex gap-6">
+            <a
+              class="font-headline font-semibold tracking-tight text-slate-500 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors"
+              href="#"
+              >Dashboard</a
+            >
+            <a
+              class="font-headline font-semibold tracking-tight text-blue-700 dark:text-blue-400 border-b-2 border-blue-700 dark:border-blue-400 pb-1"
+              href="#"
+              >Courses</a
+            >
+            <a
+              class="font-headline font-semibold tracking-tight text-slate-500 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors"
+              href="#"
+              >Library</a
+            >
+            <a
+              class="font-headline font-semibold tracking-tight text-slate-500 dark:text-slate-400 hover:text-blue-900 dark:hover:text-blue-100 transition-colors"
+              href="#"
+              >Schedule</a
+            >
+          </div>
+        </div>
+        <div class="flex items-center gap-4">
+          <button
+            class="p-2 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 rounded-lg transition-all duration-300 ease-in-out active:scale-95 text-blue-900 dark:text-blue-200"
+          >
+            <span class="material-symbols-outlined" data-icon="notifications"
+              >notifications</span
+            >
+          </button>
+          <button
+            class="p-2 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 rounded-lg transition-all duration-300 ease-in-out active:scale-95 text-blue-900 dark:text-blue-200"
+          >
+            <span class="material-symbols-outlined" data-icon="settings"
+              >settings</span
+            >
+          </button>
+          <div
+            class="w-10 h-10 rounded-full overflow-hidden ml-2 ring-2 ring-primary-fixed"
+          >
+            <img
+              alt="Student Profile"
+              data-alt="Close-up portrait of a thoughtful university student with soft natural lighting in a modern library setting"
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCqqdVItjIn6CS4--at65EkMDVBTcvbZB6e1KZbkuJ42_K8Uu3YkIWtD_s3DpXXCekWnN9aQjqmwNcryOXMQGOkrBRdsvnSOOcki_53vmsYjLOsnLxBHsyvzI6VXzAFaJSgPwHuWoD0fsm5vDsk3Iz6TVHlERFJMKq1ooTRIcrfn_whyB0gKNtrOpE6OslRFCmsrgufSjE5AmD-zTAXNTlMdctEEXP_2sWrASAXvwF5kbxdPsuSAGZodCGyL5b8LNSEDxXK449guN0s"
+            />
+          </div>
+        </div>
+      </div>
+    </nav>
+    <!-- Sidebar & Main Content Wrapper -->
+    <div class="flex pt-20 min-h-screen">
+      <!-- SideNavBar (Learning Path Modules) -->
+      <aside
+        class="h-screen w-72 fixed left-0 top-0 pt-24 pb-8 bg-slate-50 dark:bg-slate-900 border-r border-slate-200/50 dark:border-slate-800/50 flex flex-col gap-2 pr-4 z-40"
+      >
+        <div class="px-6 mb-8">
+          <div class="flex items-center gap-3 mb-2">
+            <div
+              class="w-8 h-8 bg-primary rounded-md flex items-center justify-center text-on-primary"
+            >
+              <span
+                class="material-symbols-outlined text-sm"
+                data-icon="terminal"
+                >terminal</span
+              >
+            </div>
+            <span
+              class="text-lg font-bold text-blue-900 dark:text-blue-50 font-headline"
+              >Learning Paths</span
+            >
+          </div>
+          <p
+            class="font-['Work_Sans'] text-xs uppercase tracking-widest text-slate-500"
+          >
+            Academic Year 2024
+          </p>
+        </div>
+        <nav class="flex flex-col gap-1">
+          <div class="px-6 py-2 mb-2">
+            <span
+              class="font-['Work_Sans'] text-xs font-semibold uppercase tracking-wider text-slate-400"
+              >Modules</span
+            >
+          </div>
+          <a
+            class="flex items-center gap-4 px-6 py-3 cursor-pointer transition-all duration-200 hover:translate-x-1 bg-white dark:bg-slate-800 text-blue-900 dark:text-blue-50 font-bold rounded-l-none rounded-r-full shadow-sm font-['Work_Sans'] text-sm"
+          >
+            <span class="material-symbols-outlined" data-icon="menu_book"
+              >menu_book</span
+            >
+            <span>Intro to Tags</span>
+          </a>
+          <a
+            class="flex items-center gap-4 px-6 py-3 cursor-pointer transition-all duration-200 hover:translate-x-1 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-r-full font-['Work_Sans'] text-sm"
+          >
+            <span class="material-symbols-outlined" data-icon="science"
+              >science</span
+            >
+            <span>HTML Elements</span>
+          </a>
+          <a
+            class="flex items-center gap-4 px-6 py-3 cursor-pointer transition-all duration-200 hover:translate-x-1 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-r-full font-['Work_Sans'] text-sm"
+          >
+            <span class="material-symbols-outlined" data-icon="memory"
+              >memory</span
+            >
+            <span>Attributes</span>
+          </a>
+          <a
+            class="flex items-center gap-4 px-6 py-3 cursor-pointer transition-all duration-200 hover:translate-x-1 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-r-full font-['Work_Sans'] text-sm"
+          >
+            <span class="material-symbols-outlined" data-icon="palette"
+              >palette</span
+            >
+            <span>Styling Basics</span>
+          </a>
+          <a
+            class="flex items-center gap-4 px-6 py-3 cursor-pointer transition-all duration-200 hover:translate-x-1 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-r-full font-['Work_Sans'] text-sm"
+          >
+            <span class="material-symbols-outlined" data-icon="biotech"
+              >biotech</span
+            >
+            <span>Semantic Web</span>
+          </a>
+        </nav>
+        <div class="mt-auto px-4 flex flex-col gap-1">
+          <a
+            class="flex items-center gap-4 px-6 py-3 cursor-pointer transition-all duration-200 hover:translate-x-1 text-slate-400 dark:text-slate-600 hover:text-blue-900 font-['Work_Sans'] text-sm"
+          >
+            <span class="material-symbols-outlined" data-icon="help_outline"
+              >help_outline</span
+            >
+            <span>Help Center</span>
+          </a>
+          <a
+            class="flex items-center gap-4 px-6 py-3 cursor-pointer transition-all duration-200 hover:translate-x-1 text-slate-400 dark:text-slate-600 hover:text-error font-['Work_Sans'] text-sm"
+          >
+            <span class="material-symbols-outlined" data-icon="logout"
+              >logout</span
+            >
+            <span>Log Out</span>
+          </a>
+        </div>
+      </aside>
+      <!-- Main Content Area -->
+      <main class="ml-72 flex-1 px-12 py-12">
+        <!-- Breadcrumbs -->
+        <nav
+          class="flex items-center gap-2 mb-8 text-xs font-['Work_Sans'] uppercase tracking-widest text-slate-400"
+        >
+          <a class="hover:text-primary transition-colors" href="#">Learn</a>
+          <span
+            class="material-symbols-outlined text-[10px]"
+            data-icon="chevron_right"
+            >chevron_right</span
+          >
+          <span class="text-primary font-bold">HTML Fundamentals</span>
+        </nav>
+        <div class="max-w-4xl mx-auto">
+          <!-- Topic Header -->
+          <header class="mb-12">
+            <h1
+              class="text-5xl font-black font-headline text-primary mb-4 tracking-tight"
+            >
+              Introduction to Tags
+            </h1>
+            <div class="flex items-center gap-4">
+              <span
+                class="inline-flex items-center px-3 py-1 bg-primary-fixed text-on-primary-fixed-variant text-[10px] font-bold uppercase tracking-widest rounded-md"
+                >Foundation</span
+              >
+              <span class="text-slate-400 text-sm flex items-center gap-1">
+                <span
+                  class="material-symbols-outlined text-sm"
+                  data-icon="schedule"
+                  >schedule</span
+                >
+                15 min read
+              </span>
+            </div>
+          </header>
+          <!-- Editorial Content Section -->
+          <section class="space-y-12">
+            <!-- Video Placeholder Card -->
+            <div
+              class="relative aspect-video rounded-xl overflow-hidden bg-surface-container-low group cursor-pointer border border-outline-variant/10"
+            >
+              <div
+                class="absolute inset-0 bg-linear-to-t from-primary/60 to-transparent flex items-center justify-center"
+              >
+                <div
+                  class="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
+                >
+                  <span
+                    class="material-symbols-outlined text-4xl text-white"
+                    data-icon="play_arrow"
+                    style="font-variation-settings: &quot;FILL&quot; 1"
+                    >play_arrow</span
+                  >
+                </div>
+              </div>
+              <img
+                alt="Video Placeholder"
+                class="w-full h-full object-cover"
+                data-alt="High-angle shot of a clean workspace with a laptop displaying code, a coffee cup, and soft morning light filtering through a window"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAw2izpBcVGjXj_qjAc4JeOiKHgLooHzLR8BruwASZl4xZCDOt6fBrvNIqgUKijDz43q5ITyZoMgqBCrCfg6jAiUJ5_O9gZ3IDRO1AtfSrePhmnaSJGr6082Wr1U9_zVeNx-S_Kyd76blo9fUJnMMFykRxOKVPj_1c15Ck1YbCu2CkCKsmzfpaquRMdAK_MeIdu1AE9iJI7dSzQU581kkbWJLo75jQMGKY-IQTHDzdeVtiNEPwQ4bouiJM51UqwNbSJqyU296P6BfKG"
+              />
+            </div>
+            <!-- Lesson Text -->
+            <article class="prose prose-slate max-w-none">
+              <div class="grid grid-cols-3 gap-12">
+                <div class="col-span-2 space-y-6">
+                  <p class="text-xl leading-relaxed text-on-surface font-light">
+                    HTML, or
+                    <strong class="font-bold text-primary"
+                      >HyperText Markup Language</strong
+                    >, is the standard markup language for documents designed to
+                    be displayed in a web browser. It can be assisted by
+                    technologies such as Cascading Style Sheets (CSS) and
+                    scripting languages such as JavaScript.
+                  </p>
+                  <p class="text-lg leading-relaxed text-on-surface-variant">
+                    Web browsers receive HTML documents from a web server or
+                    from local storage and render the documents into multimedia
+                    web pages. HTML describes the structure of a web page
+                    semantically and originally included cues for the appearance
+                    of the document.
+                  </p>
+                  <div
+                    class="p-8 bg-surface-container-low rounded-xl border-l-4 border-secondary"
+                  >
+                    <h3 class="font-headline font-bold text-primary mb-2">
+                      Key Concept: Markup vs. Programming
+                    </h3>
+                    <p class="text-on-surface-variant">
+                      Contrary to popular belief, HTML is not a programming
+                      language. It is a declarative language used to annotate
+                      content so that a browser knows how to display it.
+                    </p>
+                  </div>
+                </div>
+                <!-- Side Asymmetric Column -->
+                <div class="col-span-1">
+                  <div
+                    class="sticky top-32 p-6 bg-surface-container-lowest rounded-xl shadow-sm space-y-4"
+                  >
+                    <h4
+                      class="font-headline font-bold text-primary text-sm uppercase tracking-tighter"
+                    >
+                      Vocabulary
+                    </h4>
+                    <ul class="space-y-3">
+                      <li class="flex flex-col">
+                        <span class="text-secondary font-bold text-sm"
+                          >Opening Tag</span
+                        >
+                        <span class="text-xs text-slate-500"
+                          >Starts the element declaration.</span
+                        >
+                      </li>
+                      <li class="flex flex-col">
+                        <span class="text-secondary font-bold text-sm"
+                          >Content</span
+                        >
+                        <span class="text-xs text-slate-500"
+                          >The actual text or data inside.</span
+                        >
+                      </li>
+                      <li class="flex flex-col">
+                        <span class="text-secondary font-bold text-sm"
+                          >Closing Tag</span
+                        >
+                        <span class="text-xs text-slate-500"
+                          >Ends the element declaration.</span
+                        >
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </article>
+            <!-- Navigation Action -->
+            <footer
+              class="pt-12 border-t border-slate-100 flex justify-between items-center"
+            >
+              <button
+                class="flex items-center gap-2 text-slate-400 hover:text-primary font-bold text-sm transition-colors group"
+              >
+                <span
+                  class="material-symbols-outlined transition-transform group-hover:-translate-x-1"
+                  data-icon="arrow_back"
+                  >arrow_back</span
+                >
+                Previous: Course Overview
+              </button>
+              <button
+                class="bg-primary text-on-primary px-8 py-4 rounded-md font-headline font-bold text-lg shadow-lg hover:bg-secondary transition-all active:scale-95 flex items-center gap-4"
+              >
+                Next Lesson: HTML Elements
+                <span
+                  class="material-symbols-outlined"
+                  data-icon="arrow_forward"
+                  >arrow_forward</span
+                >
+              </button>
+            </footer>
+          </section>
+        </div>
+      </main>
+    </div>
+    <!-- Footer -->
+    <footer
+      class="w-full py-12 mt-auto bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-900"
+    >
+      <div
+        class="flex flex-col md:flex-row justify-between items-center px-12 max-w-screen-2xl mx-auto"
+      >
+        <p
+          class="font-['Work_Sans'] text-xs uppercase tracking-widest text-slate-400 dark:text-slate-600 mb-6 md:mb-0"
+        >
+          © 2024 The Curated Scholar. All rights reserved.
+        </p>
+        <div class="flex gap-8">
+          <a
+            class="font-['Work_Sans'] text-xs uppercase tracking-widest text-slate-400 dark:text-slate-600 hover:text-blue-900 dark:hover:text-blue-200 transition-colors"
+            href="#"
+            >Privacy Policy</a
+          >
+          <a
+            class="font-['Work_Sans'] text-xs uppercase tracking-widest text-slate-400 dark:text-slate-600 hover:text-blue-900 dark:hover:text-blue-200 transition-colors"
+            href="#"
+            >Terms of Service</a
+          >
+          <a
+            class="font-['Work_Sans'] text-xs uppercase tracking-widest text-slate-400 dark:text-slate-600 hover:text-blue-900 dark:hover:text-blue-200 transition-colors"
+            href="#"
+            >Accessibility</a
+          >
+          <a
+            class="font-['Work_Sans'] text-xs uppercase tracking-widest text-slate-400 dark:text-slate-600 hover:text-blue-900 dark:hover:text-blue-200 transition-colors"
+            href="#"
+            >Contact Support</a
+          >
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

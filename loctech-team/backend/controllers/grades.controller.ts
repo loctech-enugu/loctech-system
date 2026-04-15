@@ -129,19 +129,43 @@ export const getStudentClassGrade = async (
     passingScore: number;
   };
 
-  const [attendancePct, assignmentResult, examResult] = await Promise.all([
+  const [attendancePct, assignmentResult, examResult, classExamCount] = await Promise.all([
     getAttendancePercentage(studentId, classId),
     getAssignmentAverage(studentId, classId),
     getExamAverage(studentId, classId),
+    ExamModel.countDocuments({ classIds: classId }),
   ]);
 
   const assignmentPct = assignmentResult.totalGraded > 0 ? assignmentResult.average : 100;
   const examPct = examResult.totalAttempts > 0 ? examResult.average : 0;
 
+  const hasClassExams = classExamCount > 0;
+  const effectiveWeights = hasClassExams
+    ? {
+        attendanceWeight: config.attendanceWeight,
+        assignmentWeight: config.assignmentWeight,
+        examWeight: config.examWeight,
+      }
+    : (() => {
+        const base = config.attendanceWeight + config.assignmentWeight;
+        if (base <= 0) {
+          return {
+            attendanceWeight: 50,
+            assignmentWeight: 50,
+            examWeight: 0,
+          };
+        }
+        return {
+          attendanceWeight: (config.attendanceWeight / base) * 100,
+          assignmentWeight: (config.assignmentWeight / base) * 100,
+          examWeight: 0,
+        };
+      })();
+
   const overall =
-    (attendancePct * config.attendanceWeight) / 100 +
-    (assignmentPct * config.assignmentWeight) / 100 +
-    (examPct * config.examWeight) / 100;
+    (attendancePct * effectiveWeights.attendanceWeight) / 100 +
+    (assignmentPct * effectiveWeights.assignmentWeight) / 100 +
+    (examPct * effectiveWeights.examWeight) / 100;
 
   return {
     attendancePercentage: attendancePct,
@@ -156,6 +180,12 @@ export const getStudentClassGrade = async (
       assignmentWeight: config.assignmentWeight,
       examWeight: config.examWeight,
       passingScore: config.passingScore,
+    },
+    effectiveWeights: {
+      attendanceWeight: Math.round(effectiveWeights.attendanceWeight * 100) / 100,
+      assignmentWeight: Math.round(effectiveWeights.assignmentWeight * 100) / 100,
+      examWeight: Math.round(effectiveWeights.examWeight * 100) / 100,
+      isExamRedistributed: !hasClassExams,
     },
   };
 };

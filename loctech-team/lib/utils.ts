@@ -29,6 +29,7 @@ export const userLinks = {
   classes: "/dashboard/classes",
   enrollments: "/dashboard/enrollments",
   schedule: (courseId: string) => `/dashboard/courses/${courseId}/schedule`,
+  learning: (courseId: string) => `/dashboard/courses/${courseId}/learning`,
   scholarship: "/dashboard/scholarship-students",
   attendance: {
     staff: "/dashboard/attendance/staff",

@@ -197,6 +197,12 @@
   button {
     @apply cursor-pointer;
   }
+  .ql-toolbar.ql-snow {
+    @apply border-input! dark:bg-input/30! rounded-t-md;
+  }
+  .ql-container.ql-snow {
+    @apply border-input! dark:bg-input/30! rounded-b-md;
+  }
 }
 
 @layer components {
