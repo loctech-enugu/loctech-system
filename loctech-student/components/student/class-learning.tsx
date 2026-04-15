@@ -2,12 +2,9 @@
 
 import * as React from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { toast } from "sonner";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { ChevronLeft, ChevronRight, BookOpen, Search } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { SpinnerLoader } from "../spinner";
@@ -19,56 +16,7 @@ type Lesson = {
   contentHtml: string;
 };
 
-function decodeHtml(value: string) {
-  return value
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, "\"")
-    .replace(/&#39;/g, "'");
-}
 
-type CodeBlock = {
-  language: string;
-  content: string;
-};
-
-function detectCodeLanguage(value: string) {
-  const code = value.trim();
-  if (!code) return "plain";
-  if (/<[a-z][\s\S]*>/i.test(code) || /<\/[a-z]+>/i.test(code)) return "html";
-  if (/[.#]?[a-z0-9_-]+\s*\{[\s\S]*:[\s\S]*;\s*\}/i.test(code)) return "css";
-  if (/\b(function|const|let|var|=>|console\.|document\.|window\.)\b/.test(code)) return "js";
-  return "plain";
-}
-
-function getCodeBlocks(contentHtml: string): CodeBlock[] {
-  const regex = /<pre([^>]*)>([\s\S]*?)<\/pre>/gi;
-  const blocks: CodeBlock[] = [];
-
-  let match: RegExpExecArray | null;
-  while ((match = regex.exec(contentHtml)) !== null) {
-    const attrs = match[1] || "";
-    const rawContent = decodeHtml((match[2] || "").trim());
-    const classMatch = attrs.match(/class=["'][^"']*language-([a-z0-9_-]+)[^"']*["']/i);
-    const dataLangMatch = attrs.match(/data-language=["']([^"']+)["']/i);
-    const explicitLang = (classMatch?.[1] || dataLangMatch?.[1] || "plain").toLowerCase();
-    const language = explicitLang === "plain" ? detectCodeLanguage(rawContent) : explicitLang;
-    blocks.push({ language, content: rawContent });
-  }
-
-  return blocks;
-}
-
-function extractCodeByLanguage(contentHtml: string, lang: "html" | "css" | "js") {
-  const blocks = getCodeBlocks(contentHtml);
-  console.log(blocks);
-  const exact = blocks.find((b) => b.language === lang);
-  console.log("exact", exact);
-  if (exact) return exact.content;
-  if (lang === "html") return blocks.find((b) => b.language === "plain")?.content ?? "";
-  return "";
-}
 
 type ClassLearningProps = {
   classId: string;
@@ -112,49 +60,6 @@ export default function ClassLearning({ classId, showBackLink }: ClassLearningPr
   const activeIndex = lessons.findIndex((lesson) => lesson.id === activeLesson?.id);
   const prevLesson = activeIndex > 0 ? lessons[activeIndex - 1] : null;
   const nextLesson = activeIndex >= 0 && activeIndex < lessons.length - 1 ? lessons[activeIndex + 1] : null;
-
-  const [htmlCode, setHtmlCode] = React.useState("");
-  const [cssCode, setCssCode] = React.useState("");
-  const [jsCode, setJsCode] = React.useState("");
-
-  const { data: progress } = useQuery({
-    queryKey: ["lesson-try-it", activeLesson?.id, classId],
-    enabled: !!activeLesson?.id,
-    queryFn: async () => {
-      const res = await fetch(`/api/learning/${activeLesson?.id}/try-it?classId=${classId}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to load try-it progress");
-      return data.data as
-        | { htmlCode: string; cssCode: string; jsCode: string; isCompleted: boolean }
-        | null;
-    },
-  });
-
-  React.useEffect(() => {
-    if (!activeLesson) return;
-    setHtmlCode(progress?.htmlCode ?? extractCodeByLanguage(activeLesson.contentHtml, "html"));
-    setCssCode(progress?.cssCode ?? extractCodeByLanguage(activeLesson.contentHtml, "css"));
-    setJsCode(progress?.jsCode ?? extractCodeByLanguage(activeLesson.contentHtml, "js"));
-  }, [activeLesson, progress]);
-
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      if (!activeLesson) return;
-      const res = await fetch(`/api/learning/${activeLesson.id}/try-it`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ classId, htmlCode, cssCode, jsCode }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to save progress");
-      return data;
-    },
-    onSuccess: () => toast.success("Try-It progress saved"),
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not save progress"),
-  });
-
-  const previewDoc = `<!DOCTYPE html><html><head><style>${cssCode}</style></head><body>${htmlCode}<script>${jsCode}<\/script></body></html>`;
-  const shouldShowTryIt = Boolean(activeLesson?.contentHtml?.toLowerCase().includes("<pre"));
 
   if (isPending) {
     return (
@@ -263,38 +168,6 @@ export default function ClassLearning({ classId, showBackLink }: ClassLearningPr
                   />
                 </CardContent>
               </Card>
-
-              {shouldShowTryIt ? (
-                <Card className="mt-8">
-                  <CardHeader>
-                    <CardTitle>Try it Yourself</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-3">
-                      <div className="space-y-2">
-                        <Label>HTML</Label>
-                        <Textarea rows={10} value={htmlCode} onChange={(e) => setHtmlCode(e.target.value)} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>CSS</Label>
-                        <Textarea rows={10} value={cssCode} onChange={(e) => setCssCode(e.target.value)} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>JavaScript</Label>
-                        <Textarea rows={10} value={jsCode} onChange={(e) => setJsCode(e.target.value)} />
-                      </div>
-                    </div>
-                    <div className="flex justify-end">
-                      <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-                        {saveMutation.isPending ? "Saving..." : "Save try-it draft"}
-                      </Button>
-                    </div>
-                    <div className="rounded-md border overflow-hidden">
-                      <iframe title="Try it output" srcDoc={previewDoc} className="h-[260px] w-full bg-white" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : null}
 
               <div className="mt-10 flex items-center justify-between border-t pt-6">
                 <Button
